@@ -311,9 +311,14 @@ class CLITestRunner:
             command = command.replace('{testDir}', str(self.category_test_dir))
             command = command.replace('{tempDir}', str(self.test_dir / "temp"))
             
+            # Remove escaped quotes that are used for JSON formatting
+            command = command.replace('\\"', '')
+            
             if file_path:
                 file_path = file_path.replace('{testDir}', str(self.category_test_dir))
                 file_path = file_path.replace('{tempDir}', str(self.test_dir / "temp"))
+                # Remove escaped quotes from file paths too
+                file_path = file_path.replace('\\"', '')
             
             # Run test
             if test_type == "file_check":
