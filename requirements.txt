@@ -1,0 +1,20 @@
+# Octos Test Framework - Python Dependencies
+# 
+# Install with uv (recommended):
+#   uv sync
+# Or with pip:
+#   pip install -r requirements.txt
+
+# Web framework for mock servers
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+
+# HTTP client for testing
+httpx>=0.24.0
+
+# Testing framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# WebSocket support (for Discord mock server)
+websockets>=12.0

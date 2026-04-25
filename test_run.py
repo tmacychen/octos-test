@@ -2,8 +2,12 @@
 """
 Octos Test Runner - Unified test execution tool.
 
+This script can be used in two modes:
+1. Standalone test repository (this repo)
+2. Tests directory within the octos project
+
 Usage:
-    tests/test_run.py <command> [args...]
+    test_run.py <command> [args...]
 
 Commands:
     all                          Run all test suites (bot + cli + serve)
@@ -33,24 +37,25 @@ Serve test arguments (after --test serve):
     <test_id>                  Run specific test (e.g., 8.1, server_startup)
 
 Examples:
-    tests/test_run.py all                     # run everything
-    tests/test_run.py --test bot              # all bot tests
-    tests/test_run.py --test bot telegram     # Telegram only
-    tests/test_run.py --test bot list         # list bot modules
-    tests/test_run.py --test bot tg list      # list Telegram test cases
-    tests/test_run.py --test bot tg           # run Telegram tests
-    tests/test_run.py --test bot tg test_new_default  # run specific test
-    tests/test_run.py --test cli              # CLI tests
-    tests/test_run.py --test cli -v           # CLI tests, verbose
-    tests/test_run.py --test cli list         # List test categories
-    tests/test_run.py --test serve            # Serve tests
-    tests/test_run.py --test serve -v         # Serve tests, verbose
-    tests/test_run.py --test serve list       # List serve tests
+    test_run.py all                     # run everything
+    test_run.py --test bot              # all bot tests
+    test_run.py --test bot telegram     # Telegram only
+    test_run.py --test bot list         # list bot modules
+    test_run.py --test bot tg list      # list Telegram test cases
+    test_run.py --test bot tg           # run Telegram tests
+    test_run.py --test bot tg test_new_default  # run specific test
+    test_run.py --test cli              # CLI tests
+    test_run.py --test cli -v           # CLI tests, verbose
+    test_run.py --test cli list         # List test categories
+    test_run.py --test serve            # Serve tests
+    test_run.py --test serve -v         # Serve tests, verbose
+    test_run.py --test serve list       # List serve tests
 
 Environment:
-    ANTHROPIC_API_KEY    Required for bot LLM tests
-    TELEGRAM_BOT_TOKEN   Required for Telegram bot tests
-    DISCORD_BOT_TOKEN    Optional (auto-set for mock mode)
+    OCTOS_BINARY       Path to octos binary (optional, auto-detected if not set)
+    ANTHROPIC_API_KEY  Required for bot LLM tests
+    TELEGRAM_BOT_TOKEN Required for Telegram bot tests
+    DISCORD_BOT_TOKEN  Optional (auto-set for mock mode)
 
 Test directory: /tmp/octos_test
 Logs: /tmp/octos_test/logs
@@ -74,13 +79,20 @@ import httpx
 
 # Constants
 SCRIPT_DIR = Path(__file__).parent
-PROJECT_ROOT = SCRIPT_DIR.parent
+# Support both standalone test repo and tests/ subdirectory in octos project
+if (SCRIPT_DIR / "bot_mock_test").exists():
+    # Standalone test repository
+    TEST_REPO_ROOT = SCRIPT_DIR
+else:
+    # Tests directory within octos project
+    TEST_REPO_ROOT = SCRIPT_DIR
+
 TEST_DIR = Path("/tmp/octos_test")
 LOG_DIR = TEST_DIR / "logs"
-BINARY_PATH = PROJECT_ROOT / "target" / "release" / "octos"
-BOT_TEST_DIR = SCRIPT_DIR / "bot_mock_test"
-CLI_TEST_DIR = SCRIPT_DIR / "cli_test"
-SERVE_TEST_DIR = SCRIPT_DIR / "serve"
+BINARY_PATH = Path(os.environ.get("OCTOS_BINARY", "")) if os.environ.get("OCTOS_BINARY") else None
+BOT_TEST_DIR = TEST_REPO_ROOT / "bot_mock_test"
+CLI_TEST_DIR = TEST_REPO_ROOT / "cli_test"
+SERVE_TEST_DIR = TEST_REPO_ROOT / "serve"
 
 # Ensure directories exist
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -183,7 +195,7 @@ def print_help():
   Octos Test Runner
 
   Usage:
-    tests/test_run.py <command> [args...]
+    test_run.py <command> [args...]
 
   Commands:
     all                          Run all test suites (bot + cli + serve)
@@ -213,24 +225,25 @@ def print_help():
     <test_id>                  Run specific test (e.g., 8.1, server_startup)
 
   Examples:
-    tests/test_run.py all                     # run everything
-    tests/test_run.py --test bot              # all bot tests
-    tests/test_run.py --test bot telegram     # Telegram only
-    tests/test_run.py --test bot list         # list bot modules
-    tests/test_run.py --test bot tg list      # list Telegram test cases
-    tests/test_run.py --test bot tg           # run Telegram tests
-    tests/test_run.py --test bot tg test_new_default  # run specific test
-    tests/test_run.py --test cli              # CLI tests
-    tests/test_run.py --test cli -v           # CLI tests, verbose
-    tests/test_run.py --test cli list         # List test categories
-    tests/test_run.py --test serve            # Serve tests
-    tests/test_run.py --test serve -v         # Serve tests, verbose
-    tests/test_run.py --test serve list       # List serve tests
+    test_run.py all                     # run everything
+    test_run.py --test bot              # all bot tests
+    test_run.py --test bot telegram     # Telegram only
+    test_run.py --test bot list         # list bot modules
+    test_run.py --test bot tg list      # list Telegram test cases
+    test_run.py --test bot tg           # run Telegram tests
+    test_run.py --test bot tg test_new_default  # run specific test
+    test_run.py --test cli              # CLI tests
+    test_run.py --test cli -v           # CLI tests, verbose
+    test_run.py --test cli list         # List test categories
+    test_run.py --test serve            # Serve tests
+    test_run.py --test serve -v         # Serve tests, verbose
+    test_run.py --test serve list       # List serve tests
 
   Environment:
-    ANTHROPIC_API_KEY    Required for bot LLM tests
-    TELEGRAM_BOT_TOKEN   Required for Telegram bot tests
-    DISCORD_BOT_TOKEN    Optional (auto-set for mock mode)
+    OCTOS_BINARY       Path to octos binary (optional, auto-detected if not set)
+    ANTHROPIC_API_KEY  Required for bot LLM tests
+    TELEGRAM_BOT_TOKEN Required for Telegram bot tests
+    DISCORD_BOT_TOKEN  Optional (auto-set for mock mode)
 
   Test directory: /tmp/octos_test
   Logs: /tmp/octos_test/logs
@@ -294,15 +307,86 @@ def has_directory_changed(directory: Path, hash_file: Path) -> bool:
     return current_hashes != saved_hashes
 
 
+def find_octos_binary() -> Optional[Path]:
+    """Find octos binary from environment or common locations.
+    
+    Search order:
+    1. OCTOS_BINARY environment variable
+    2. ./target/release/octos (if in octos project)
+    3. ../target/release/octos (if in tests/ subdirectory)
+    4. System PATH (octos command)
+    """
+    # Check environment variable first
+    env_path = os.environ.get("OCTOS_BINARY")
+    if env_path:
+        path = Path(env_path)
+        if path.exists():
+            return path
+        log.warning(f"OCTOS_BINARY set but file not found: {path}")
+    
+    # Check relative paths
+    candidates = [
+        Path("./target/release/octos"),
+        Path("../target/release/octos"),
+        Path("../../target/release/octos"),
+    ]
+    
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    
+    # Check system PATH
+    import shutil
+    octos_in_path = shutil.which("octos")
+    if octos_in_path:
+        return Path(octos_in_path)
+    
+    return None
+
+
 def build_octos(features: str = "telegram,discord,api") -> bool:
     """Build octos binary with required features.
     
     Args:
         features: Comma-separated list of features to enable (default: telegram,discord,api)
+    
+    Note:
+        This function requires the octos source code to be available.
+        If you have a pre-built binary, set OCTOS_BINARY environment variable instead.
     """
+    global BINARY_PATH
+    
+    # Try to find existing binary first
+    if BINARY_PATH is None:
+        BINARY_PATH = find_octos_binary()
+    
+    if BINARY_PATH and BINARY_PATH.exists():
+        log.info(f"Using existing octos binary: {BINARY_PATH}")
+        return True
+    
+    # No binary found, need to build
+    log.info("No octos binary found, attempting to build...")
     log.info("=" * 60)
     log.info(f"Building octos ({features})")
     log.info("=" * 60)
+    
+    # Find project root (where Cargo.toml is)
+    project_root = None
+    for parent in [SCRIPT_DIR, SCRIPT_DIR.parent, SCRIPT_DIR.parent.parent]:
+        if (parent / "Cargo.toml").exists():
+            project_root = parent
+            break
+    
+    if not project_root:
+        log.error("Cannot find octos project root (no Cargo.toml found)")
+        log.error("")
+        log.error("Options:")
+        log.error("  1. Set OCTOS_BINARY environment variable to point to pre-built binary")
+        log.error("     export OCTOS_BINARY=/path/to/octos")
+        log.error("  2. Run this script from within the octos project directory")
+        log.error("  3. Build octos manually: cargo build --release -p octos-cli --features telegram,discord,api")
+        log.error("")
+        return False
     
     build_log = LOG_DIR / "build.log"
     
@@ -315,7 +399,7 @@ def build_octos(features: str = "telegram,discord,api") -> bool:
         with open(build_log, "w") as f:
             result = subprocess.run(
                 cmd,
-                cwd=PROJECT_ROOT,
+                cwd=project_root,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -328,11 +412,14 @@ def build_octos(features: str = "telegram,discord,api") -> bool:
         log.error("Build failed: %s", e)
         return False
     
+    # Update BINARY_PATH
+    BINARY_PATH = project_root / "target" / "release" / "octos"
+    
     if not BINARY_PATH.exists():
         log.error("Binary not found after build: %s", BINARY_PATH)
         return False
     
-    log.info("✅ Build complete")
+    log.info("✅ Build complete: %s", BINARY_PATH)
     return True
 
 
@@ -1332,10 +1419,10 @@ def main() -> int:
             print("The 'all' command runs all tests and does not accept additional arguments.")
             print("")
             print("Usage:")
-            print("  tests/test_run.py all                    # Run all tests")
-            print("  tests/test_run.py --test bot [args...]   # Run bot tests with options")
-            print("  tests/test_run.py --test cli [args...]   # Run CLI tests with options")
-            print("  tests/test_run.py --test serve [args...] # Run serve tests with options")
+            print("  test_run.py all                    # Run all tests")
+            print("  test_run.py --test bot [args...]   # Run bot tests with options")
+            print("  test_run.py --test cli [args...]   # Run CLI tests with options")
+            print("  test_run.py --test serve [args...] # Run serve tests with options")
             print("")
             print_help()
             return 1

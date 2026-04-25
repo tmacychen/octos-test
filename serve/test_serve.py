@@ -523,12 +523,13 @@ if HAS_PYTEST:
         if not tester.start_server(port=8080, host="127.0.0.1"):
             pytest.fail("Failed to start octos serve for testing")
         
-        yield tester
-        
-        # Cleanup after all tests
-    tester.stop_server()
-    tester.save_report()
-    tester.print_report_to_stdout()  # 输出报告到 stdout
+        try:
+            yield tester
+        finally:
+            # Cleanup after all tests
+            tester.stop_server()
+            tester.save_report()
+            tester.print_report_to_stdout()  # 输出报告到 stdout
 
 
 def test_server_startup(serve_tester):
