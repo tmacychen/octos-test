@@ -79,6 +79,23 @@ import httpx
 
 # Constants
 SCRIPT_DIR = Path(__file__).parent
+
+# Load .env file if it exists
+def load_env_file():
+    """Load environment variables from .env file if present."""
+    env_file = SCRIPT_DIR / ".env"
+    if env_file.exists():
+        with open(env_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, _, value = line.partition('=')
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    if key and key not in os.environ:
+                        os.environ[key] = value
+
+load_env_file()
 # Support both standalone test repo and tests/ subdirectory in octos project
 if (SCRIPT_DIR / "bot_mock_test").exists():
     # Standalone test repository

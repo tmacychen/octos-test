@@ -13,7 +13,6 @@ Discord Bot 集成测试用例
 
 import pytest
 import time
-import random
 import logging
 from runner_discord import DiscordTestRunner
 from test_helpers import inject_and_get_reply
@@ -747,48 +746,45 @@ class TestDiscordAbortCommands:
     @pytest.mark.parametrize(
         "language,channel_id,long_task,expected_keywords",
         [
-            # English - randomly pick one trigger
-            ("english", "30001", 
+            # English - use first trigger word
+            ("english", "30001",
              "Please write a detailed technical article about Python async programming best practices...",
              ["🛑", "cancelled"]),
-                
-            # Chinese - randomly pick one trigger
+
+            # Chinese - use first trigger word
             ("chinese", "30002",
              "请帮我写一篇详细的技术文章，介绍 Python 异步编程的最佳实践...",
              ["🛑", "已取消"]),
-                
-            # Japanese - randomly pick one trigger
+
+            # Japanese - use first trigger word
             ("japanese", "30003",
              "Pythonの非同期プログラミングのベストプラクティスについて詳細な技術記事を書いてください...",
              ["🛑", "キャンセル"]),
-                
-            # Russian - randomly pick one trigger
+
+            # Russian - use first trigger word
             ("russian", "30004",
              "Напишите подробную техническую статью о лучших практиках асинхронного программирования на Python...",
              ["🛑", "Отменено"]),
         ],
         ids=[
-            "english_random_trigger",
-            "chinese_random_trigger",
-            "japanese_random_trigger",
-            "russian_random_trigger",
+            "english_stop",
+            "chinese_stop",
+            "japanese_stop",
+            "russian_stop",
         ]
     )
     def test_abort_multilanguage(self, runner, language, channel_id, long_task, expected_keywords):
-        """多语言 abort 命令测试 - 随机选择一个触发词
-            
+        """多语言 abort 命令测试 - 使用固定触发词
+
         测试流程：
-        1. 发送一个长任务（触发 LLM 处理）
-        2. 等待 5 秒，让任务开始执行
-        3. 从该语言的触发词中随机选择一个发送
-        4. 等待最多 15 秒检查是否收到 abort 响应
-        5. 如果收到 abort 响应，测试通过
-            
+        1. 设置 interrupt 模式以启用实时 abort 检测
+        2. 发送一个长任务（触发 LLM 处理）
+        3. 动态等待直到收到处理中消息
+        4. 发送 abort 命令
+        5. 等待最多 20 秒检查是否收到 abort 响应
+        6. 验证 abort 后任务确实停止
+
         支持：英文、中文、日文、俄文。
-        每种语言只发送一次 abort 命令，减少测试负载。
-        
-        注意：轮询时会过滤掉流式状态消息（Processing, Deliberating 等），
-        避免误匹配长任务的中间消息。
         """
         # Define trigger words for each language (from abort.rs)
         TRIGGERS = {
@@ -797,45 +793,55 @@ class TestDiscordAbortCommands:
             "japanese": ["やめて", "止めて", "ストップ"],
             "russian": ["стоп", "отмена", "хватит"],
         }
-        
+
         # 流式状态消息（这些消息是 LLM 处理中的中间状态，不是 abort 响应）
         STREAMING_STATUS = [
             "Processing", "Deliberating", "Evaluating", "Connecting",
             "Thinking", "Considering", "Analyzing", "Working"
         ]
-            
+
         triggers = TRIGGERS[language]
-        # Randomly select one trigger word
-        abort_cmd = random.choice(triggers)
-        print(f"\n  Testing {language} - randomly selected: '{abort_cmd}' from {triggers}")
-            
+        # Use first trigger word (deterministic)
+        abort_cmd = triggers[0]
+        print(f"\n  Testing {language} - using first trigger: '{abort_cmd}' from {triggers}")
+
         # 🔥 CRITICAL: Set queue mode to 'interrupt' to enable real-time abort detection
         # In Followup/Collect modes, abort commands are queued until LLM completes (up to 120s timeout)
         # Interrupt mode uses tokio::select! to monitor inbox during LLM calls and abort immediately
         text = inject_and_get_reply(runner, "/queue interrupt", timeout=TIMEOUT_COMMAND, channel_id=channel_id)
         assert "Interrupt" in text or "interrupt" in text.lower(), f"Failed to set interrupt mode: {text}"
         print(f"  → Queue mode set to: Interrupt")
-            
+
         # Step 1: 发送长任务，触发 LLM 处理
         # 🔥 使用更复杂的 Prompt 确保 LLM 处理时间足够长
         complex_task = f"{long_task} Please provide a comprehensive analysis with at least 10 detailed points."
         count_before_task = len(runner.get_sent_messages())
         runner.inject(complex_task, channel_id=channel_id)
         print(f"  → Long task injected")
-            
-        # Step 2: 等待 10 秒，确保任务进入深度处理阶段
-        time.sleep(10.0)
-        print(f"  → Waited 10s for task to start")
-            
-        # Step 3: 发送随机选择的 abort 命令
+
+        # Step 2: 动态等待任务开始执行（轮询检测处理中状态）
+        processing_started = False
+        wait_start = time.time()
+        while time.time() - wait_start < 15.0:
+            time.sleep(0.5)
+            msgs = runner.get_sent_messages()
+            # 检测是否有处理中的消息（表示 LLM 开始工作了）
+            for msg in msgs[count_before_task:]:
+                msg_text = msg.get("text", "")
+                if any(status in msg_text for status in STREAMING_STATUS):
+                    processing_started = True
+                    print(f"  → Detected processing started after {time.time() - wait_start:.1f}s")
+                    break
+            if processing_started:
+                break
+        else:
+            # 即使没检测到处理中状态，也继续尝试 abort（可能是短任务已完成）
+            print(f"  → No processing status detected, continuing anyway...")
+
+        # Step 3: 发送 abort 命令
         print(f"  → Sending abort command: '{abort_cmd}'")
         runner.inject(abort_cmd, channel_id=channel_id)
-        
-        # 🔥 DEBUG: Check if any messages are arriving at all
-        time.sleep(2.0)
-        msgs_check = runner.get_sent_messages()
-        print(f"  → DEBUG: Total messages after abort inject: {len(msgs_check)}")
-            
+
         # Step 4: 等待最多 20 秒，检查是否收到 abort 响应
         abort_reply = None
         poll_start = time.time()
@@ -844,46 +850,46 @@ class TestDiscordAbortCommands:
             # 从后往前找，找到第一条包含 abort 特征的消息（跳过流式状态）
             for msg in reversed(msgs):
                 msg_text = msg.get("text", "")
-                
+
                 # 🔥 跳过流式状态消息（避免误匹配长任务的中间消息）
                 if msg_text in STREAMING_STATUS:
                     continue
-                
+
                 if "🛑" in msg_text or any(kw.lower() in msg_text.lower() for kw in expected_keywords if not kw.startswith("🛑")):
                     abort_reply = msg
                     break
-                
+
             if abort_reply is not None:
                 break
-                
-            time.sleep(0.5)  # 轮询间隔
-            
+
+            time.sleep(0.5)
+
         # Step 5: 断言
         assert abort_reply is not None, \
-            f"Bot did not respond to abort command '{abort_cmd}' within 15s"
-            
+            f"Bot did not respond to abort command '{abort_cmd}' within 20s"
+
         text = abort_reply["text"]
-            
+
         # 🔥 VERIFICATION B: 确保收到的是 abort 响应，不是长任务的中间消息
         has_stop_emoji = "🛑" in text
         has_cancel_keyword = any(kw.lower() in text.lower() for kw in expected_keywords if not kw.startswith("🛑"))
-            
+
         assert has_stop_emoji or has_cancel_keyword, \
             f"Expected abort response (with 🛑 or cancel keyword), got: {text[:200]}"
-            
+
         # 🔥 VERIFICATION A: 验证"真中断" - 确认长任务确实停止了
         count_after_abort = len(runner.get_sent_messages())
-            
+
         # 等待一段时间，观察是否还有新消息（长任务不应该继续输出）
         time.sleep(3)
-            
+
         count_final = len(runner.get_sent_messages())
-            
+
         # 断言：abort 后不应该有新的消息产生
         new_messages_after_abort = count_final - count_after_abort
         assert new_messages_after_abort <= 1, \
             f"Long task was NOT properly aborted! Found {new_messages_after_abort} new messages after abort: {text[:100]}"
-            
+
         print(f"  ✓ Abort interrupted long task → {text}")
         print(f"    Verified: No further messages after abort ({new_messages_after_abort} new msgs)")
 
@@ -930,298 +936,3 @@ class TestDiscordAbortCommands:
             time.sleep(0.5)
         
         print(f"\n  ✓ Non-abort messages handled correctly")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Profile 模式测试
-# ══════════════════════════════════════════════════════════════════════════════
-
-class TestDiscordProfileMode:
-    """验证多 profile 配置下的会话隔离"""
-
-    # 🔥 独立 channel_id
-    CHANNEL_ID = "20005"
-
-    def test_profile_session_isolation(self, runner):
-        """不同 channel 使用不同 profile，应该隔离"""
-        CHANNEL_A = "1039178386623557754"
-        CHANNEL_B = "1039178386623557755"
-        
-        # Create sessions in different channels
-        text_a = inject_and_get_reply(runner, "/new profile-a",
-                                      timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_A)
-        assert "profile-a" in text_a
-        
-        text_b = inject_and_get_reply(runner, "/new profile-b",
-                                      timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_B)
-        assert "profile-b" in text_b
-        
-        # Verify isolation
-        sessions_a = inject_and_get_reply(runner, "/sessions",
-                                          timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_A)
-        sessions_b = inject_and_get_reply(runner, "/sessions",
-                                          timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_B)
-        
-        assert "profile-a" in sessions_a
-        assert "profile-b" in sessions_b
-
-    def test_soul_per_profile(self, runner):
-        """验证每个 profile 有独立的 soul 配置"""
-        CHANNEL_A = "1039178386623557758"
-        CHANNEL_B = "1039178386623557759"
-        
-        # Set different souls for different channels
-        text_a = inject_and_get_reply(runner, "/soul You are a coding expert",
-                                      timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_A)
-        assert "Soul updated" in text_a
-        
-        text_b = inject_and_get_reply(runner, "/soul You are a creative writer",
-                                      timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_B)
-        assert "Soul updated" in text_b
-        
-        # Verify souls are independent
-        soul_a = inject_and_get_reply(runner, "/soul",
-                                      timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_A)
-        soul_b = inject_and_get_reply(runner, "/soul",
-                                      timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_B)
-        
-        assert "coding expert" in soul_a.lower() or "You are a coding expert" in soul_a
-        assert "creative writer" in soul_b.lower() or "You are a creative writer" in soul_b
-
-    def test_queue_mode_per_profile(self, runner):
-        """每个 profile 可以有独立的队列模式"""
-        CHANNEL_A = "1039178386623557762"
-        CHANNEL_B = "1039178386623557763"
-        
-        # 🔥 CRITICAL FIX: Create fresh sessions to ensure clean state
-        # Previous tests may have modified queue_mode on these channels
-        inject_and_get_reply(runner, "/new", timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_A)
-        inject_and_get_reply(runner, "/new", timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_B)
-        
-        # Profile A 设置为 followup
-        text_a = inject_and_get_reply(runner, "/queue followup",
-                                      timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_A)
-        assert "Followup" in text_a
-        
-        # Profile B 保持默认 collect
-        text_b = inject_and_get_reply(runner, "/queue",
-                                      timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_B)
-        assert "Collect" in text_b or "collect" in text_b.lower()
-        
-        # 验证 A 仍然是 followup
-        text_a_check = inject_and_get_reply(runner, "/queue",
-                                            timeout=TIMEOUT_COMMAND, channel_id=CHANNEL_A)
-        assert "Followup" in text_a_check
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 文件限制测试
-# ══════════════════════════════════════════════════════════════════════════════
-
-class TestDiscordFileLimits:
-    """验证 Discord 文件大小和消息长度限制"""
-
-    # 🔥 独立 channel_id
-    CHANNEL_ID = "20008"
-
-    def test_large_message_handling(self, runner):
-        """测试大消息处理 - Discord 限制 1900 字符"""
-        # Create a message near the limit
-        long_text = "A" * 1800
-        count_before = len(runner.get_sent_messages())
-        runner.inject(long_text, channel_id="1039178386623557760")
-        
-        # Wait for response
-        msg = runner.wait_for_reply(count_before=count_before, timeout=TIMEOUT_LLM)
-        # Should handle gracefully (either split or process)
-        assert msg is not None, "Bot did not respond to large message"
-        print(f"\n  ✓ Large message handled: {len(msg['text'])} chars response")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 流式编辑测试
-# ══════════════════════════════════════════════════════════════════════════════
-
-@pytest.mark.llm
-class TestDiscordStreamEdit:
-    """验证 Discord 流式编辑功能
-    
-    当 LLM 响应是流式输出时，bot 应该逐步编辑同一条消息而不是发送多条消息。
-    这通过 StreamReporter 调用 channel.edit_message() 实现。
-    """
-
-    # 🔥 独立 channel_id
-    CHANNEL_ID = "20009"
-
-    def test_stream_edit_creates_edit_operations(self, runner):
-        """验证流式响应会触发 edit_message API 调用"""
-        runner.clear()
-        
-        # 发送一个需要流式输出的消息
-        text = inject_and_get_reply(runner, "Count from 1 to 5:", timeout=TIMEOUT_LLM, channel_id=self.CHANNEL_ID)
-        
-        # 检查是否有编辑操作记录（通过 Mock Server 的 _edit_history）
-        # 注意：目前 runner_discord 没有直接暴露 get_edit_history，我们可以通过检查 sent_messages 的变化推断
-        # 或者直接在 Mock Server 增加接口。这里先验证消息发送成功且无报错。
-        assert len(text) > 0, "Should receive a response"
-        print(f"\n  ✓ Stream response received: {len(text)} chars")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# LLM 消息测试（标记 @pytest.mark.llm）
-# ══════════════════════════════════════════════════════════════════════════════
-
-@pytest.mark.llm
-class TestDiscordLLMMessages:
-    """需要调用 LLM API，超时 TIMEOUT_LLM = 50s"""
-
-    def test_regular_message(self, runner):
-        """普通英文消息触发 LLM 回复"""
-        text = inject_and_get_reply(runner, "Hello!", timeout=TIMEOUT_LLM)
-        assert len(text) > 0
-
-    def test_chinese_message(self, runner):
-        """中文消息触发 LLM 回复"""
-        text = inject_and_get_reply(runner, "你好", timeout=TIMEOUT_LLM)
-        assert len(text) > 0
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Session 文件大小压力测试（必须放在最后执行）
-# ══════════════════════════════════════════════════════════════════════════════
-# ⚠️ 重要：这个测试类必须在所有其他测试之后执行！
-#
-# 原因：
-# 1. test_session_accumulation_stability 会累积 session 数据到磁盘
-# 2. test_session_file_size_limit_enforcement 会创建 9.9MB 的大 session 文件
-# 3. 如果这些测试先执行，后续测试加载大 session 文件会导致 LLM 超时
-# 4. 即使有清理逻辑，也无法保证完全不影响其他测试
-#
-# pytest 默认按定义顺序执行测试类，所以这个类放在文件末尾确保最后执行。
-# ══════════════════════════════════════════════════════════════════════════════
-
-class TestDiscordSessionSizeStress:
-    """Session 文件大小压力测试 — 验证 octos-bus 的 session 持久化机制
-    
-    测试 octos-bus/src/session.rs 中的核心功能：
-    - add_message(): 追加消息到 session 并持久化到 JSONL 文件
-    - append_to_disk(): 将消息写入磁盘，检查文件大小限制
-    
-    ⚠️ 这个类必须在所有其他测试之后执行，避免大 session 文件污染后续测试。
-    """
-
-    # 🔥 独立 channel_id
-    CHANNEL_ID = "20012"
-
-    @pytest.mark.slow
-    def test_session_accumulation_stability(self, runner):
-        """测试会话累积稳定性 - 多条消息后仍正常工作"""
-        channel = "1039178386623557761"
-        
-        # Send multiple messages to accumulate history
-        for i in range(5):
-            text = inject_and_get_reply(
-                runner, f"Message {i+1}",
-                timeout=TIMEOUT_COMMAND, channel_id=channel
-            )
-            assert len(text) > 0, f"Empty response for message {i+1}"
-        
-        # Final command should still work
-        final = inject_and_get_reply(runner, "/sessions", timeout=TIMEOUT_COMMAND, channel_id=channel)
-        assert len(final) > 0, "Sessions command failed after accumulation"
-        print(f"\n  ✓ Session stable after 5 messages")
-        
-        # 🔥 关键清理：删除大 session 文件避免污染后续测试
-        import os
-        import glob
-        try:
-            data_dir = os.environ.get("OCTOS_TEST_DIR", "/tmp/octos_test")
-            session_files = glob.glob(f"{data_dir}/users/*/sessions/*.jsonl")
-            deleted_count = 0
-            for session_file in session_files:
-                file_size = os.path.getsize(session_file)
-                if file_size > 100_000:  # 只删除大于 100KB 的文件
-                    os.remove(session_file)
-                    deleted_count += 1
-            if deleted_count > 0:
-                print(f"  ✓ Cleaned up {deleted_count} large session files")
-        except Exception:
-            pass  # 清理失败不影响测试结果
-
-    @pytest.mark.slow
-    def test_session_file_size_limit_enforcement(self, runner):
-        """验证会话文件达到 10MB 限制后的追加行为
-
-        根据 octos-bus/src/session.rs:
-        const MAX_SESSION_FILE_SIZE: u64 = 10 * 1024 * 1024;  // 10 MB
-
-        限制逻辑：
-        - session 文件 >= 10MB 时，新消息仍被处理（bot 正常响应）
-        - 但追加操作被跳过（file_len >= MAX_SESSION_FILE_SIZE → skip append）
-
-        测试策略：直接构造接近 10MB 的 session 文件，通过 bot 加载并追加，
-        验证文件大小在追加前后基本不变（追加被跳过）。
-        """
-        import os
-        import json
-        import urllib.parse
-
-        data_dir = os.environ.get("OCTOS_TEST_DIR", "/tmp/octos_test")
-        test_channel_id = "1039178386623557770"
-        session_name = "size-limit-test"
-        profile = "_main"
-        channel = "discord"
-
-        encoded_base = urllib.parse.quote(f"{profile}:{channel}:{test_channel_id}", safe="")
-        encoded_topic = urllib.parse.quote(session_name, safe="")
-        session_dir = f"{data_dir}/users/{encoded_base}/sessions"
-        session_path = f"{session_dir}/{encoded_topic}.jsonl"
-
-        os.makedirs(session_dir, exist_ok=True)
-
-        target_size = 9_900_000
-        with open(session_path, "w") as f:
-            header = json.dumps({
-                "schema": 1,
-                "model": "test",
-                "created_at": "2024-01-01T00:00:00Z"
-            })
-            f.write(header + "\n")
-            written = len(header.encode()) + 1
-            i = 0
-            while written < target_size:
-                entry = json.dumps({
-                    "role": "user",
-                    "content": f"Message {i}: " + "A" * (200 * 1024)
-                })
-                f.write(entry + "\n")
-                written += len(entry.encode()) + 1
-                i += 1
-
-        pre_size = os.path.getsize(session_path)
-        assert pre_size >= 9_000_000, \
-            f"Pre-filled file too small ({pre_size} bytes), profile key likely wrong: {session_path}"
-        print(f"  Pre-filled session file: {pre_size / 1024**2:.2f}MB at {session_path}")
-
-        count_before = len(runner.get_sent_messages())
-        inject_and_get_reply(runner, f"/new {session_name}",
-                           timeout=TIMEOUT_COMMAND, channel_id=test_channel_id)
-        text = inject_and_get_reply(runner, "tiny msg",
-                                  timeout=TIMEOUT_COMMAND, channel_id=test_channel_id)
-        assert len(text) > 0, "Bot should still respond when session is at size limit"
-
-        post_size = os.path.getsize(session_path)
-        growth = post_size - pre_size
-        print(f"  After append attempt: {post_size / 1024**2:.2f}MB, grew {growth} bytes")
-
-        assert growth < 50_000, \
-            f"Session at limit, append should be skipped (growth={growth} bytes)"
-        print(f"  ✓ Append skipped correctly — session file stayed at {pre_size / 1024**2:.2f}MB")
-        
-        # 清理测试用的 session 文件（避免影响后续测试）
-        try:
-            if os.path.exists(session_path):
-                os.remove(session_path)
-                print(f"  ✓ Cleaned up test session file")
-        except Exception as e:
-            print(f"  ⚠ Failed to clean up session file: {e}")

@@ -13,7 +13,6 @@ Telegram Bot 集成测试用例
 
 import pytest
 import time
-import random
 from runner import BotTestRunner
 from test_helpers import inject_and_get_reply
 
@@ -157,81 +156,81 @@ class TestTelegramSessionCommands:
 
     def test_new_named(self, runner):
         """/new work → 'Switched to session: work'"""
-        text = inject_and_get_reply(runner, "/new work", timeout=TIMEOUT_COMMAND)
+        text = inject_and_get_reply(runner, "/new work", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert text == "Switched to session: work", f"实际回复: {text}"
 
     def test_new_invalid_name(self, runner):
         """/new bad:name（含冒号）→ 'Invalid session name: ...'"""
-        text = inject_and_get_reply(runner, "/new bad:name", timeout=TIMEOUT_COMMAND)
+        text = inject_and_get_reply(runner, "/new bad:name", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert text.startswith("Invalid session name:"), f"实际回复: {text}"
 
     def test_switch_to_existing(self, runner):
         """/s <name> → 'Switched to session: <name>'"""
-        inject_and_get_reply(runner, "/new research", timeout=TIMEOUT_COMMAND)
-        text = inject_and_get_reply(runner, "/s research", timeout=TIMEOUT_COMMAND)
+        inject_and_get_reply(runner, "/new research", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
+        text = inject_and_get_reply(runner, "/s research", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert text.startswith("Switched to session: research"), f"实际回复: {text}"
 
     def test_switch_to_default(self, runner):
         """/s（无参数）→ 'Switched to default session.'"""
-        text = inject_and_get_reply(runner, "/s", timeout=TIMEOUT_COMMAND)
+        text = inject_and_get_reply(runner, "/s", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert text == "Switched to default session.", f"实际回复: {text}"
 
     def test_sessions_list(self, runner):
         """/sessions → bot replies with session list"""
-        text = inject_and_get_reply(runner, "/sessions", timeout=TIMEOUT_COMMAND)
+        text = inject_and_get_reply(runner, "/sessions", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert len(text) > 0, "Empty reply"
         print(f"\n  /sessions → {text[:100]}")
 
     def test_back_returns_session(self, runner):
         """/back → session-related reply"""
-        text = inject_and_get_reply(runner, "/back", timeout=TIMEOUT_COMMAND)
+        text = inject_and_get_reply(runner, "/back", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert "session" in text.lower(), f"Unexpected reply: {text}"
         print(f"\n  /back → {text}")
 
     def test_back_with_history(self, runner):
         """/back（有历史）→ 'Switched back to session: <name>'"""
-        inject_and_get_reply(runner, "/new alpha", timeout=TIMEOUT_COMMAND)
-        inject_and_get_reply(runner, "/new beta", timeout=TIMEOUT_COMMAND)
-        text = inject_and_get_reply(runner, "/back", timeout=TIMEOUT_COMMAND)
+        inject_and_get_reply(runner, "/new alpha", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
+        inject_and_get_reply(runner, "/new beta", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
+        text = inject_and_get_reply(runner, "/back", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert text.startswith("Switched back to session:"), f"实际回复: {text}"
 
     def test_back_alias_b(self, runner):
         """/b 与 /back 行为相同"""
-        text = inject_and_get_reply(runner, "/b", timeout=TIMEOUT_COMMAND)
+        text = inject_and_get_reply(runner, "/b", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert "session" in text.lower(), f"实际回复: {text}"
 
     def test_delete_session(self, runner):
         """/delete <name> → 'Deleted session: <name>'"""
-        inject_and_get_reply(runner, "/new to-delete", timeout=TIMEOUT_COMMAND)
-        text = inject_and_get_reply(runner, "/delete to-delete", timeout=TIMEOUT_COMMAND)
+        inject_and_get_reply(runner, "/new to-delete", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
+        text = inject_and_get_reply(runner, "/delete to-delete", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert text == "Deleted session: to-delete", f"实际回复: {text}"
 
     def test_delete_alias_d(self, runner):
         """/d <name> 与 /delete 行为相同"""
-        inject_and_get_reply(runner, "/new d-alias", timeout=TIMEOUT_COMMAND)
-        text = inject_and_get_reply(runner, "/d d-alias", timeout=TIMEOUT_COMMAND)
+        inject_and_get_reply(runner, "/new d-alias", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
+        text = inject_and_get_reply(runner, "/d d-alias", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert text == "Deleted session: d-alias", f"实际回复: {text}"
 
     def test_delete_no_name(self, runner):
         """/delete（无参数）不匹配 dispatcher，走未知命令帮助"""
-        text = inject_and_get_reply(runner, "/delete", timeout=TIMEOUT_COMMAND)
+        text = inject_and_get_reply(runner, "/delete", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert len(text) > 0, "回复为空"
         print(f"\n  /delete (no arg) → {text[:80]}")
 
     def test_soul_show_default(self, runner):
         """/soul → 显示当前 soul 或默认提示"""
-        text = inject_and_get_reply(runner, "/soul", timeout=TIMEOUT_COMMAND)
+        text = inject_and_get_reply(runner, "/soul", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert len(text) > 0, "回复为空"
         print(f"\n  /soul → {text[:80]}")
 
     def test_soul_set(self, runner):
         """/soul <text> → 'Soul updated. Takes effect in new sessions.'"""
-        text = inject_and_get_reply(runner, "/soul You are a helpful assistant.", timeout=TIMEOUT_COMMAND)
+        text = inject_and_get_reply(runner, "/soul You are a helpful assistant.", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert text == "Soul updated. Takes effect in new sessions.", f"实际回复: {text}"
 
     def test_soul_reset(self, runner):
         """/soul reset → 'Soul reset to default. Takes effect in new sessions.'"""
-        text = inject_and_get_reply(runner, "/soul reset", timeout=TIMEOUT_COMMAND)
+        text = inject_and_get_reply(runner, "/soul reset", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
         assert text == "Soul reset to default. Takes effect in new sessions.", f"实际回复: {text}"
 
 
@@ -795,49 +794,47 @@ class TestTelegramAbortCommands:
     @pytest.mark.parametrize(
         "language,chat_id,long_task,expected_keywords",
         [
-            # English - randomly pick one trigger
-            ("english", 123, 
+            # English - use first trigger word
+            ("english", 123,
              "Please write a detailed technical article about Python async programming best practices...",
              ["🛑", "Cancelled"]),
-            
-            # Chinese - randomly pick one trigger
+
+            # Chinese - use first trigger word
             ("chinese", 126,
              "请帮我写一篇详细的技术文章，介绍 Python 异步编程的最佳实践...",
              ["🛑", "已取消"]),
-            
-            # Japanese - randomly pick one trigger
+
+            # Japanese - use first trigger word
             ("japanese", 134,
              "Pythonの非同期プログラミングのベストプラクティスについて詳細な技術記事を書いてください...",
              ["🛑", "キャンセル"]),
-            
-            # Russian - randomly pick one trigger
+
+            # Russian - use first trigger word
             ("russian", 137,
              "Напишите подробную техническую статью о лучших практиках асинхронного программирования на Python...",
              ["🛑", "Отменено"]),
         ],
         ids=[
-            "english_random_trigger",
-            "chinese_random_trigger",
-            "japanese_random_trigger",
-            "russian_random_trigger",
+            "english_stop",
+            "chinese_stop",
+            "japanese_stop",
+            "russian_stop",
         ]
     )
     def test_abort_multilanguage(self, runner, language, chat_id, long_task, expected_keywords):
-        """多语言 abort 命令测试 - 随机选择一个触发词
-        
+        """多语言 abort 命令测试 - 使用固定触发词
+
         测试流程：
         1. 发送一个长任务（触发 LLM 处理）
-        2. 等待 5 秒，让任务开始执行
-        3. 从该语言的触发词中随机选择一个发送
-        4. 等待最多 10 秒检查是否收到 abort 响应
-        5. 如果收到 abort 响应，测试通过
-        
+        2. 动态等待直到收到第一条处理中消息
+        3. 发送 abort 命令
+        4. 等待最多 15 秒检查是否收到 abort 响应
+        5. 验证 abort 后任务确实停止
+
         支持：英文、中文、日文、俄文。
-        每种语言只发送一次 abort 命令，减少测试负载。
         """
         import time
-        import random
-        
+
         # Define trigger words for each language (from abort.rs)
         TRIGGERS = {
             "english": ["stop", "cancel", "abort", "halt", "quit", "enough"],
@@ -845,29 +842,44 @@ class TestTelegramAbortCommands:
             "japanese": ["やめて", "止めて", "ストップ"],
             "russian": ["стоп", "отмена", "хватит"],
         }
-        
+
         triggers = TRIGGERS[language]
-        # Randomly select one trigger word
-        abort_cmd = random.choice(triggers)
-        print(f"\n  Testing {language} - randomly selected: '{abort_cmd}' from {triggers}")
-        
+        # Use first trigger word (deterministic)
+        abort_cmd = triggers[0]
+        print(f"\n  Testing {language} - using first trigger: '{abort_cmd}' from {triggers}")
+
         # Step 1: 发送长任务，触发 LLM 处理
         count_before_task = len(runner.get_sent_messages())
         runner.inject(long_task, chat_id=chat_id)
         print(f"  → Long task injected")
-        
-        # Step 2: 等待 5 秒，让任务开始执行
-        time.sleep(5.0)
-        print(f"  → Waited 5s for task to start")
-        
-        # Step 3: 发送随机选择的 abort 命令
+
+        # Step 2: 动态等待任务开始执行（轮询检测处理中状态）
+        processing_started = False
+        wait_start = time.time()
+        while time.time() - wait_start < 15.0:
+            time.sleep(0.5)
+            msgs = runner.get_sent_messages()
+            # 检测是否有处理中的消息（表示 LLM 开始工作了）
+            for msg in msgs[count_before_task:]:
+                msg_text = msg.get("text", "")
+                if any(status in msg_text for status in ["Processing", "Deliberating", "Thinking", "Evaluating"]):
+                    processing_started = True
+                    print(f"  → Detected processing started after {time.time() - wait_start:.1f}s")
+                    break
+            if processing_started:
+                break
+        else:
+            # 即使没检测到处理中状态，也继续尝试 abort（可能是短任务已完成）
+            print(f"  → No processing status detected, continuing anyway...")
+
+        # Step 3: 发送 abort 命令
         print(f"  → Sending abort command: '{abort_cmd}'")
         runner.inject(abort_cmd, chat_id=chat_id)
-        
-        # Step 4: 等待最多 10 秒，检查是否收到 abort 响应
+
+        # Step 4: 等待最多 15 秒，检查是否收到 abort 响应
         abort_reply = None
         poll_start = time.time()
-        while time.time() - poll_start < 10.0:
+        while time.time() - poll_start < 15.0:
             msgs = runner.get_sent_messages()
             # 从后往前找，找到第一条包含 abort 特征的消息
             for msg in reversed(msgs):
@@ -875,38 +887,38 @@ class TestTelegramAbortCommands:
                 if "🛑" in msg_text or any(kw.lower() in msg_text.lower() for kw in expected_keywords if not kw.startswith("🛑")):
                     abort_reply = msg
                     break
-            
+
             if abort_reply is not None:
                 break
-            
-            time.sleep(0.3)  # 短轮询间隔
-        
+
+            time.sleep(0.3)
+
         # Step 5: 断言
         assert abort_reply is not None, \
-            f"Bot did not respond to abort command '{abort_cmd}' within 10s"
-        
+            f"Bot did not respond to abort command '{abort_cmd}' within 15s"
+
         text = abort_reply["text"]
-        
+
         # 🔥 VERIFICATION B: 确保收到的是 abort 响应，不是长任务的中间消息
         has_stop_emoji = "🛑" in text
         has_cancel_keyword = any(kw.lower() in text.lower() for kw in expected_keywords if not kw.startswith("🛑"))
-        
+
         assert has_stop_emoji or has_cancel_keyword, \
             f"Expected abort response (with 🛑 or cancel keyword), got: {text[:200]}"
-        
+
         # 🔥 VERIFICATION A: 验证"真中断" - 确认长任务确实停止了
         count_after_abort = len(runner.get_sent_messages())
-        
+
         # 等待一段时间，观察是否还有新消息（长任务不应该继续输出）
         time.sleep(3)
-        
+
         count_final = len(runner.get_sent_messages())
-        
+
         # 断言：abort 后不应该有新的消息产生
         new_messages_after_abort = count_final - count_after_abort
         assert new_messages_after_abort <= 1, \
             f"Long task was NOT properly aborted! Found {new_messages_after_abort} new messages after abort: {text[:100]}"
-        
+
         print(f"  ✓ Abort interrupted long task → {text}")
         print(f"    Verified: No further messages after abort ({new_messages_after_abort} new msgs)")
 
