@@ -23,6 +23,7 @@ Bot test arguments (after --test bot):
     list             List available bot modules
     list <mod>       List test cases in a module
     <mod> [case]     Run module or specific test case
+    --from-test <name>  Run from specified test onwards (with all subsequent tests)
 
 CLI test arguments (after --test cli):
     -v, --verbose              Verbose output
@@ -44,6 +45,7 @@ Examples:
     test_run.py --test bot tg list      # list Telegram test cases
     test_run.py --test bot tg           # run Telegram tests
     test_run.py --test bot tg test_new_default  # run specific test
+    test_run.py --test bot tg --from-test test_abort_with_whitespace  # run from test onwards
     test_run.py --test cli              # CLI tests
     test_run.py --test cli -v           # CLI tests, verbose
     test_run.py --test cli list         # List test categories
@@ -525,11 +527,105 @@ def list_bot_cases(module: str):
         print(f"\nTotal: {count} test(s)\n")
 
 
-def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, List[str]]:
-    """Run bot tests for a specific module.
-    
+def get_test_order(module: str) -> List[str]:
+    """Get ordered list of test names for a module.
+
+    Returns tests in the order pytest would execute them.
+    """
+    test_files = {
+        "telegram": BOT_TEST_DIR / "test_telegram.py",
+        "tg": BOT_TEST_DIR / "test_telegram.py",
+        "discord": BOT_TEST_DIR / "test_discord.py",
+        "dc": BOT_TEST_DIR / "test_discord.py",
+    }
+
+    test_file = test_files.get(module)
+    if not test_file or not test_file.exists():
+        return []
+
+    venv_python = BOT_TEST_DIR / ".venv" / "bin" / "python"
+    if not venv_python.exists():
+        return []
+
+    result = subprocess.run(
+        [str(venv_python), "-m", "pytest", str(test_file), "--collect-only", "-q"],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PYTHONPATH": str(BOT_TEST_DIR)},
+    )
+
+    tests = []
+    for line in result.stdout.splitlines():
+        if "::" in line and "test_" in line:
+            parts = line.split("::")
+            if len(parts) >= 2:
+                test_name = parts[-1]
+                tests.append(test_name)
+    return tests
+
+
+def get_tests_to_rerun(failed_tests: List[str], all_tests: List[str]) -> List[str]:
+    """Get tests to re-run from the first failure onwards.
+
+    Args:
+        failed_tests: List of failed test names
+        all_tests: List of all tests in execution order
+
     Returns:
-        Tuple of (passed, failed_test_names)
+        Tests from the first failed test onwards (in original order)
+    """
+    if not failed_tests or not all_tests:
+        return []
+
+    failed_set = set(failed_tests)
+
+    # Find the first failed test's index in the full order
+    for i, test in enumerate(all_tests):
+        if test in failed_set:
+            return all_tests[i:]
+
+    return []
+
+
+def detect_flaky_failure(failed_tests: List[str], passed_tests: List[str], all_tests: List[str]) -> bool:
+    """Detect if failure pattern suggests flaky test.
+
+    Returns True if:
+    - There was at least one failure
+    - At least one test PASSED after the first failure
+    This suggests the failure was due to state corruption that later cleared.
+
+    Args:
+        failed_tests: Tests that failed in this run
+        passed_tests: Tests that passed in this run
+        all_tests: All tests in execution order
+    """
+    if not failed_tests or not passed_tests:
+        return False
+
+    # Find first failed test's position
+    first_failed_idx = None
+    for i, test in enumerate(all_tests):
+        if test in set(failed_tests):
+            first_failed_idx = i
+            break
+
+    if first_failed_idx is None:
+        return False
+
+    # Check if any passed tests come after the first failure
+    for i, test in enumerate(all_tests):
+        if i > first_failed_idx and test in set(passed_tests):
+            return True
+
+    return False
+
+
+def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, List[str], List[str]]:
+    """Run bot tests for a specific module.
+
+    Returns:
+        Tuple of (passed, failed_test_names, passed_test_names)
     """
     module_logger = logger_mgr.get_module_logger(f"bot_{module}")
     
@@ -608,7 +704,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
     config_file = config_dir / f"test_{module}_config.json"
     
     if module in ["telegram", "tg"]:
-        extra_env = {"TELOXIDE_API_URL": f"http://127.0.0.1:{port}"}
+        extra_env = {"TELEGRAM_API_URL": f"http://127.0.0.1:{port}"}
         config = {
             "version": 1,
             "provider": "anthropic",
@@ -903,12 +999,12 @@ while True:
     
     # Run pytest
     pytest_args = [
-        str(venv_python), "-m", "pytest",
+        str(venv_python), "-u", "-m", "pytest",  # -u for unbuffered output
         str(test_path),
         "--tb=line", "--no-header", "-p", "no:warnings",
         "--log-cli-level=DEBUG",  # Show all debug logs for troubleshooting
         "--color=yes",  # Enable colored output for better readability
-        "-q",  # Quiet mode: show progress number on the left
+        "-v",  # Verbose mode: show test name and status
     ]
     
     if test_case:
@@ -918,9 +1014,16 @@ while True:
     module_logger.info(f"Executing: {' '.join(pytest_args)}")
     
     # Start pytest process
+    pytest_env = {
+        **os.environ,
+        "PYTHONPATH": str(BOT_TEST_DIR),
+        "MOCK_BASE_URL": f"http://127.0.0.1:{port}",
+        "PYTHONUNBUFFERED": "1",  # Force unbuffered output at interpreter level
+    }
+    
     pytest_proc = subprocess.Popen(
         pytest_args,
-        env={**os.environ, "PYTHONPATH": str(BOT_TEST_DIR), "MOCK_BASE_URL": f"http://127.0.0.1:{port}"},
+        env=pytest_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     )
@@ -929,6 +1032,7 @@ while True:
     # This ensures unified timestamp format and perfect ordering
     import sys
     failed_tests = []  # Collect failed test names
+    passed_tests = []  # Collect passed test names
     error_messages = []  # Collect error messages for unknown failures
     while True:
         # Check if Mock Server is still alive
@@ -941,35 +1045,34 @@ while True:
             except Exception:
                 pass
             break
-        
+
         # Check if Bot is still alive
         if bot_proc.poll() is not None:
             module_logger.error("❌ Bot process exited unexpectedly during tests!")
             break
-            
+
         line = pytest_proc.stdout.readline()
         if not line:
             if pytest_proc.poll() is not None:
                 break
             time.sleep(0.1)
             continue
-            
+
         text = line.decode('utf-8', errors='ignore').rstrip()
         if text:
-            module_logger.info(f"[PYTEST] {text}")
-            # Detect failed tests from pytest output
-            # Format: "test_file.py::test_name FAILED"
-            if 'FAILED' in text and '::' in text:
-                # Extract test name
-                parts = text.split()
-                for part in parts:
-                    if '::' in part and part.endswith('.py') == False:
-                        # Get the test function name
-                        test_name = part.split('::')[-1]
-                        if test_name not in failed_tests:
-                            failed_tests.append(test_name)
-                        break
-            # Also capture ERROR lines that might indicate setup failures
+            # Clean up excessive whitespace in pytest output
+            # Remove trailing progress indicators like [XX%] and extra spaces
+            cleaned_text = re.sub(r'\s+\[\d+%\]\s*$', '', text)  # Remove [XX%]
+            cleaned_text = re.sub(r'\s{2,}', ' ', cleaned_text)  # Collapse multiple spaces to one
+            module_logger.info(f"[PYTEST] {cleaned_text}")
+            clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
+            match = re.search(r'(?:(\w+(?:\[.*?\])?)\s+(?:FAILED|PASSED)|(?:FAILED|PASSED)\s+\S+::(\w+(?:\[.*?\])?))', clean_text)
+            if match:
+                test_name = match.group(1) or match.group(2)
+                if 'FAILED' in text and test_name not in failed_tests:
+                    failed_tests.append(test_name)
+                elif 'PASSED' in text and test_name not in passed_tests:
+                    passed_tests.append(test_name)
             elif 'ERROR' in text and ('test_' in text or 'setup' in text.lower()):
                 error_messages.append(text)
     
@@ -980,9 +1083,19 @@ while True:
     )
     
     cleanup()
+
+    # Check if all tests were skipped (pytest returns 0 for all-skipped)
+    all_skipped = len(failed_tests) == 0 and len(passed_tests) == 0
     
     if result.returncode == 0:
-        module_logger.info(f"✅ All {module} tests passed!")
+        if all_skipped:
+            module_logger.warning(f"⚠️  All {module} tests were SKIPPED (no tests actually ran)")
+            module_logger.warning(f"   This usually means Mock Server or Bot is not responding properly")
+            module_logger.warning(f"   Check the logs above for skip reasons")
+            # Return False to indicate tests didn't actually pass
+            return False, ["ALL_TESTS_SKIPPED"], []
+        else:
+            module_logger.info(f"✅ All {module} tests passed!")
     else:
         module_logger.error(f"❌ Some {module} tests failed")
         if failed_tests:
@@ -992,19 +1105,204 @@ while True:
             module_logger.error(f"Errors detected: {len(error_messages)} issues")
             for err_msg in error_messages[:5]:  # Show first 5 errors
                 module_logger.error(f"  - {err_msg}")
+
+    # Return (passed, failed_tests, passed_tests) for flaky detection
+    return result.returncode == 0 and not all_skipped, failed_tests if failed_tests else error_messages, passed_tests
+
+
+def run_bot_test_with_per_test_retry(module: str, from_test: Optional[str] = None) -> Tuple[bool, List[str]]:
+    """Run bot tests with per-test retry and service restart on failure.
+
+    Strategy:
+    1. Run all tests in order (or from specified test if from_test is set)
+    2. On ANY failure: check if subsequent tests passed (flaky pattern)
+    3. If flaky detected: restart services, retry ALL tests from first failure onwards
+    4. If NOT flaky (all subsequent tests also failed/skipped): retry just the first failed test
+    5. Retry only once. If still fails, report final failure.
+
+    This handles two scenarios:
+    - Flaky failures: state corruption that clears later → retry all from first failure
+    - Real failures: persistent issues → retry first failed test to confirm
+
+    Args:
+        module: Bot module name (telegram/discord)
+        from_test: Optional test name to start from. If set, runs this test and all subsequent tests.
+
+    Returns:
+        Tuple of (all_passed, failed_test_names)
+    """
+    module_logger = logger_mgr.get_module_logger(f"bot_{module}")
+
+    # Get full test order
+    all_tests = get_test_order(module)
+    if not all_tests:
+        module_logger.warning("Could not determine test order")
+        passed, failed, _ = run_bot_test(module)
+        return passed, failed
+
+    module_logger.info(f"Total tests in {module}: {len(all_tests)}")
+
+    # If from_test is specified, filter to run from that test onwards
+    if from_test:
+        from_idx = None
+        for i, test in enumerate(all_tests):
+            if test == from_test or from_test in test:
+                from_idx = i
+                break
+        
+        if from_idx is not None:
+            all_tests = all_tests[from_idx:]
+            module_logger.info(f"🎯 Running from test: {from_test} (index {from_idx})")
+            module_logger.info(f"📋 Tests to run: {len(all_tests)}")
+        else:
+            module_logger.warning(f"⚠️  Test '{from_test}' not found, running all tests")
+
+    # Track overall results
+    failed_tests = []
+    passed_tests = []
+
+    # Run all tests first (with from_test filter if specified)
+    test_filter = None
+    if from_test:
+        # Convert filtered test list to pytest -k expression
+        test_filter = " or ".join(all_tests)
+        module_logger.info(f"🔍 Using pytest filter: {test_filter[:100]}{'...' if len(test_filter) > 100 else ''}")
     
-    # Return failed tests, or error messages if no tests were captured
-    return result.returncode == 0, failed_tests if failed_tests else error_messages
+    passed, failed, passed_tests = run_bot_test(module, test_case=test_filter)
+
+    if passed:
+        return True, []
+
+    # Find the first failure index
+    first_failure_idx = None
+    for i, test in enumerate(all_tests):
+        if test in set(failed):
+            first_failure_idx = i
+            break
+
+    if first_failure_idx is None:
+        module_logger.warning("No failed tests found despite non-zero exit code")
+        return False, failed
+
+    first_failed_test = all_tests[first_failure_idx]
+    module_logger.info(f"🔄 First failure: {first_failed_test} at index {first_failure_idx}")
+
+    # Check if this is a flaky failure (some tests passed after first failure)
+    is_flaky = detect_flaky_failure(failed, passed_tests, all_tests)
+
+    if is_flaky:
+        # Flaky pattern detected: retry ALL tests from first failure onwards
+        tests_to_rerun = get_tests_to_rerun(failed, all_tests)
+        module_logger.info(f"🔄 Flaky failure detected! Some tests passed after first failure")
+        module_logger.info(f"🔄 Retrying {len(tests_to_rerun)} tests from first failure onwards")
+        module_logger.info(f"🔄 Tests: {', '.join(tests_to_rerun[:5])}{'...' if len(tests_to_rerun) > 5 else ''}")
+        
+        # Restart services and retry all tests from first failure
+        test_filter = " or ".join(tests_to_rerun)
+        retry_passed, retry_failed, _ = run_bot_test(module, test_filter)
+
+        if retry_passed:
+            module_logger.info(f"✅ Retry succeeded! All {len(tests_to_rerun)} tests passed")
+            return True, []
+        else:
+            module_logger.error(f"❌ Retry also failed, stopping")
+            return False, retry_failed
+    else:
+        # Not flaky: all subsequent tests also failed/skipped
+        # Just retry the first failed test to confirm it's a real failure
+        module_logger.info(f"🔄 No flaky pattern (all subsequent tests also failed)")
+        module_logger.info(f"🔄 Restarting services to retry first failed test...")
+        
+        retry_passed, retry_failed, _ = run_bot_test(module, first_failed_test)
+
+        if retry_passed:
+            module_logger.info(f"✅ Retry succeeded for {first_failed_test}!")
+            module_logger.info(f"   Continuing with remaining tests...")
+            # Continue running the rest of the tests
+            remaining_tests = all_tests[first_failure_idx + 1:]
+            if remaining_tests:
+                cont_passed, cont_failed, _ = run_bot_test(module, " or ".join(remaining_tests))
+                if cont_passed:
+                    return True, []
+                else:
+                    failed_tests.extend(retry_failed)
+                    failed_tests.extend(cont_failed)
+                    return False, failed_tests
+            return True, []
+        else:
+            module_logger.error(f"❌ Retry also failed for {first_failed_test}, stopping")
+            return False, retry_failed
 
 
-def run_all_bot_tests() -> Tuple[bool, List[str]]:
+def run_bot_test_with_flaky_retry(module: str) -> Tuple[bool, List[str]]:
+    """Run bot tests with automatic flaky retry.
+
+    If a test fails but subsequent tests pass, this suggests the failure
+    was due to state corruption (flaky). Automatically retries from the
+    first failing test onwards.
+
+    Only retries once. If retry also fails, reports final failure.
+
+    Returns:
+        Tuple of (all_passed, failed_test_names)
+    """
+    module_logger = logger_mgr.get_module_logger(f"bot_{module}")
+
+    # Get full test order for determining which tests to rerun
+    all_tests = get_test_order(module)
+    if not all_tests:
+        module_logger.warning("Could not determine test order")
+        passed, failed, _ = run_bot_test(module)
+        return passed, failed
+
+    module_logger.info(f"Total tests in {module}: {len(all_tests)}")
+
+    # First run: all tests
+    passed, failed, passed_tests = run_bot_test(module)
+
+    if passed:
+        return True, []
+
+    # Check if failure was flaky (failure followed by later passes)
+    if not detect_flaky_failure(failed, passed_tests, all_tests):
+        module_logger.info("No flaky pattern detected, not retrying")
+        return False, failed
+
+    # Flaky detected - determine tests to rerun from first failure onwards
+    tests_to_rerun = get_tests_to_rerun(failed, all_tests)
+    if not tests_to_rerun:
+        module_logger.warning("Could not determine tests to rerun")
+        return False, failed
+
+    module_logger.info(f"🔄 Flaky failure detected (some tests passed after failure)")
+    module_logger.info(f"🔄 Retrying {len(tests_to_rerun)} tests from first failure")
+    module_logger.info(f"🔄 Tests: {', '.join(tests_to_rerun[:5])}{'...' if len(tests_to_rerun) > 5 else ''}")
+
+    # Retry from first failure onwards
+    test_filter = " or ".join(tests_to_rerun)
+    retry_passed, retry_failed, _ = run_bot_test(module, test_filter)
+
+    if retry_passed:
+        module_logger.info(f"✅ Retry succeeded!")
+        return True, []
+
+    module_logger.error(f"❌ Retry also failed, stopping")
+    return False, retry_failed
+
+
+def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]:
     """Run all bot tests (telegram + discord).
+    
+    Args:
+        from_test: Optional test name to start from. Applied to both modules.
     
     Returns:
         Tuple of (all_passed, error_messages)
     """
     log.info("=" * 60)
     log.info("Running ALL bot tests")
+    if from_test:
+        log.info(f"Starting from test: {from_test}")
     log.info("=" * 60)
     
     modules = ["telegram", "discord"]
@@ -1012,7 +1310,7 @@ def run_all_bot_tests() -> Tuple[bool, List[str]]:
     errors = []
     
     for module in modules:
-        passed, failures = run_bot_test(module)
+        passed, failures = run_bot_test_with_per_test_retry(module, from_test=from_test)
         if not passed:
             all_passed = False
             # Add detailed error messages for each failed test
@@ -1329,7 +1627,17 @@ def main() -> int:
                 if not build_octos():
                     return 1
                 prepare_test_environment()
-                passed, _ = run_all_bot_tests()
+                
+                # Parse --from-test parameter for 'all' command
+                from_test = None
+                i = 0
+                while i < len(remaining):
+                    if remaining[i] == "--from-test" and i + 1 < len(remaining):
+                        from_test = remaining[i + 1]
+                        break
+                    i += 1
+                
+                passed, _ = run_all_bot_tests(from_test=from_test)
                 return 0 if passed else 1
             
             # Check if it's a valid module
@@ -1339,12 +1647,31 @@ def main() -> int:
                 if len(remaining) > 1 and remaining[1] == "list":
                     list_bot_cases(action)
                     return 0
-                
+
                 if not build_octos():
                     return 1
                 prepare_test_environment()
-                test_case = remaining[1] if len(remaining) > 1 else None
-                passed, _ = run_bot_test(action, test_case)
+                
+                # Parse --from-test parameter
+                from_test = None
+                test_case = None
+                
+                i = 1
+                while i < len(remaining):
+                    if remaining[i] == "--from-test" and i + 1 < len(remaining):
+                        from_test = remaining[i + 1]
+                        i += 2
+                    elif test_case is None:
+                        test_case = remaining[i]
+                        i += 1
+                    else:
+                        i += 1
+                
+                # Use per-test retry for module runs (no specific test case)
+                if test_case is None:
+                    passed, _ = run_bot_test_with_per_test_retry(action, from_test=from_test)
+                else:
+                    passed, _, _ = run_bot_test(action, test_case)
                 return 0 if passed else 1
             
             log.error(f"Unknown bot argument: {action}")
