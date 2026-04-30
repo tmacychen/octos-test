@@ -39,6 +39,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import sys
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -167,6 +169,7 @@ class MockMatrixServer:
 
         # ====== Client-Server API (Appservice → Homeserver) ======
 
+        @app.put("/_matrix/client/v3/rooms/{room_id}/send/m.room.message/{txn_id}")
         @app.post("/_matrix/client/v3/rooms/{room_id}/send/m.room.message/{txn_id}")
         async def send_room_message(room_id: str, txn_id: str, request: Request):
             """Appservice sends a message to a room."""
@@ -187,6 +190,7 @@ class MockMatrixServer:
                 "event_id": event_id,
             })
 
+        @app.put("/_matrix/client/v3/rooms/{room_id}/send/m.room.member/{txn_id}")
         @app.post("/_matrix/client/v3/rooms/{room_id}/send/m.room.member/{txn_id}")
         async def send_room_member(room_id: str, txn_id: str, request: Request):
             """Appservice sends a membership event (invite, join, etc.)."""
@@ -370,8 +374,67 @@ class MockMatrixServer:
 
     def start(self) -> Thread:
         """Start the mock server in a background thread."""
+        return self.start_background()
+
+    def start_background(self, log_file=None, appservice_endpoint=None):
+        """Start the server in a background thread.
+
+        Args:
+            log_file: Path to log file (optional)
+            appservice_endpoint: URL of the octos appservice endpoint for push delivery.
+                                 If not provided, checks OCTOS_APPSERVICE_URL env var.
+        """
+        if appservice_endpoint is None:
+            appservice_endpoint = os.environ.get("OCTOS_APPSERVICE_URL")
+
+        if appservice_endpoint:
+            self.set_appservice_endpoint(appservice_endpoint)
+            logger.info(f"🎯 Appservice endpoint configured: {appservice_endpoint}")
+
+        if log_file:
+            from pathlib import Path
+            log_path = Path(log_file)
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+            file_handler = logging.FileHandler(log_file, mode='a')
+            file_handler.setFormatter(formatter)
+            file_handler.setLevel(logging.INFO)
+
+            stdout_handler = logging.StreamHandler(sys.stdout)
+            stdout_handler.setFormatter(formatter)
+            stdout_handler.setLevel(logging.INFO)
+
+            root_logger = logging.getLogger()
+            root_logger.addHandler(file_handler)
+            root_logger.addHandler(stdout_handler)
+            root_logger.setLevel(logging.INFO)
+
+            uvicorn_logger = logging.getLogger("uvicorn")
+            uvicorn_logger.addHandler(file_handler)
+            uvicorn_logger.addHandler(stdout_handler)
+            uvicorn_logger.setLevel(logging.INFO)
+
+            uvicorn_access_logger = logging.getLogger("uvicorn.access")
+            uvicorn_access_logger.addHandler(file_handler)
+            uvicorn_access_logger.addHandler(stdout_handler)
+            uvicorn_access_logger.setLevel(logging.INFO)
+
+            uvicorn_error_logger = logging.getLogger("uvicorn.error")
+            uvicorn_error_logger.addHandler(file_handler)
+            uvicorn_error_logger.addHandler(stdout_handler)
+            uvicorn_error_logger.setLevel(logging.INFO)
+
         def run():
-            uvicorn.run(self.app, host=self.host, port=self.port, log_level="warning")
+            uvicorn.run(
+                self.app,
+                host=self.host,
+                port=self.port,
+                log_level="warning",
+                timeout_keep_alive=60,
+                limit_concurrency=100,
+            )
 
         thread = Thread(target=run, daemon=True)
         thread.start()

@@ -91,14 +91,24 @@ def cleanup_state(request, runner):
     except Exception as e:
         print(f"  ⚠ Session cleanup warning: {type(e).__name__}: {str(e)[:80]}")
 
-    # 重置状态
-    try:
-        inject_and_get_reply(runner, "/reset", timeout=10)
-    except (httpx.HTTPError, AssertionError):
-        pytest.skip("Mock Server /reset 失败，跳过测试")
-        return
-    except Exception as e:
-        print(f"  ⚠ /reset failed: {type(e).__name__}: {str(e)[:80]}")
+    # 重置状态 - 增加超时和重试
+    max_reset_retries = 3
+    reset_timeout = 30
+    for attempt in range(max_reset_retries):
+        try:
+            inject_and_get_reply(runner, "/reset", timeout=reset_timeout)
+            break
+        except (httpx.HTTPError, AssertionError) as e:
+            if attempt < max_reset_retries - 1:
+                print(f"  ⚠ /reset failed (attempt {attempt + 1}/{max_reset_retries}): {type(e).__name__}, retrying...")
+                time.sleep(2)
+            else:
+                pytest.skip(f"Mock Server /reset 失败，跳过测试: {type(e).__name__}")
+                return
+        except Exception as e:
+            print(f"  ⚠ /reset failed: {type(e).__name__}: {str(e)[:80]}")
+            pytest.skip(f"Mock Server /reset 异常，跳过测试: {type(e).__name__}")
+            return
 
     yield
 

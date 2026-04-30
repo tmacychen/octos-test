@@ -731,6 +731,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
             "MATRIX_HOMESERVER_URL": f"http://127.0.0.1:{port}",
             "MATRIX_AS_TOKEN": "mock_as_token_12345",
             "MATRIX_HS_TOKEN": "mock_hs_token_67890",
+            "OCTOS_APPSERVICE_URL": "http://127.0.0.1:8009",
         }
         config = {
             "version": 1,
@@ -816,12 +817,26 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
     # Start Mock Server
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     bot_log = LOG_DIR / f"02_gateway_{module}_{timestamp}.log"
-    
-    mock_code = f"""
+
+    if module in ["matrix", "mx"]:
+        mock_code = f"""
+import time, signal, sys, logging, os
+from {mock_module} import {mock_class}
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("serenity").setLevel(logging.ERROR)
+server = {mock_class}(port={port})
+server.start_background(log_file='{bot_log}', appservice_endpoint=os.environ.get('OCTOS_APPSERVICE_URL'))
+print('ready', flush=True)
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+while True:
+    time.sleep(1)
+"""
+    else:
+        mock_code = f"""
 import time, signal, sys, logging
 from {mock_module} import {mock_class}
 logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("serenity").setLevel(logging.ERROR)  # Suppress stream edit warnings
+logging.getLogger("serenity").setLevel(logging.ERROR)
 server = {mock_class}(port={port})
 server.start_background(log_file='{bot_log}')
 print('ready', flush=True)
@@ -829,10 +844,10 @@ signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 while True:
     time.sleep(1)
 """
-    
+
     mock_proc = subprocess.Popen(
         [str(venv_python), "-c", mock_code],
-        env={**os.environ, "PYTHONPATH": str(BOT_TEST_DIR), "PYTHONDONTWRITEBYTECODE": "1"},
+        env={**os.environ, **extra_env, "PYTHONPATH": str(BOT_TEST_DIR), "PYTHONDONTWRITEBYTECODE": "1"},
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     )
@@ -1072,6 +1087,7 @@ while True:
     failed_tests = []  # Collect failed test names
     passed_tests = []  # Collect passed test names
     error_messages = []  # Collect error messages for unknown failures
+    current_test_name = None  # Track current test name for multi-line output
     while True:
         # Check if Mock Server is still alive
         if mock_proc.poll() is not None:
@@ -1104,13 +1120,28 @@ while True:
             cleaned_text = re.sub(r'\s{2,}', ' ', cleaned_text)  # Collapse multiple spaces to one
             module_logger.info(f"[PYTEST] {cleaned_text}")
             clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
-            match = re.search(r'(?:(\w+(?:\[.*?\])?)\s+(?:FAILED|PASSED)|(?:FAILED|PASSED)\s+\S+::(\w+(?:\[.*?\])?))', clean_text)
-            if match:
-                test_name = match.group(1) or match.group(2)
-                if 'FAILED' in text and test_name not in failed_tests:
-                    failed_tests.append(test_name)
-                elif 'PASSED' in text and test_name not in passed_tests:
-                    passed_tests.append(test_name)
+
+            # Track current test name (test names appear on lines with ::)
+            test_name_match = re.search(r'::(\w+)\s*$', clean_text)
+            if test_name_match:
+                current_test_name = test_name_match.group(1)
+
+            if 'PASSED' in text or 'FAILED' in text:
+                test_name = None
+                # First try to find test name on the same line
+                match = re.search(r'::(\w+)\s+(?:PASSED|FAILED)', clean_text)
+                if match:
+                    test_name = match.group(1)
+                else:
+                    # Fallback: use previously tracked test name
+                    match = re.search(r'(?:PASSED|FAILED)', clean_text)
+                    if match and current_test_name:
+                        test_name = current_test_name
+                if test_name:
+                    if 'FAILED' in text and test_name not in failed_tests:
+                        failed_tests.append(test_name)
+                    elif 'PASSED' in text and test_name not in passed_tests:
+                        passed_tests.append(test_name)
             elif 'ERROR' in text and ('test_' in text or 'setup' in text.lower()):
                 error_messages.append(text)
     
