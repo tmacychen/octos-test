@@ -41,6 +41,8 @@ Examples:
     test_run.py all                     # run everything
     test_run.py --test bot              # all bot tests
     test_run.py --test bot telegram     # Telegram only
+    test_run.py --test bot discord      # Discord only
+    test_run.py --test bot matrix       # Matrix only
     test_run.py --test bot list         # list bot modules
     test_run.py --test bot tg list      # list Telegram test cases
     test_run.py --test bot tg           # run Telegram tests
@@ -247,6 +249,8 @@ def print_help():
     test_run.py all                     # run everything
     test_run.py --test bot              # all bot tests
     test_run.py --test bot telegram     # Telegram only
+    test_run.py --test bot discord      # Discord only
+    test_run.py --test bot matrix       # Matrix only
     test_run.py --test bot list         # list bot modules
     test_run.py --test bot tg list      # list Telegram test cases
     test_run.py --test bot tg           # run Telegram tests
@@ -472,6 +476,7 @@ def list_bot_modules():
     print("Available bot test modules:")
     print("  telegram (tg)  - Telegram bot tests")
     print("  discord (dc)   - Discord bot tests")
+    print("  matrix (mx)    - Matrix bot tests")
     print("")
 
 
@@ -482,6 +487,8 @@ def list_bot_cases(module: str):
         "tg": BOT_TEST_DIR / "test_telegram.py",
         "discord": BOT_TEST_DIR / "test_discord.py",
         "dc": BOT_TEST_DIR / "test_discord.py",
+        "matrix": BOT_TEST_DIR / "test_matrix.py",
+        "mx": BOT_TEST_DIR / "test_matrix.py",
     }
     
     test_file = test_files.get(module)
@@ -537,6 +544,8 @@ def get_test_order(module: str) -> List[str]:
         "tg": BOT_TEST_DIR / "test_telegram.py",
         "discord": BOT_TEST_DIR / "test_discord.py",
         "dc": BOT_TEST_DIR / "test_discord.py",
+        "matrix": BOT_TEST_DIR / "test_matrix.py",
+        "mx": BOT_TEST_DIR / "test_matrix.py",
     }
 
     test_file = test_files.get(module)
@@ -681,6 +690,8 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         "tg": {"port": 5000, "test_file": "test_telegram.py", "mock_module": "mock_tg", "mock_class": "MockTelegramServer"},
         "discord": {"port": 5001, "test_file": "test_discord.py", "mock_module": "mock_discord", "mock_class": "MockDiscordServer"},
         "dc": {"port": 5001, "test_file": "test_discord.py", "mock_module": "mock_discord", "mock_class": "MockDiscordServer"},
+        "matrix": {"port": 5002, "test_file": "test_matrix.py", "mock_module": "mock_matrix", "mock_class": "MockMatrixServer"},
+        "mx": {"port": 5002, "test_file": "test_matrix.py", "mock_module": "mock_matrix", "mock_class": "MockMatrixServer"},
     }
     
     info = module_info.get(module)
@@ -713,6 +724,33 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
             "base_url": "https://api.minimaxi.com/anthropic",
             "gateway": {
                 "channels": [{"type": "telegram", "settings": {"token_env": "TELEGRAM_BOT_TOKEN"}, "allowed_senders": []}],
+            },
+        }
+    elif module in ["matrix", "mx"]:
+        extra_env = {
+            "MATRIX_HOMESERVER_URL": f"http://127.0.0.1:{port}",
+            "MATRIX_AS_TOKEN": "mock_as_token_12345",
+            "MATRIX_HS_TOKEN": "mock_hs_token_67890",
+        }
+        config = {
+            "version": 1,
+            "provider": "anthropic",
+            "model": "MiniMax-M2.7",
+            "api_key_env": "ANTHROPIC_API_KEY",
+            "base_url": "https://api.minimaxi.com/anthropic",
+            "gateway": {
+                "channels": [{
+                    "type": "matrix",
+                    "settings": {
+                        "homeserver": f"http://127.0.0.1:{port}",
+                        "as_token": "mock_as_token_12345",
+                        "hs_token": "mock_hs_token_67890",
+                        "server_name": "localhost",
+                        "sender_localpart": "bot",
+                        "port": 8009,
+                    },
+                    "allowed_senders": [],
+                }],
             },
         }
     else:
@@ -1305,10 +1343,10 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
         log.info(f"Starting from test: {from_test}")
     log.info("=" * 60)
     
-    modules = ["telegram", "discord"]
+    modules = ["telegram", "discord", "matrix"]
     all_passed = True
     errors = []
-    
+
     for module in modules:
         passed, failures = run_bot_test_with_per_test_retry(module, from_test=from_test)
         if not passed:
@@ -1325,7 +1363,7 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
                         errors.append(f"{module}: {error_summary}")
             else:
                 errors.append(f"{module}: (unknown failures - check logs)")
-    
+
     return all_passed, errors
 
 
@@ -1641,7 +1679,7 @@ def main() -> int:
                 return 0 if passed else 1
             
             # Check if it's a valid module
-            valid_modules = ["telegram", "tg", "discord", "dc"]
+            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx"]
             if action in valid_modules:
                 # Special case: check for 'list' subcommand
                 if len(remaining) > 1 and remaining[1] == "list":
