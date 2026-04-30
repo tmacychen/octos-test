@@ -17,6 +17,9 @@ import logging
 from runner_discord import DiscordTestRunner
 from test_helpers import inject_and_get_reply
 
+# Configure logger for this module
+logger = logging.getLogger(__name__)
+
 # 🔥 Suppress httpx INFO logs to reduce noise in test output
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
@@ -151,10 +154,14 @@ class TestDiscordSessionCommands:
         assert "Switched to session: session-a" in text, f"Unexpected: {text}"
 
     def test_back_to_default(self, runner):
-        """/back 应该返回默认会话"""
-        inject_and_get_reply(runner, "/new back-test", timeout=TIMEOUT_COMMAND)
+        """/back 应该返回上一个会话"""
+        # 建立切换历史：先创建并切换到 session-a，再切换到 session-b
+        # 这样 /back 才能返回到 session-a
+        inject_and_get_reply(runner, "/new session-a", timeout=TIMEOUT_COMMAND)
+        inject_and_get_reply(runner, "/new session-b", timeout=TIMEOUT_COMMAND)
         text = inject_and_get_reply(runner, "/back", timeout=TIMEOUT_COMMAND)
-        assert "default" in text.lower(), f"Unexpected: {text}"
+        assert "Switched back to session" in text, f"Unexpected: {text}"
+        assert "session-a" in text, f"Expected to return to session-a, got: {text}"
 
     def test_delete_session(self, runner):
         """/delete 应该删除当前会话"""
