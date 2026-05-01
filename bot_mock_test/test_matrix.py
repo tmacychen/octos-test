@@ -86,8 +86,9 @@ def cleanup_state(request, runner):
     try:
         pending = runner.get_sent_messages(timeout=5)
         if pending:
-            print(f"  ⚠ Mock Server has {len(pending)} pending messages, waiting more...")
-            time.sleep(15.0)
+            wait_time = 30.0 if len(pending) > 10 else 15.0
+            print(f"  ⚠ Mock Server has {len(pending)} pending messages, waiting {wait_time:.0f}s...")
+            time.sleep(wait_time)
     except Exception:
         pass
 
