@@ -1773,9 +1773,9 @@ def main() -> int:
                     else:
                         i += 1
                 
-                # Use per-test retry for module runs (no specific test case)
+                # Use test class grouping for stability (each class gets a fresh Bot process)
                 if test_case is None:
-                    passed, _ = run_bot_test_with_per_test_retry(action, from_test=from_test)
+                    passed, _ = run_bot_test_by_class(action)
                 else:
                     passed, _, _ = run_bot_test(action, test_case)
                 return 0 if passed else 1
