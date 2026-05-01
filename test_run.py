@@ -20,6 +20,7 @@ Bot test arguments (after --test bot):
     all              Run all tests
     telegram, tg     Run Telegram tests only
     discord, dc      Run Discord tests only
+    matrix, mx       Run Matrix tests only
     list             List available bot modules
     list <mod>       List test cases in a module
     <mod> [case]     Run module or specific test case
@@ -41,8 +42,6 @@ Examples:
     test_run.py all                     # run everything
     test_run.py --test bot              # all bot tests
     test_run.py --test bot telegram     # Telegram only
-    test_run.py --test bot discord      # Discord only
-    test_run.py --test bot matrix       # Matrix only
     test_run.py --test bot list         # list bot modules
     test_run.py --test bot tg list      # list Telegram test cases
     test_run.py --test bot tg           # run Telegram tests
@@ -229,6 +228,7 @@ def print_help():
     all              Run all tests
     telegram, tg     Run Telegram tests only
     discord, dc      Run Discord tests only
+    matrix, mx       Run Matrix tests only
     list             List available bot modules
     list <mod>       List test cases in a module
     <mod> [case]     Run module or specific test case
@@ -249,12 +249,12 @@ def print_help():
     test_run.py all                     # run everything
     test_run.py --test bot              # all bot tests
     test_run.py --test bot telegram     # Telegram only
-    test_run.py --test bot discord      # Discord only
-    test_run.py --test bot matrix       # Matrix only
     test_run.py --test bot list         # list bot modules
     test_run.py --test bot tg list      # list Telegram test cases
     test_run.py --test bot tg           # run Telegram tests
     test_run.py --test bot tg test_new_default  # run specific test
+    test_run.py --test bot matrix            # Matrix only
+    test_run.py --test bot mx list           # list Matrix test cases
     test_run.py --test cli              # CLI tests
     test_run.py --test cli -v           # CLI tests, verbose
     test_run.py --test cli list         # List test categories
@@ -367,11 +367,11 @@ def find_octos_binary() -> Optional[Path]:
     return None
 
 
-def build_octos(features: str = "telegram,discord,api") -> bool:
+def build_octos(features: str = "telegram,discord,matrix,api") -> bool:
     """Build octos binary with required features.
     
     Args:
-        features: Comma-separated list of features to enable (default: telegram,discord,api)
+        features: Comma-separated list of features to enable (default: telegram,discord,matrix,api)
     
     Note:
         This function requires the octos source code to be available.
@@ -407,7 +407,7 @@ def build_octos(features: str = "telegram,discord,api") -> bool:
         log.error("  1. Set OCTOS_BINARY environment variable to point to pre-built binary")
         log.error("     export OCTOS_BINARY=/path/to/octos")
         log.error("  2. Run this script from within the octos project directory")
-        log.error("  3. Build octos manually: cargo build --release -p octos-cli --features telegram,discord,api")
+        log.error("  3. Build octos manually: cargo build --release -p octos-cli --features telegram,discord,matrix,api")
         log.error("")
         return False
     
@@ -648,7 +648,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         required_vars.append("TELEGRAM_BOT_TOKEN")
     
     if not check_environment(required_vars):
-        return False, []
+        return False, [], []
     
     # Clean up any lingering octos processes from previous runs
     module_logger.info("Cleaning up lingering processes...")
@@ -697,7 +697,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
     info = module_info.get(module)
     if not info:
         module_logger.error(f"Unknown module: {module}")
-        return False, []
+        return False, [], []
     
     port = info["port"]
     test_file = info["test_file"]
@@ -707,7 +707,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
     test_path = BOT_TEST_DIR / test_file
     if not test_path.exists():
         module_logger.error(f"Test file not found: {test_path}")
-        return False, []
+        return False, [], []
     
     # Prepare config
     config_dir = TEST_DIR / ".octos"
@@ -726,35 +726,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "channels": [{"type": "telegram", "settings": {"token_env": "TELEGRAM_BOT_TOKEN"}, "allowed_senders": []}],
             },
         }
-    elif module in ["matrix", "mx"]:
-        extra_env = {
-            "MATRIX_HOMESERVER_URL": f"http://127.0.0.1:{port}",
-            "MATRIX_AS_TOKEN": "mock_as_token_12345",
-            "MATRIX_HS_TOKEN": "mock_hs_token_67890",
-            "OCTOS_APPSERVICE_URL": "http://127.0.0.1:8009",
-        }
-        config = {
-            "version": 1,
-            "provider": "anthropic",
-            "model": "MiniMax-M2.7",
-            "api_key_env": "ANTHROPIC_API_KEY",
-            "base_url": "https://api.minimaxi.com/anthropic",
-            "gateway": {
-                "channels": [{
-                    "type": "matrix",
-                    "settings": {
-                        "homeserver": f"http://127.0.0.1:{port}",
-                        "as_token": "mock_as_token_12345",
-                        "hs_token": "mock_hs_token_67890",
-                        "server_name": "localhost",
-                        "sender_localpart": "bot",
-                        "port": 8009,
-                    },
-                    "allowed_senders": [],
-                }],
-            },
-        }
-    else:
+    elif module in ["discord", "dc"]:
         if not os.environ.get("DISCORD_BOT_TOKEN"):
             os.environ["DISCORD_BOT_TOKEN"] = "mock-bot-token-for-testing"
             module_logger.info("DISCORD_BOT_TOKEN not set, using dummy value (mock mode)")
@@ -767,6 +739,18 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
             "base_url": "https://api.minimaxi.com/anthropic",
             "gateway": {
                 "channels": [{"type": "discord", "settings": {"token_env": "DISCORD_BOT_TOKEN"}, "allowed_senders": []}],
+            },
+        }
+    elif module in ["matrix", "mx"]:
+        extra_env = {"OCTOS_APPSERVICE_URL": "http://127.0.0.1:8009"}
+        config = {
+            "version": 1,
+            "provider": "anthropic",
+            "model": "MiniMax-M2.7",
+            "api_key_env": "ANTHROPIC_API_KEY",
+            "base_url": "https://api.minimaxi.com/anthropic",
+            "gateway": {
+                "channels": [{"type": "matrix", "settings": {"homeserver": "http://127.0.0.1:5002", "as_token": "test_token", "appservice_user": "test_bot", "hs_token": "test_secret"}, "allowed_senders": []}],
             },
         }
     
@@ -817,26 +801,12 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
     # Start Mock Server
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     bot_log = LOG_DIR / f"02_gateway_{module}_{timestamp}.log"
-
-    if module in ["matrix", "mx"]:
-        mock_code = f"""
-import time, signal, sys, logging, os
-from {mock_module} import {mock_class}
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("serenity").setLevel(logging.ERROR)
-server = {mock_class}(port={port})
-server.start_background(log_file='{bot_log}', appservice_endpoint=os.environ.get('OCTOS_APPSERVICE_URL'))
-print('ready', flush=True)
-signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
-while True:
-    time.sleep(1)
-"""
-    else:
-        mock_code = f"""
+    
+    mock_code = f"""
 import time, signal, sys, logging
 from {mock_module} import {mock_class}
 logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("serenity").setLevel(logging.ERROR)
+logging.getLogger("serenity").setLevel(logging.ERROR)  # Suppress stream edit warnings
 server = {mock_class}(port={port})
 server.start_background(log_file='{bot_log}')
 print('ready', flush=True)
@@ -844,7 +814,7 @@ signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 while True:
     time.sleep(1)
 """
-
+    
     mock_proc = subprocess.Popen(
         [str(venv_python), "-c", mock_code],
         env={**os.environ, **extra_env, "PYTHONPATH": str(BOT_TEST_DIR), "PYTHONDONTWRITEBYTECODE": "1"},
@@ -889,17 +859,17 @@ while True:
                 module_logger.error(f"Mock server output:\n{output}")
         except Exception:
             pass
-        
-        return False, []
-    
+
+        return False, [], []
+
     mock_pid = mock_proc.pid
     module_logger.info(f"{module} Mock server running on port {port} (PID {mock_pid})")
-    
+
     # Start Octos Gateway
     if not BINARY_PATH.exists():
         module_logger.error(f"Octos binary not found: {BINARY_PATH}")
         mock_proc.terminate()
-        return False, []
+        return False, [], []
     
     bot_env = {**os.environ, **extra_env}
     
@@ -1046,7 +1016,7 @@ while True:
         except FileNotFoundError:
             pass
         cleanup()
-        return False, []
+        return False, [], []
     
     module_logger.info("Gateway ready!")
     
@@ -1087,7 +1057,6 @@ while True:
     failed_tests = []  # Collect failed test names
     passed_tests = []  # Collect passed test names
     error_messages = []  # Collect error messages for unknown failures
-    current_test_name = None  # Track current test name for multi-line output
     while True:
         # Check if Mock Server is still alive
         if mock_proc.poll() is not None:
@@ -1120,28 +1089,13 @@ while True:
             cleaned_text = re.sub(r'\s{2,}', ' ', cleaned_text)  # Collapse multiple spaces to one
             module_logger.info(f"[PYTEST] {cleaned_text}")
             clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
-
-            # Track current test name (test names appear on lines with ::)
-            test_name_match = re.search(r'::(\w+)\s*$', clean_text)
-            if test_name_match:
-                current_test_name = test_name_match.group(1)
-
-            if 'PASSED' in text or 'FAILED' in text:
-                test_name = None
-                # First try to find test name on the same line
-                match = re.search(r'::(\w+)\s+(?:PASSED|FAILED)', clean_text)
-                if match:
-                    test_name = match.group(1)
-                else:
-                    # Fallback: use previously tracked test name
-                    match = re.search(r'(?:PASSED|FAILED)', clean_text)
-                    if match and current_test_name:
-                        test_name = current_test_name
-                if test_name:
-                    if 'FAILED' in text and test_name not in failed_tests:
-                        failed_tests.append(test_name)
-                    elif 'PASSED' in text and test_name not in passed_tests:
-                        passed_tests.append(test_name)
+            match = re.search(r'(?:(\S+)\s+(?:FAILED|PASSED)|(?:FAILED|PASSED)\s+(\S+))', clean_text)
+            if match:
+                test_name = match.group(1) or match.group(2)
+                if 'FAILED' in text and test_name not in failed_tests:
+                    failed_tests.append(test_name)
+                elif 'PASSED' in text and test_name not in passed_tests:
+                    passed_tests.append(test_name)
             elif 'ERROR' in text and ('test_' in text or 'setup' in text.lower()):
                 error_messages.append(text)
     
@@ -1360,7 +1314,7 @@ def run_bot_test_with_flaky_retry(module: str) -> Tuple[bool, List[str]]:
 
 
 def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]:
-    """Run all bot tests (telegram + discord).
+    """Run all bot tests (telegram + discord + matrix).
     
     Args:
         from_test: Optional test name to start from. Applied to both modules.
@@ -1377,7 +1331,7 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
     modules = ["telegram", "discord", "matrix"]
     all_passed = True
     errors = []
-
+    
     for module in modules:
         passed, failures = run_bot_test_with_per_test_retry(module, from_test=from_test)
         if not passed:
@@ -1394,7 +1348,7 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
                         errors.append(f"{module}: {error_summary}")
             else:
                 errors.append(f"{module}: (unknown failures - check logs)")
-
+    
     return all_passed, errors
 
 

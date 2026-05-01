@@ -24,12 +24,12 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # ── 超时配置 ──────────────────────────────────────────────────────────────────
-TIMEOUT_COMMAND = 20   # 本地命令，无需 LLM
-TIMEOUT_LLM     = 50   # 需要调用 LLM API
+TIMEOUT_COMMAND = 20
+TIMEOUT_LLM     = 50
 
-# ── 压力缓解配置 ──────────────────────────────────────────────────────────────
-LLM_TEST_DELAY = 3.0   # LLM 测试后的等待时间（秒）
-ABORT_TEST_DELAY = 2.0  # Abort 测试后的等待时间（秒）
+LLM_TEST_DELAY = 3.0
+ABORT_TEST_DELAY = 2.0
+CLEANUP_SLEEP = 2.0
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -65,50 +65,31 @@ def cleanup_state(request, runner):
         pytest.skip("Mock Server 崩溃，无法恢复")
         return
 
-    time.sleep(5.0)
-
-    try:
-        runner.clear()
-    except httpx.HTTPError:
-        pytest.skip("Mock Server 无法清理，跳过测试")
-        return
-
-    # 清理大 session 文件
+    # 直接清理数据库文件来重置状态
+    db_removed = False
     try:
         data_dir = os.environ.get("OCTOS_TEST_DIR", "/tmp/octos_test")
-        session_files = glob.glob(f"{data_dir}/users/*/sessions/*.jsonl")
-        deleted_count = 0
-        for session_file in session_files:
-            try:
-                file_size = os.path.getsize(session_file)
-                if file_size > 100_000:
-                    os.remove(session_file)
-                    deleted_count += 1
-            except OSError:
-                pass
-        if deleted_count > 0:
-            print(f"  🗑 Cleaned up {deleted_count} large session files")
-    except Exception as e:
-        print(f"  ⚠ Session cleanup warning: {type(e).__name__}: {str(e)[:80]}")
+        db_path = f"{data_dir}/episodes.redb"
+        if os.path.exists(db_path):
+            os.remove(db_path)
+            db_removed = True
+            print(f"  🗑 Removed database: {db_path}")
+    except OSError as e:
+        print(f"  ⚠ Database cleanup warning: {e}")
+        db_removed = False
 
-    # 重置状态 - 增加超时和重试
-    max_reset_retries = 3
-    reset_timeout = 30
-    for attempt in range(max_reset_retries):
-        try:
-            inject_and_get_reply(runner, "/reset", timeout=reset_timeout)
-            break
-        except (httpx.HTTPError, AssertionError) as e:
-            if attempt < max_reset_retries - 1:
-                print(f"  ⚠ /reset failed (attempt {attempt + 1}/{max_reset_retries}): {type(e).__name__}, retrying...")
-                time.sleep(2)
-            else:
-                pytest.skip(f"Mock Server /reset 失败，跳过测试: {type(e).__name__}")
-                return
-        except Exception as e:
-            print(f"  ⚠ /reset failed: {type(e).__name__}: {str(e)[:80]}")
-            pytest.skip(f"Mock Server /reset 异常，跳过测试: {type(e).__name__}")
-            return
+    # 等待 LLM 响应完成（但不要太久，避免新消息被延迟）
+    time.sleep(2.0)
+
+    # 检查 Mock Server 是否有积压消息（如果有，说明 Bot 还在处理）
+    # 注意：不要在测试前清理 Mock Server，因为可能干扰 Bot 内部状态
+    try:
+        pending = runner.get_sent_messages(timeout=5)
+        if pending:
+            print(f"  ⚠ Mock Server has {len(pending)} pending messages, waiting more...")
+            time.sleep(15.0)
+    except Exception:
+        pass
 
     yield
 

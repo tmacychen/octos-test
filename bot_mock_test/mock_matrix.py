@@ -118,10 +118,10 @@ class MockMatrixServer:
         self._registered_users: Dict[str, RegisteredUser] = {}
         self._room_members: Dict[str, List[str]] = {}  # room_id -> [user_ids]
 
-        # Bot info
-        self._bot_user_id = "@bot:localhost"
-        self._as_token = "mock_as_token_12345"
-        self._hs_token = "mock_hs_token_67890"
+        # Bot info - use env vars for tokens to match gateway config
+        self._bot_user_id = os.environ.get("MOCK_BOT_USER_ID", "@bot:localhost")
+        self._as_token = os.environ.get("MOCK_AS_TOKEN", "test_token")
+        self._hs_token = os.environ.get("MOCK_HS_TOKEN", "test_secret")
 
         # Transaction counter
         self._txn_counter = 0
@@ -175,6 +175,14 @@ class MockMatrixServer:
             """Appservice sends a message to a room."""
             body = await request.json()
             event_id = self._generate_event_id()
+
+            logger.info(f"📨 Bot send_room_message: room={room_id}, txn_id={txn_id}, body={body}")
+
+            # Auto-join the room if bot is not already a member
+            if room_id not in self._room_members:
+                self._room_members[room_id] = [DEFAULT_SENDER, self._bot_user_id]
+            elif self._bot_user_id not in self._room_members[room_id]:
+                self._room_members[room_id].append(self._bot_user_id)
 
             sent = SentMessage(
                 room_id=room_id,
@@ -286,12 +294,14 @@ class MockMatrixServer:
                 try:
                     import httpx
                     async with httpx.AsyncClient() as client:
-                        await client.put(
+                        logger.info(f"🔔 Pushing event to appservice: {txn_id}")
+                        resp = await client.put(
                             f"{self._appservice_endpoint}/_matrix/app/v1/transactions/{txn_id}",
                             json={"events": [event]},
                             headers={"Authorization": f"Bearer {self._hs_token}"},
                             timeout=5,
                         )
+                        logger.info(f"🔔 Appservice push response: {resp.status_code}")
                 except Exception as e:
                     logger.warning(f"Failed to push to appservice: {e}")
 

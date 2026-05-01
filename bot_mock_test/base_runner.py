@@ -32,17 +32,14 @@ class BaseMockRunner:
 
     def wait_for_reply(self, count_before: int = 0,
                        timeout: int = 10, poll_interval: float = 0.5,
-                       chat_id: Optional[int] = None) -> Optional[dict]:
+                       chat_id: Optional[str] = None) -> Optional[dict]:
         """
         等待 bot 发送新消息，返回最新一条。
         count_before: 调用前已有的消息数量
         timeout: 最长等待秒数
-        poll_interval: 轮询间隔秒数（默认 0.5s，比之前更快响应）
-        chat_id: 可选，只等待特定 chat_id 的消息（并发测试必需）
+        poll_interval: 轮询间隔秒数（默认 0.5s）
+        chat_id: 可选，chat_id/channel_id/room_id 用于过滤
         """
-        # 🔥 OPTIMIZATION: Check immediately before waiting
-        # This avoids unnecessary delay if message is already available
-        # Use short timeout to avoid blocking if Mock Server is slow
         try:
             msgs = self.get_sent_messages(timeout=5)
         except httpx.HTTPError:
@@ -50,12 +47,13 @@ class BaseMockRunner:
         if len(msgs) > count_before:
             if chat_id is not None:
                 for msg in reversed(msgs[count_before:]):
-                    if msg.get("chat_id") == chat_id or msg.get("channel_id") == chat_id:
+                    if (msg.get("chat_id") == chat_id
+                            or msg.get("channel_id") == chat_id
+                            or msg.get("room_id") == chat_id):
                         return msg
             else:
                 return msgs[-1]
-        
-        # Enter polling loop if message not yet available
+
         elapsed = 0.0
         while elapsed < timeout:
             time.sleep(poll_interval)
@@ -63,12 +61,13 @@ class BaseMockRunner:
             try:
                 msgs = self.get_sent_messages(timeout=5)
             except httpx.HTTPError:
-                continue  # Mock Server 暂时不可达，继续轮询
+                continue
             if len(msgs) > count_before:
-                # If chat_id specified, filter messages for this chat
                 if chat_id is not None:
                     for msg in reversed(msgs[count_before:]):
-                        if msg.get("chat_id") == chat_id or msg.get("channel_id") == chat_id:
+                        if (msg.get("chat_id") == chat_id
+                                or msg.get("channel_id") == chat_id
+                                or msg.get("room_id") == chat_id):
                             return msg
                 else:
                     return msgs[-1]

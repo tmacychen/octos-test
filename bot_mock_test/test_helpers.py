@@ -13,14 +13,17 @@ def inject_and_get_reply(runner, text: str, timeout: int = 15, **inject_kwargs) 
     inject_kwargs 会透传给 runner.inject()，各平台参数不同：
       - Telegram: chat_id=100, username="testuser"
       - Discord:  channel_id="1039178386623557754"
+      - Matrix:   room_id="!test:localhost"
     默认值由各 runner.inject() 方法定义。
     """
-    count_before = len(runner.get_sent_messages(timeout=5))  # 短超时避免卡住
+    count_before = len(runner.get_sent_messages(timeout=5))
     runner.inject(text, **inject_kwargs)
-    
-    # Extract identifier for filtering (supports both Telegram and Discord)
-    # Telegram uses chat_id, Discord uses channel_id
-    filter_id = inject_kwargs.get("chat_id") or inject_kwargs.get("channel_id")
+
+    filter_id = (
+        inject_kwargs.get("chat_id")
+        or inject_kwargs.get("channel_id")
+        or inject_kwargs.get("room_id")
+    )
     msg = runner.wait_for_reply(count_before=count_before, timeout=timeout, chat_id=filter_id)
     
     # Truncate long messages in error output to avoid cluttering logs
