@@ -1352,6 +1352,83 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
     return all_passed, errors
 
 
+def get_test_classes(module: str) -> List[str]:
+    """Get all test class names for a bot module.
+    
+    Args:
+        module: Bot module name (telegram/discord/matrix)
+    
+    Returns:
+        List of test class names
+    """
+    test_file_map = {
+        "telegram": "test_telegram.py",
+        "tg": "test_telegram.py",
+        "discord": "test_discord.py",
+        "dc": "test_discord.py",
+        "matrix": "test_matrix.py",
+        "mx": "test_matrix.py",
+    }
+    
+    test_file = test_file_map.get(module)
+    if not test_file:
+        return []
+    
+    test_path = BOT_TEST_DIR / test_file
+    if not test_path.exists():
+        return []
+    
+    with open(test_path, "r") as f:
+        content = f.read()
+    
+    # Find all test class names (class TestXXX:)
+    import re
+    pattern = r"^class (Test\w+)"
+    matches = re.findall(pattern, content, re.MULTILINE)
+    return matches
+
+
+def run_bot_test_by_class(module: str) -> Tuple[bool, List[str]]:
+    """Run bot tests by test class groups (each class gets a fresh Bot process).
+    
+    This is more stable than running all tests in one process because it avoids
+    cross-test state pollution issues.
+    
+    Args:
+        module: Bot module name (telegram/discord/matrix)
+    
+    Returns:
+        Tuple of (all_passed, failed_test_class_names)
+    """
+    module_logger = logger_mgr.get_module_logger(f"bot_{module}")
+    
+    test_classes = get_test_classes(module)
+    if not test_classes:
+        module_logger.warning(f"Could not find test classes for {module}")
+        return False, []
+    
+    module_logger.info(f"Found {len(test_classes)} test classes for {module}")
+    
+    all_passed = True
+    failed_classes = []
+    
+    for test_class in test_classes:
+        module_logger.info("=" * 60)
+        module_logger.info(f"Running test class: {test_class}")
+        module_logger.info("=" * 60)
+        
+        passed, failed, _ = run_bot_test(module, test_case=test_class)
+        
+        if passed:
+            module_logger.info(f"✅ {test_class}: All tests passed")
+        else:
+            module_logger.warning(f"❌ {test_class}: Some tests failed")
+            all_passed = False
+            failed_classes.append(test_class)
+    
+    return all_passed, failed_classes
+
+
 def list_cli_categories():
     """List CLI test categories."""
     test_cases_file = CLI_TEST_DIR / "test_cases.json"
@@ -1623,12 +1700,18 @@ def main() -> int:
         # Handle bot tests
         if test_target == "bot":
             if not remaining:
-                # Default: run all bot tests
+                # Default: run all bot tests (by class groups for stability)
                 if not build_octos():
                     return 1
                 prepare_test_environment()
-                passed, _ = run_all_bot_tests()
-                return 0 if passed else 1
+                # Run each bot module with test class grouping
+                modules = ["telegram", "discord", "matrix"]
+                all_passed = True
+                for module in modules:
+                    module_passed, _ = run_bot_test_by_class(module)
+                    if not module_passed:
+                        all_passed = False
+                return 0 if all_passed else 1
             
             action = remaining[0]
             
