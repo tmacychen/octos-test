@@ -694,6 +694,8 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         "dc": {"port": 5001, "test_file": "test_discord.py", "mock_module": "mock_discord", "mock_class": "MockDiscordServer"},
         "matrix": {"port": 5002, "test_file": "test_matrix.py", "mock_module": "mock_matrix", "mock_class": "MockMatrixServer"},
         "mx": {"port": 5002, "test_file": "test_matrix.py", "mock_module": "mock_matrix", "mock_class": "MockMatrixServer"},
+        "slack": {"port": 5003, "test_file": "test_slack.py", "mock_module": "mock_slack", "mock_class": "MockSlackServer"},
+        "sl": {"port": 5003, "test_file": "test_slack.py", "mock_module": "mock_slack", "mock_class": "MockSlackServer"},
     }
     
     info = module_info.get(module)
