@@ -34,10 +34,14 @@ def inject_and_get_reply(runner, text, timeout=TIMEOUT_COMMAND, channel="C012AB3
     
     Returns the reply text or None if no reply received.
     """
+    # Get message count BEFORE injecting
+    count_before = len(runner.get_sent_messages())
+    
+    # Inject the message
     result = runner.inject(text=text, channel=channel, user=user)
     assert result["success"] is True
     
-    count_before = len(runner.get_sent_messages())
+    # Wait for new message (count_before + 1)
     reply = runner.wait_for_reply(
         count_before=count_before,
         timeout=timeout,
