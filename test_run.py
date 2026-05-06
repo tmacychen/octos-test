@@ -1133,6 +1133,7 @@ while True:
     failed_tests = []  # Collect failed test names
     passed_tests = []  # Collect passed test names
     error_messages = []  # Collect error messages for unknown failures
+    current_test_name = None  # Track the current test being executed
     while True:
         # Check if Mock Server is still alive
         if mock_proc.poll() is not None:
@@ -1166,18 +1167,20 @@ while True:
             module_logger.info(f"[PYTEST] {cleaned_text}")
             clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
             
-            # Match pytest verbose output format: "module/file.py::TestClass::test_name PASSED [XX%]"
-            # or simple format: "test_name PASSED"
-            match = re.search(r'(?:^|\s)(\S+::\S+|test_\w+)\s+(?:PASSED|FAILED)', clean_text)
-            if match:
-                test_name = match.group(1)
-                # Extract just the test function name (last part after ::)
-                if '::' in test_name:
-                    test_name = test_name.split('::')[-1]
-                if 'FAILED' in text and test_name not in failed_tests:
-                    failed_tests.append(test_name)
-                elif 'PASSED' in text and test_name not in passed_tests:
-                    passed_tests.append(test_name)
+            # Track current test name from lines like: "bot_mock_test/test_slack.py::TestClass::test_name"
+            test_name_match = re.search(r'(\S+\.py::\S+::\S+)', clean_text)
+            if test_name_match:
+                full_test_path = test_name_match.group(1)
+                current_test_name = full_test_path.split('::')[-1]  # Extract just the function name
+            
+            # Match PASSED/FAILED status (may be on separate line from test name)
+            status_match = re.search(r'\b(PASSED|FAILED)\b', clean_text)
+            if status_match and current_test_name:
+                status = status_match.group(1)
+                if status == 'FAILED' and current_test_name not in failed_tests:
+                    failed_tests.append(current_test_name)
+                elif status == 'PASSED' and current_test_name not in passed_tests:
+                    passed_tests.append(current_test_name)
             elif 'ERROR' in text and ('test_' in text or 'setup' in text.lower()):
                 error_messages.append(text)
     
