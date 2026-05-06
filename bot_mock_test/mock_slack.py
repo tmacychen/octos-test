@@ -143,18 +143,24 @@ class MockSlackServer:
             Returns a WebSocket URL that points to our mock server.
             """
             try:
-                # Check authorization header
+                # Log all request details for debugging
                 auth = request.headers.get("authorization", "")
+                logger.info(f"🔑 apps.connections.open received - Authorization: {auth[:20] if auth else 'MISSING'}...")
+                
+                # Check authorization header
                 if not auth.startswith("Bearer "):
-                    raise HTTPException(status_code=401, detail="Missing Bearer token")
+                    logger.warning(f"⚠ Missing Bearer token in apps.connections.open")
+                    return JSONResponse({"ok": False, "error": "invalid_auth"}, status_code=200)
                 
                 token = auth[7:]  # Remove "Bearer " prefix
+                logger.info(f"🔑 apps.connections.open token: {token[:10]}...")
                 
                 # In mock mode, accept any token starting with "xapp-"
                 if not token.startswith("xapp-"):
                     logger.warning(f"⚠ Invalid app token format: {token[:10]}...")
+                    return JSONResponse({"ok": False, "error": "invalid_auth"}, status_code=200)
                 
-                logger.info(f"🔑 apps.connections.open called with token: {token[:10]}...")
+                logger.info(f"✅ Token validated successfully")
                 
                 # Return WebSocket URL pointing to our server
                 ws_url = f"ws://{self.host}:{self.port}/ws"
@@ -171,6 +177,8 @@ class MockSlackServer:
                 raise
             except Exception as e:
                 logger.error(f"❌ Error in apps.connections.open: {e}")
+                import traceback
+                traceback.print_exc()
                 raise HTTPException(status_code=500, detail=str(e))
         
         @app.post("/api/chat.postMessage")
