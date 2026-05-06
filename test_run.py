@@ -742,16 +742,43 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
             },
         }
     elif module in ["matrix", "mx"]:
-        extra_env = {"OCTOS_APPSERVICE_URL": f"http://127.0.0.1:{port}"}
+        # Matrix appservice listens on port 8009, mock server on port 5002
+        extra_env = {"OCTOS_APPSERVICE_URL": "http://127.0.0.1:8009"}
+        # Use UserProfile format for --profile parameter
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         config = {
-            "version": 1,
-            "provider": "openai",
-            "model": "deepseek-ai/deepseek-v4-flash",
-            "api_key_env": "OPENAI_API_KEY",
-            "base_url": "https://integrate.api.nvidia.com/v1",
-            "gateway": {
-                "channels": [{"type": "matrix", "settings": {"homeserver": "http://127.0.0.1:8008", "as_token": "test_token", "appservice_user": "test_bot", "hs_token": "test_secret"}, "allowed_senders": []}],
-            },
+            "id": "test_matrix_bot",
+            "name": "Test Matrix Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "deepseek-ai/deepseek-v4-pro",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "matrix",
+                    "homeserver": f"http://127.0.0.1:{port}",
+                    "as_token": "test_token",
+                    "hs_token": "test_secret",
+                    "server_name": "localhost",
+                    "sender_localpart": "bot",
+                    "user_prefix": "bot_",
+                    "port": 8009,
+                    "allowed_senders": []
+                }],
+                "admin_mode": True,  # Enable slash commands (/createbot, /listbots, /deletebot)
+            }
         }
     
     with open(config_file, "w") as f:
@@ -817,7 +844,7 @@ while True:
     
     mock_proc = subprocess.Popen(
         [str(venv_python), "-c", mock_code],
-        env={**os.environ, "PYTHONPATH": str(BOT_TEST_DIR), "PYTHONDONTWRITEBYTECODE": "1"},
+        env={**os.environ, **extra_env, "PYTHONPATH": str(BOT_TEST_DIR), "PYTHONDONTWRITEBYTECODE": "1"},
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     )
@@ -877,7 +904,7 @@ while True:
     bot_log_file = open(bot_log, 'w')
     
     bot_proc = subprocess.Popen(
-        [str(BINARY_PATH), "gateway", "--config", str(config_file), "--data-dir", str(TEST_DIR)],
+        [str(BINARY_PATH), "gateway", "--profile", str(config_file), "--data-dir", str(TEST_DIR)],
         env=bot_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
