@@ -818,10 +818,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 },
                 "channels": [
                     {
-                        "Slack": {
-                            "bot_token_env": "SLACK_BOT_TOKEN",
-                            "app_token_env": "SLACK_APP_TOKEN"
-                        }
+                        "type": "slack",
+                        "bot_token_env": "SLACK_BOT_TOKEN",
+                        "app_token_env": "SLACK_APP_TOKEN"
                     }
                 ],
                 "gateway": {
