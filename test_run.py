@@ -643,7 +643,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
     module_logger.info("=" * 60)
     
     # Check environment
-    required_vars = ["ANTHROPIC_API_KEY"]
+    required_vars = ["OPENAI_API_KEY"]
     if module in ["telegram", "tg"]:
         required_vars.append("TELEGRAM_BOT_TOKEN")
     
@@ -745,10 +745,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         extra_env = {"OCTOS_APPSERVICE_URL": f"http://127.0.0.1:{port}"}
         config = {
             "version": 1,
-            "provider": "anthropic",
-            "model": "MiniMax-M2.7",
-            "api_key_env": "ANTHROPIC_API_KEY",
-            "base_url": "https://api.minimaxi.com/anthropic",
+            "provider": "openai",
+            "model": "moonshotai/kimi-k2.6",
+            "api_key_env": "OPENAI_API_KEY",
+            "base_url": "https://integrate.api.nvidia.com/v1",
             "gateway": {
                 "channels": [{"type": "matrix", "settings": {"homeserver": "http://127.0.0.1:8008", "as_token": "test_token", "appservice_user": "test_bot", "hs_token": "test_secret"}, "allowed_senders": []}],
             },
