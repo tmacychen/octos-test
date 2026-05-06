@@ -780,6 +780,39 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "admin_mode": True,  # Enable slash commands (/createbot, /listbots, /deletebot)
             }
         }
+    elif module in ["slack", "sl"]:
+        # Slack Events API webhook, mock server on port 5003
+        port = 5003
+        mock_module = "mock_slack"
+        mock_class = "MockSlackServer"
+        extra_env = {}
+        # Use Config format for Slack (no UserProfile needed)
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        config = {
+            "id": "test_slack_bot",
+            "name": "Test Slack Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "deepseek-ai/deepseek-v4-pro",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "gateway": {
+                    "channels": [{"type": "slack", "settings": {"token_env": "SLACK_BOT_TOKEN"}, "allowed_senders": []}],
+                },
+            }
+        }
     
     with open(config_file, "w") as f:
         json.dump(config, f, indent=2)
