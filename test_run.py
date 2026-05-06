@@ -792,9 +792,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         extra_env = {
             "SLACK_BOT_TOKEN": "xoxb-test-bot-token",
             "SLACK_APP_TOKEN": "xapp-test-app-token",
+            "SLACK_API_URL": f"http://127.0.0.1:{port}/api/apps.connections.open",  # Point to mock server
         }
-        # Use Config format for Slack
-        from datetime import datetime, timezone
+        # Use UserProfile format (like Matrix)
+        from datetime import datetime, timezone  # noqa: F811 - needed for function scope
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         config = {
             "id": "test_slack_bot",
@@ -818,8 +819,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "gateway": {
                     "channels": [{
                         "type": "slack",
-                        "bot_token_env": "SLACK_BOT_TOKEN",
-                        "app_token_env": "SLACK_APP_TOKEN",
+                        "settings": {
+                            "bot_token_env": "SLACK_BOT_TOKEN",
+                            "app_token_env": "SLACK_APP_TOKEN"
+                        },
                         "allowed_senders": []
                     }],
                 },
