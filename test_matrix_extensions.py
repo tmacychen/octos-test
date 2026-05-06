@@ -21,6 +21,8 @@ def test_bot_management():
     print("Testing Matrix Bot Management")
     print("=" * 70)
 
+    # Matrix Mock Server runs on port 8008 (homeserver) for octos connection
+    # But control endpoints are on the same port
     runner = MatrixTestRunner(base_url="http://127.0.0.1:8008")
     
     # 测试 1: /createbot 命令
