@@ -643,7 +643,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
     module_logger.info("=" * 60)
     
     # Check environment
-    required_vars = ["ANTHROPIC_API_KEY"]
+    required_vars = ["OPENAI_API_KEY"]
     if module in ["telegram", "tg"]:
         required_vars.append("TELEGRAM_BOT_TOKEN")
     
@@ -742,16 +742,43 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
             },
         }
     elif module in ["matrix", "mx"]:
+        # Matrix appservice listens on port 8009, mock server on port 5002
         extra_env = {"OCTOS_APPSERVICE_URL": "http://127.0.0.1:8009"}
+        # Use UserProfile format for --profile parameter
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         config = {
-            "version": 1,
-            "provider": "anthropic",
-            "model": "MiniMax-M2.7",
-            "api_key_env": "ANTHROPIC_API_KEY",
-            "base_url": "https://api.minimaxi.com/anthropic",
-            "gateway": {
-                "channels": [{"type": "matrix", "settings": {"homeserver": "http://127.0.0.1:5002", "as_token": "test_token", "appservice_user": "test_bot", "hs_token": "test_secret"}, "allowed_senders": []}],
-            },
+            "id": "test_matrix_bot",
+            "name": "Test Matrix Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "deepseek-ai/deepseek-v4-pro",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "matrix",
+                    "homeserver": f"http://127.0.0.1:{port}",
+                    "as_token": "test_token",
+                    "hs_token": "test_secret",
+                    "server_name": "localhost",
+                    "sender_localpart": "bot",
+                    "user_prefix": "bot_",
+                    "port": 8009,
+                    "allowed_senders": []
+                }],
+                "admin_mode": True,  # Enable slash commands (/createbot, /listbots, /deletebot)
+            }
         }
     
     with open(config_file, "w") as f:
@@ -877,7 +904,7 @@ while True:
     bot_log_file = open(bot_log, 'w')
     
     bot_proc = subprocess.Popen(
-        [str(BINARY_PATH), "gateway", "--config", str(config_file), "--data-dir", str(TEST_DIR)],
+        [str(BINARY_PATH), "gateway", "--profile", str(config_file), "--data-dir", str(TEST_DIR)],
         env=bot_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -1089,7 +1116,7 @@ while True:
             cleaned_text = re.sub(r'\s{2,}', ' ', cleaned_text)  # Collapse multiple spaces to one
             module_logger.info(f"[PYTEST] {cleaned_text}")
             clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
-            match = re.search(r'(?:(\S+)\s+(?:FAILED|PASSED)|(?:FAILED|PASSED)\s+(\S+))', clean_text)
+            match = re.search(r'(?:(\w+(?:\[.*?\])?)\s+(?:FAILED|PASSED)|(?:FAILED|PASSED)\s+\S+::(\w+(?:\[.*?\])?))', clean_text)
             if match:
                 test_name = match.group(1) or match.group(2)
                 if 'FAILED' in text and test_name not in failed_tests:
@@ -1350,83 +1377,6 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
                 errors.append(f"{module}: (unknown failures - check logs)")
     
     return all_passed, errors
-
-
-def get_test_classes(module: str) -> List[str]:
-    """Get all test class names for a bot module.
-    
-    Args:
-        module: Bot module name (telegram/discord/matrix)
-    
-    Returns:
-        List of test class names
-    """
-    test_file_map = {
-        "telegram": "test_telegram.py",
-        "tg": "test_telegram.py",
-        "discord": "test_discord.py",
-        "dc": "test_discord.py",
-        "matrix": "test_matrix.py",
-        "mx": "test_matrix.py",
-    }
-    
-    test_file = test_file_map.get(module)
-    if not test_file:
-        return []
-    
-    test_path = BOT_TEST_DIR / test_file
-    if not test_path.exists():
-        return []
-    
-    with open(test_path, "r") as f:
-        content = f.read()
-    
-    # Find all test class names (class TestXXX:)
-    import re
-    pattern = r"^class (Test\w+)"
-    matches = re.findall(pattern, content, re.MULTILINE)
-    return matches
-
-
-def run_bot_test_by_class(module: str) -> Tuple[bool, List[str]]:
-    """Run bot tests by test class groups (each class gets a fresh Bot process).
-    
-    This is more stable than running all tests in one process because it avoids
-    cross-test state pollution issues.
-    
-    Args:
-        module: Bot module name (telegram/discord/matrix)
-    
-    Returns:
-        Tuple of (all_passed, failed_test_class_names)
-    """
-    module_logger = logger_mgr.get_module_logger(f"bot_{module}")
-    
-    test_classes = get_test_classes(module)
-    if not test_classes:
-        module_logger.warning(f"Could not find test classes for {module}")
-        return False, []
-    
-    module_logger.info(f"Found {len(test_classes)} test classes for {module}")
-    
-    all_passed = True
-    failed_classes = []
-    
-    for test_class in test_classes:
-        module_logger.info("=" * 60)
-        module_logger.info(f"Running test class: {test_class}")
-        module_logger.info("=" * 60)
-        
-        passed, failed, _ = run_bot_test(module, test_case=test_class)
-        
-        if passed:
-            module_logger.info(f"✅ {test_class}: All tests passed")
-        else:
-            module_logger.warning(f"❌ {test_class}: Some tests failed")
-            all_passed = False
-            failed_classes.append(test_class)
-    
-    return all_passed, failed_classes
 
 
 def list_cli_categories():
@@ -1700,18 +1650,12 @@ def main() -> int:
         # Handle bot tests
         if test_target == "bot":
             if not remaining:
-                # Default: run all bot tests (by class groups for stability)
+                # Default: run all bot tests
                 if not build_octos():
                     return 1
                 prepare_test_environment()
-                # Run each bot module with test class grouping
-                modules = ["telegram", "discord", "matrix"]
-                all_passed = True
-                for module in modules:
-                    module_passed, _ = run_bot_test_by_class(module)
-                    if not module_passed:
-                        all_passed = False
-                return 0 if all_passed else 1
+                passed, _ = run_all_bot_tests()
+                return 0 if passed else 1
             
             action = remaining[0]
             
@@ -1773,9 +1717,9 @@ def main() -> int:
                     else:
                         i += 1
                 
-                # Use test class grouping for stability (each class gets a fresh Bot process)
+                # Use per-test retry for module runs (no specific test case)
                 if test_case is None:
-                    passed, _ = run_bot_test_by_class(action)
+                    passed, _ = run_bot_test_with_per_test_retry(action, from_test=from_test)
                 else:
                     passed, _, _ = run_bot_test(action, test_case)
                 return 0 if passed else 1
