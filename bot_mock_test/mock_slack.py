@@ -92,6 +92,48 @@ class MockSlackServer:
                 "ws_connections": len(self._ws_connections)
             })
         
+        @app.post("/api/auth.test")
+        async def auth_test(request: Request):
+            """
+            Slack API: Test authentication and get bot user info.
+            
+            This is called by octos to verify the bot token and get the bot user ID.
+            """
+            try:
+                # Check authorization header
+                auth = request.headers.get("authorization", "")
+                if not auth.startswith("Bearer "):
+                    raise HTTPException(status_code=401, detail="Missing Bearer token")
+                
+                token = auth[7:]  # Remove "Bearer " prefix
+                
+                # In mock mode, accept any token starting with "xoxb-"
+                if not token.startswith("xoxb-"):
+                    logger.warning(f"⚠ Invalid bot token format: {token[:10]}...")
+                
+                logger.info(f"🔑 auth.test called with token: {token[:10]}...")
+                
+                # Return mock auth test response with user_id
+                response = {
+                    "ok": True,
+                    "url": "https://testworkspace.slack.com/",
+                    "team": "Test Workspace",
+                    "user": "testbot",
+                    "team_id": "T012AB3CD",
+                    "user_id": "U0BOTUSERID",  # ← Critical: must include user_id
+                    "bot_id": "B012AB3CD",
+                    "is_enterprise_install": False,
+                }
+                
+                logger.info(f"✅ Returning auth.test response with user_id=U0BOTUSERID")
+                return JSONResponse(response)
+            
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"❌ Error in auth.test: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+        
         @app.post("/api/apps.connections.open")
         async def apps_connections_open(request: Request):
             """
@@ -143,13 +185,17 @@ class MockSlackServer:
                 # Check authorization header
                 auth = request.headers.get("authorization", "")
                 if not auth.startswith("Bearer "):
-                    raise HTTPException(status_code=401, detail="Missing Bearer token")
+                    logger.warning(f"⚠ Missing Bearer token in chat.postMessage")
+                    raise HTTPException(status_code=401, detail="invalid_auth")
                 
                 token = auth[7:]  # Remove "Bearer " prefix
                 
                 # In mock mode, accept any token starting with "xoxb-"
                 if not token.startswith("xoxb-"):
                     logger.warning(f"⚠ Invalid bot token format: {token[:10]}...")
+                    raise HTTPException(status_code=401, detail="invalid_auth")
+                
+                logger.info(f"🔑 chat.postMessage called with token: {token[:10]}...")
                 
                 # Parse form data or JSON
                 content_type = request.headers.get("content-type", "")
