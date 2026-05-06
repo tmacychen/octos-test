@@ -794,39 +794,23 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
             "SLACK_APP_TOKEN": "xapp-test-app-token",
             "SLACK_API_URL": f"http://127.0.0.1:{port}/api/apps.connections.open",  # Point to mock server
         }
-        # Use UserProfile format (like Matrix)
-        from datetime import datetime, timezone  # noqa: F811 - needed for function scope
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        # Use simple Config format (like Telegram/Discord)
         config = {
-            "id": "test_slack_bot",
-            "name": "Test Slack Bot",
-            "enabled": True,
-            "created_at": now,
-            "updated_at": now,
-            "config": {
-                "version": 1,
-                "llm": {
-                    "primary": {
-                        "family_id": "openai",
-                        "model_id": "deepseek-ai/deepseek-v4-pro",
-                        "route": {
-                            "api_key_env": "OPENAI_API_KEY",
-                            "base_url": "https://integrate.api.nvidia.com/v1"
-                        }
+            "version": 1,
+            "provider": "openai",
+            "model": "deepseek-ai/deepseek-v4-pro",
+            "api_key_env": "OPENAI_API_KEY",
+            "base_url": "https://integrate.api.nvidia.com/v1",
+            "gateway": {
+                "channels": [{
+                    "type": "slack",
+                    "settings": {
+                        "bot_token_env": "SLACK_BOT_TOKEN",
+                        "app_token_env": "SLACK_APP_TOKEN"
                     },
-                    "fallbacks": []
-                },
-                "gateway": {
-                    "channels": [{
-                        "type": "slack",
-                        "settings": {
-                            "bot_token_env": "SLACK_BOT_TOKEN",
-                            "app_token_env": "SLACK_APP_TOKEN"
-                        },
-                        "allowed_senders": []
-                    }],
-                },
-            }
+                    "allowed_senders": []
+                }],
+            },
         }
     
     with open(config_file, "w") as f:
