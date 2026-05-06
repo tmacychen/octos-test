@@ -21,7 +21,7 @@ def test_bot_management():
     print("Testing Matrix Bot Management")
     print("=" * 70)
 
-    runner = MatrixTestRunner(port=8008)
+    runner = MatrixTestRunner(base_url="http://127.0.0.1:8008")
     
     # 测试 1: /createbot 命令
     print("\n1. Testing /createbot command...")
@@ -59,7 +59,7 @@ def test_swarm_supervisor():
     print("Testing Matrix Swarm Supervisor (M7.3)")
     print("=" * 70)
     
-    runner = MatrixTestRunner(port=8008)
+    runner = MatrixTestRunner(base_url="http://127.0.0.1:8008")
     
     # 测试 1: 注入 Swarm Harness 事件
     print("\n1. Testing swarm event routing...")
@@ -107,7 +107,7 @@ def test_room_invite():
     print("Testing Room Invite")
     print("=" * 70)
     
-    runner = MatrixTestRunner(port=8008)
+    runner = MatrixTestRunner(base_url="http://127.0.0.1:8008")
     
     print("\n1. Testing room invite injection...")
     result = runner.inject_room_invite(
