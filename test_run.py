@@ -816,15 +816,17 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     },
                     "fallbacks": []
                 },
-                "gateway": {
-                    "channels": [{
-                        "type": "slack",
-                        "settings": {
+                "channels": [
+                    {
+                        "Slack": {
                             "bot_token_env": "SLACK_BOT_TOKEN",
                             "app_token_env": "SLACK_APP_TOKEN"
-                        },
-                        "allowed_senders": []
-                    }],
+                        }
+                    }
+                ],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
                 },
             }
         }
