@@ -1165,9 +1165,15 @@ while True:
             cleaned_text = re.sub(r'\s{2,}', ' ', cleaned_text)  # Collapse multiple spaces to one
             module_logger.info(f"[PYTEST] {cleaned_text}")
             clean_text = re.sub(r'\x1b\[[0-9;]*m', '', text)
-            match = re.search(r'(?:(\w+(?:\[.*?\])?)\s+(?:FAILED|PASSED)|(?:FAILED|PASSED)\s+\S+::(\w+(?:\[.*?\])?))', clean_text)
+            
+            # Match pytest verbose output format: "module/file.py::TestClass::test_name PASSED [XX%]"
+            # or simple format: "test_name PASSED"
+            match = re.search(r'(?:^|\s)(\S+::\S+|test_\w+)\s+(?:PASSED|FAILED)', clean_text)
             if match:
-                test_name = match.group(1) or match.group(2)
+                test_name = match.group(1)
+                # Extract just the test function name (last part after ::)
+                if '::' in test_name:
+                    test_name = test_name.split('::')[-1]
                 if 'FAILED' in text and test_name not in failed_tests:
                     failed_tests.append(test_name)
                 elif 'PASSED' in text and test_name not in passed_tests:
