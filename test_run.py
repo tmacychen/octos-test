@@ -746,7 +746,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         config = {
             "version": 1,
             "provider": "openai",
-            "model": "moonshotai/kimi-k2.6",
+            "model": "deepseek-ai/deepseek-v4-flash",
             "api_key_env": "OPENAI_API_KEY",
             "base_url": "https://integrate.api.nvidia.com/v1",
             "gateway": {
