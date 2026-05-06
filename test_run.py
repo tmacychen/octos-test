@@ -21,6 +21,7 @@ Bot test arguments (after --test bot):
     telegram, tg     Run Telegram tests only
     discord, dc      Run Discord tests only
     matrix, mx       Run Matrix tests only
+    slack, sl        Run Slack tests only
     list             List available bot modules
     list <mod>       List test cases in a module
     <mod> [case]     Run module or specific test case
@@ -229,6 +230,7 @@ def print_help():
     telegram, tg     Run Telegram tests only
     discord, dc      Run Discord tests only
     matrix, mx       Run Matrix tests only
+    slack, sl        Run Slack tests only
     list             List available bot modules
     list <mod>       List test cases in a module
     <mod> [case]     Run module or specific test case
@@ -1388,7 +1390,7 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
         log.info(f"Starting from test: {from_test}")
     log.info("=" * 60)
     
-    modules = ["telegram", "discord", "matrix"]
+    modules = ["telegram", "discord", "matrix", "slack"]
     all_passed = True
     errors = []
     
@@ -1724,7 +1726,7 @@ def main() -> int:
                 return 0 if passed else 1
             
             # Check if it's a valid module
-            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx"]
+            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl"]
             if action in valid_modules:
                 # Special case: check for 'list' subcommand
                 if len(remaining) > 1 and remaining[1] == "list":
