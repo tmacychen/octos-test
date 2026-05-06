@@ -785,12 +785,15 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
             }
         }
     elif module in ["slack", "sl"]:
-        # Slack Events API webhook, mock server on port 5003
+        # Slack Socket Mode, requires bot_token and app_token
         port = 5003
         mock_module = "mock_slack"
         mock_class = "MockSlackServer"
-        extra_env = {}
-        # Use Config format for Slack (no UserProfile needed)
+        extra_env = {
+            "SLACK_BOT_TOKEN": "xoxb-test-bot-token",
+            "SLACK_APP_TOKEN": "xapp-test-app-token",
+        }
+        # Use Config format for Slack
         from datetime import datetime, timezone
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         config = {
@@ -813,7 +816,12 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "fallbacks": []
                 },
                 "gateway": {
-                    "channels": [{"type": "slack", "settings": {"token_env": "SLACK_BOT_TOKEN"}, "allowed_senders": []}],
+                    "channels": [{
+                        "type": "slack",
+                        "bot_token_env": "SLACK_BOT_TOKEN",
+                        "app_token_env": "SLACK_APP_TOKEN",
+                        "allowed_senders": []
+                    }],
                 },
             }
         }
