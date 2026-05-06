@@ -792,7 +792,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         extra_env = {
             "SLACK_BOT_TOKEN": "xoxb-test-bot-token",
             "SLACK_APP_TOKEN": "xapp-test-app-token",
-            "SLACK_API_URL": f"http://127.0.0.1:{port}/api/apps.connections.open",  # Point to mock server
+            "SLACK_API_BASE_URL": f"http://127.0.0.1:{port}/api",  # Point to mock server base URL
         }
         # Use UserProfile format (required by gateway --profile)
         from datetime import datetime, timezone  # noqa: F811 - needed for function scope
