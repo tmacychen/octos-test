@@ -343,26 +343,254 @@ class MockMatrixServer:
         async def inject_bot_command(request: Request):
             """Inject a bot management command (/createbot, /deletebot, /listbots).
 
-            Reserved for future Matrix bot management testing.
+            Simulates the Matrix appservice receiving slash commands from users.
+            The command is injected as a regular message event that will be
+            processed by octos's handle_slash_command logic.
             """
             body = await request.json()
-            # TODO: Implement when testing bot management features
-            return JSONResponse({"success": True, "note": "reserved for bot management"})
+            command = body.get("command", "")
+            room_id = body.get("room_id", DEFAULT_ROOM_ID)
+            sender = body.get("sender", DEFAULT_SENDER)
+
+            if not command.startswith("/"):
+                return JSONResponse({"error": "Command must start with /"}, status_code=400)
+
+            # Inject the command as a regular message event
+            injected = InjectedMessage(
+                text=command,
+                room_id=room_id,
+                sender=sender,
+                msgtype="m.text",
+            )
+            self._injected_messages.append(injected)
+
+            # Construct a Matrix event
+            event = {
+                "type": "m.room.message",
+                "room_id": room_id,
+                "sender": sender,
+                "event_id": self._generate_event_id(),
+                "origin_server_ts": int(time.time() * 1000),
+                "content": {
+                    "msgtype": "m.text",
+                    "body": command,
+                },
+            }
+
+            # Store the event as a transaction for octos to process
+            txn_id = self._next_txn_id()
+            self._transactions.append({
+                "txn_id": txn_id,
+                "events": [event],
+            })
+
+            # Push to octos appservice endpoint if configured
+            if self._appservice_endpoint:
+                try:
+                    import httpx
+                    async with httpx.AsyncClient() as client:
+                        logger.info(f"🔔 Pushing bot command to appservice: {command}")
+                        resp = await client.put(
+                            f"{self._appservice_endpoint}/_matrix/app/v1/transactions/{txn_id}",
+                            json={"events": [event]},
+                            headers={"Authorization": f"Bearer {self._hs_token}"},
+                            timeout=5,
+                        )
+                        logger.info(f"🔔 Appservice push response: {resp.status_code}")
+                except Exception as e:
+                    logger.warning(f"Failed to push to appservice: {e}")
+
+            return JSONResponse({
+                "success": True,
+                "txn_id": txn_id,
+                "command": command,
+                "note": "Bot command injected as message event"
+            })
 
         @app.post("/_inject_room_invite")
         async def inject_room_invite(request: Request):
             """Inject a room invite event.
 
-            Reserved for future room routing testing.
+            Simulates a user being invited to a Matrix room. Updates room
+            membership and optionally pushes an m.room.member event to octos.
             """
             body = await request.json()
             room_id = body.get("room_id", DEFAULT_ROOM_ID)
             user_id = body.get("user_id", DEFAULT_SENDER)
+            inviter = body.get("inviter", self._bot_user_id)
+
+            # Update room members
             if room_id not in self._room_members:
                 self._room_members[room_id] = []
             if user_id not in self._room_members[room_id]:
                 self._room_members[room_id].append(user_id)
-            return JSONResponse({"success": True})
+
+            # Optionally create a membership event
+            if body.get("push_event", False):
+                event = {
+                    "type": "m.room.member",
+                    "room_id": room_id,
+                    "sender": inviter,
+                    "state_key": user_id,
+                    "event_id": self._generate_event_id(),
+                    "origin_server_ts": int(time.time() * 1000),
+                    "content": {
+                        "membership": "invite",
+                        "displayname": user_id.split(":")[0].lstrip("@"),
+                    },
+                }
+
+                txn_id = self._next_txn_id()
+                self._transactions.append({
+                    "txn_id": txn_id,
+                    "events": [event],
+                })
+
+                # Push to octos if configured
+                if self._appservice_endpoint:
+                    try:
+                        import httpx
+                        async with httpx.AsyncClient() as client:
+                            await client.put(
+                                f"{self._appservice_endpoint}/_matrix/app/v1/transactions/{txn_id}",
+                                json={"events": [event]},
+                                headers={"Authorization": f"Bearer {self._hs_token}"},
+                                timeout=5,
+                            )
+                    except Exception as e:
+                        logger.warning(f"Failed to push invite event: {e}")
+
+            return JSONResponse({
+                "success": True,
+                "room_id": room_id,
+                "user_id": user_id,
+                "members": self._room_members.get(room_id, [])
+            })
+
+        @app.post("/_inject_swarm_event")
+        async def inject_swarm_event(request: Request):
+            """Inject a swarm harness event (M7.3 supervisor feature).
+
+            Simulates a sub-agent sending a typed harness event to the swarm room.
+            This tests the route_subagent_event functionality.
+            """
+            body = await request.json()
+            session_id = body.get("session_id", "test-session")
+            agent_label = body.get("agent_label", "claude-code")
+            event_type = body.get("event_type", "progress")  # progress, error, complete, etc.
+            room_id = body.get("room_id", f"!swarm_{session_id}:localhost")
+
+            # Generate puppet user ID
+            puppet_user_id = f"@octos_swarm_{session_id}_{agent_label}:localhost"
+
+            # Create harness event payload
+            event_payload = {
+                "schema": "octos.harness.event.v1",
+                "kind": event_type,
+                "agent_label": agent_label,
+                "session_id": session_id,
+                "event": body.get("event_data", {
+                    "phase": "fetch_sources",
+                    "message": "Fetching data...",
+                    "progress": 0.5,
+                }),
+            }
+
+            # Format as Matrix message
+            summary = f"{event_type} {event_payload['event'].get('phase', '')}"
+            envelope_pretty = json.dumps(event_payload, indent=2)
+
+            sent = SentMessage(
+                room_id=room_id,
+                content={
+                    "msgtype": "m.text",
+                    "body": summary,
+                    "formatted_body": f"<pre>{envelope_pretty}</pre>",
+                    "format": "org.matrix.custom.html",
+                },
+                event_id=self._generate_event_id(),
+                msgtype="m.text",
+            )
+            self._sent_messages.append(sent)
+
+            logger.info(f"🕸️ Swarm event routed: {session_id}/{agent_label} - {event_type}")
+
+            return JSONResponse({
+                "success": True,
+                "event_id": sent.event_id,
+                "puppet_user_id": puppet_user_id,
+                "room_id": room_id,
+            })
+
+        @app.post("/_inject_supervisor_reply")
+        async def inject_supervisor_reply(request: Request):
+            """Inject a supervisor reply to a swarm room (M7.3 supervisor feature).
+
+            Simulates a human supervisor replying to a specific puppet in the swarm room.
+            This tests the handle_supervisor_reply functionality.
+            """
+            body = await request.json()
+            room_id = body.get("room_id", f"!swarm_test:localhost")
+            sender = body.get("sender", "@alice:localhost")
+            message = body.get("message", "")
+            target_puppet = body.get("target_puppet", "")  # Optional: explicitly target a puppet
+
+            # If target_puppet specified, add mention to message
+            if target_puppet and not target_puppet.startswith("@"):
+                target_puppet = f"@{target_puppet}:localhost"
+            
+            if target_puppet and target_puppet not in message:
+                message = f"{target_puppet} {message}"
+
+            # Inject as regular message
+            injected = InjectedMessage(
+                text=message,
+                room_id=room_id,
+                sender=sender,
+                msgtype="m.text",
+            )
+            self._injected_messages.append(injected)
+
+            event = {
+                "type": "m.room.message",
+                "room_id": room_id,
+                "sender": sender,
+                "event_id": self._generate_event_id(),
+                "origin_server_ts": int(time.time() * 1000),
+                "content": {
+                    "msgtype": "m.text",
+                    "body": message,
+                },
+            }
+
+            txn_id = self._next_txn_id()
+            self._transactions.append({
+                "txn_id": txn_id,
+                "events": [event],
+            })
+
+            # Push to octos if configured
+            if self._appservice_endpoint:
+                try:
+                    import httpx
+                    async with httpx.AsyncClient() as client:
+                        await client.put(
+                            f"{self._appservice_endpoint}/_matrix/app/v1/transactions/{txn_id}",
+                            json={"events": [event]},
+                            headers={"Authorization": f"Bearer {self._hs_token}"},
+                            timeout=5,
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to push supervisor reply: {e}")
+
+            logger.info(f"👤 Supervisor reply injected: {sender} → {room_id}")
+
+            return JSONResponse({
+                "success": True,
+                "txn_id": txn_id,
+                "message": message,
+                "target_puppet": target_puppet,
+            })
 
     # ------------------------------------------------------------------
     # Public API for programmatic use
