@@ -75,7 +75,7 @@ import signal
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -720,36 +720,78 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
     
     if module in ["telegram", "tg"]:
         extra_env = {"TELEGRAM_API_URL": f"http://127.0.0.1:{port}"}
+        # Use UserProfile format for --profile parameter
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         config = {
-            "version": 1,
-            "provider": "anthropic",
-            "model": "MiniMax-M2.7",
-            "api_key_env": "ANTHROPIC_API_KEY",
-            "base_url": "https://api.minimaxi.com/anthropic",
-            "gateway": {
-                "channels": [{"type": "telegram", "settings": {"token_env": "TELEGRAM_BOT_TOKEN"}, "allowed_senders": []}],
-            },
+            "id": "test_telegram_bot",
+            "name": "Test Telegram Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "deepseek-ai/deepseek-v4-pro",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "telegram",
+                    "token_env": "TELEGRAM_BOT_TOKEN",
+                    "allowed_senders": ""
+                }],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
+                }
+            }
         }
     elif module in ["discord", "dc"]:
         if not os.environ.get("DISCORD_BOT_TOKEN"):
             os.environ["DISCORD_BOT_TOKEN"] = "mock-bot-token-for-testing"
             module_logger.info("DISCORD_BOT_TOKEN not set, using dummy value (mock mode)")
         extra_env = {"DISCORD_API_BASE_URL": f"http://127.0.0.1:{port}"}
+        # Use UserProfile format for --profile parameter
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         config = {
-            "version": 1,
-            "provider": "anthropic",
-            "model": "MiniMax-M2.7",
-            "api_key_env": "ANTHROPIC_API_KEY",
-            "base_url": "https://api.minimaxi.com/anthropic",
-            "gateway": {
-                "channels": [{"type": "discord", "settings": {"token_env": "DISCORD_BOT_TOKEN"}, "allowed_senders": []}],
-            },
+            "id": "test_discord_bot",
+            "name": "Test Discord Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "deepseek-ai/deepseek-v4-pro",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "discord",
+                    "token_env": "DISCORD_BOT_TOKEN"
+                }],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
+                }
+            }
         }
     elif module in ["matrix", "mx"]:
         # Matrix appservice listens on port 8009, mock server on port 5002
         extra_env = {"OCTOS_APPSERVICE_URL": "http://127.0.0.1:8009"}
         # Use UserProfile format for --profile parameter
-        from datetime import datetime, timezone
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         config = {
             "id": "test_matrix_bot",
@@ -795,7 +837,6 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
             "SLACK_API_BASE_URL": f"http://127.0.0.1:{port}/api",  # Point to mock server base URL
         }
         # Use UserProfile format (required by gateway --profile)
-        from datetime import datetime, timezone  # noqa: F811 - needed for function scope
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         config = {
             "id": "test_slack_bot",
@@ -899,7 +940,7 @@ while True:
     )
     
     # Wait for mock server to be ready
-    health_timeout = 5 if module in ["discord", "dc"] else 3
+    health_timeout = 10 if module in ["telegram", "tg"] else (10 if module in ["discord", "dc"] else 3)
     start = time.time()
     mock_ready = False
     last_error = None

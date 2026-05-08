@@ -227,6 +227,13 @@ class MockDiscordServer:
     def _setup_routes(self):
         app = self.app
 
+        # ====== Health check endpoint (for test framework) ======
+        
+        @app.get("/health")
+        async def health():
+            """Health check endpoint for test framework."""
+            return {"status": "ok"}
+
         # ====== Discord REST API endpoints ======
 
         @app.get("/api/v10/gateway")
