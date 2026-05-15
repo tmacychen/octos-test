@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # ── 超时配置 ──────────────────────────────────────────────────────────────────
-TIMEOUT_COMMAND = 20   # 本地命令，无需 LLM
+TIMEOUT_COMMAND = 50   # 本地命令，无需 LLM (延长以适配 NVIDIA API 慢响应)
 TIMEOUT_LLM     = 50   # 需要调用 LLM API (增加到 50s，Discord Gateway 有额外开销)
 
 # ── 压力缓解配置 ──────────────────────────────────────────────────────────────
