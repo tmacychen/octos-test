@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # ── 超时配置 ──────────────────────────────────────────────────────────────────
-TIMEOUT_COMMAND = 20
+TIMEOUT_COMMAND = 50   # 延长以适配 NVIDIA API 慢响应
 TIMEOUT_LLM     = 50
 
 LLM_TEST_DELAY = 3.0
