@@ -6,11 +6,11 @@
 
 端口: 5004 (默认)
 端点:
-  - POST /open-apis/auth/v3/tenant_access_token/internal - 获取 tenant access token
-  - POST /open-apis/im/v1/messages - 发送消息
-  - POST /open-apis/im/v1/messages/{id}/reply - 回复消息
-  - PATCH /open-apis/im/v1/messages/{id} - 编辑消息
-  - DELETE /open-apis/im/v1/messages/{id} - 删除消息
+  - POST /auth/v3/tenant_access_token/internal - 获取 tenant access token
+  - POST /im/v1/messages - 发送消息
+  - POST /im/v1/messages/{id}/reply - 回复消息
+  - PATCH /im/v1/messages/{id} - 编辑消息
+  - DELETE /im/v1/messages/{id} - 删除消息
   - GET /health - 健康检查
   - POST /_inject - 注入测试事件（模拟飞书推送消息事件）
   - GET /_sent_messages - 获取 bot 发送的消息
@@ -66,7 +66,7 @@ class MockFeishuServer:
                 "service": "feishu-mock-server",
             })
 
-        @app.post("/open-apis/auth/v3/tenant_access_token/internal")
+        @app.post("/auth/v3/tenant_access_token/internal")
         async def get_tenant_access_token(request: Request):
             """
             飞书 API: 获取 tenant_access_token。
@@ -107,7 +107,7 @@ class MockFeishuServer:
                 logger.error(f"❌ Error in token endpoint: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @app.post("/open-apis/im/v1/messages")
+        @app.post("/im/v1/messages")
         async def send_message(request: Request):
             """
             飞书 API: 发送消息。
@@ -127,6 +127,7 @@ class MockFeishuServer:
                 message_id = self._generate_message_id()
                 record = {
                     "message_id": message_id,
+                    "chat_id": receive_id,
                     "receive_id": receive_id,
                     "msg_type": msg_type,
                     "content": content,
@@ -161,7 +162,7 @@ class MockFeishuServer:
                 logger.error(f"❌ Error in send_message: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @app.post("/open-apis/im/v1/messages/{message_id}/reply")
+        @app.post("/im/v1/messages/{message_id}/reply")
         async def reply_message(message_id: str, request: Request):
             """
             飞书 API: 回复消息。
@@ -171,8 +172,15 @@ class MockFeishuServer:
                 content = body.get("content", "{}")
                 msg_type = body.get("msg_type", "text")
 
+                # 从被回复的消息中查找 chat_id
+                reply_chat_id = "oc_unknown"
+                for prev in self._sent_messages:
+                    if prev.get("message_id") == message_id:
+                        reply_chat_id = prev.get("chat_id", "oc_unknown")
+                        break
                 record = {
                     "message_id": f"om_{uuid.uuid4().hex[:24]}",
+                    "chat_id": reply_chat_id,
                     "reply_to": message_id,
                     "msg_type": msg_type,
                     "content": content,
@@ -194,7 +202,7 @@ class MockFeishuServer:
                 logger.error(f"❌ Error in reply_message: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @app.patch("/open-apis/im/v1/messages/{message_id}")
+        @app.patch("/im/v1/messages/{message_id}")
         async def edit_message(message_id: str, request: Request):
             """飞书 API: 编辑消息。"""
             try:
@@ -220,7 +228,7 @@ class MockFeishuServer:
                 logger.error(f"❌ Error in edit_message: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
 
-        @app.delete("/open-apis/im/v1/messages/{message_id}")
+        @app.delete("/im/v1/messages/{message_id}")
         async def delete_message(message_id: str):
             """飞书 API: 撤回消息。"""
             logger.info(f"🗑 Bot deleted message {message_id}")
@@ -230,7 +238,7 @@ class MockFeishuServer:
                 "data": {},
             })
 
-        @app.get("/open-apis/im/v1/messages/{message_id}")
+        @app.get("/im/v1/messages/{message_id}")
         async def get_message(message_id: str):
             """飞书 API: 获取消息详情。"""
             for msg in self._sent_messages:
