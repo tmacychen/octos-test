@@ -28,6 +28,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
 from starlette.websockets import WebSocketState
+from starlette.requests import Request
 
 logger = logging.getLogger("mock_wechat")
 
@@ -83,14 +84,11 @@ class MockWeChatServer:
         async def inject_event(request: Request):
             """
             注入测试事件——模拟 wechat-bridge 推送微信消息。
-
-            Body:
-                text: 消息文本
-                sender: 发送者 ID (default: "test_user@im.wechat")
             """
             import json as _json
             try:
-                body = await request.json()
+                raw = await request.body()
+                body = _json.loads(raw)
                 text = body.get("text", "")
                 sender = body.get("sender", "test_user@im.wechat")
 
@@ -128,11 +126,11 @@ class MockWeChatServer:
 
         @app.post("/_clear")
         async def clear_state():
-            """清理所有状态。"""
+            """清理所有状态（保留 WebSocket 连接）。"""
             self._sent_messages.clear()
             self._injected_events.clear()
-            self._ws_connections.clear()
-            logger.info("🗑 Cleared all mock server state")
+            # 不清理 WebSocket 连接，gateway 会自己管理重连
+            logger.info("🗑 Cleared all mock server state (preserved WS connections)")
             return JSONResponse({"success": True})
 
         @app.websocket("/ws")

@@ -23,7 +23,8 @@ import sys
 import logging
 from typing import Optional
 from pathlib import Path
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException
+from starlette.requests import Request
 from fastapi.responses import JSONResponse
 import uvicorn
 
