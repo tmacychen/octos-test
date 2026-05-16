@@ -125,12 +125,20 @@ class MockFeishuServer:
 
                 # 记录消息
                 message_id = self._generate_message_id()
+                # 从飞书卡片格式提取纯文本用于测试断言
+                import json as _json
+                try:
+                    content_obj = _json.loads(content)
+                    plain_text = content_obj.get("elements", [{}])[0].get("content", content)
+                except Exception:
+                    plain_text = content
                 record = {
                     "message_id": message_id,
                     "chat_id": receive_id,
                     "receive_id": receive_id,
                     "msg_type": msg_type,
                     "content": content,
+                    "text": plain_text,
                     "timestamp": time.time(),
                 }
                 self._sent_messages.append(record)
@@ -178,12 +186,19 @@ class MockFeishuServer:
                     if prev.get("message_id") == message_id:
                         reply_chat_id = prev.get("chat_id", "oc_unknown")
                         break
+                import json as _json
+                try:
+                    content_obj = _json.loads(content)
+                    plain_text = content_obj.get("elements", [{}])[0].get("content", content)
+                except Exception:
+                    plain_text = content
                 record = {
                     "message_id": f"om_{uuid.uuid4().hex[:24]}",
                     "chat_id": reply_chat_id,
                     "reply_to": message_id,
                     "msg_type": msg_type,
                     "content": content,
+                    "text": plain_text,
                     "timestamp": time.time(),
                 }
                 self._sent_messages.append(record)
