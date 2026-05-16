@@ -271,16 +271,19 @@ class MockFeishuServer:
                         "token": "test_event_token",
                     },
                     "event": {
+                        "sender": {
+                            "sender_id": {
+                                "open_id": sender_id,
+                                "union_id": f"uu_{uuid.uuid4().hex[:16]}",
+                                "user_id": sender_id,
+                            },
+                        },
                         "message": {
                             "chat_id": chat_id,
                             "chat_type": "group",
                             "content": f'{{"text":"{text}"}}',
                             "message_id": message_id,
                             "message_type": "text",
-                            "sender": {
-                                "id": sender_id,
-                                "id_type": "open_id",
-                            },
                             "create_time": str(int(time.time() * 1000)),
                         },
                     },
