@@ -491,6 +491,12 @@ def list_bot_cases(module: str):
         "dc": BOT_TEST_DIR / "test_discord.py",
         "matrix": BOT_TEST_DIR / "test_matrix.py",
         "mx": BOT_TEST_DIR / "test_matrix.py",
+        "slack": BOT_TEST_DIR / "test_slack.py",
+        "sl": BOT_TEST_DIR / "test_slack.py",
+        "feishu": BOT_TEST_DIR / "test_feishu.py",
+        "fs": BOT_TEST_DIR / "test_feishu.py",
+        "wechat": BOT_TEST_DIR / "test_wechat.py",
+        "wx": BOT_TEST_DIR / "test_wechat.py",
     }
     
     test_file = test_files.get(module)
@@ -548,6 +554,12 @@ def get_test_order(module: str) -> List[str]:
         "dc": BOT_TEST_DIR / "test_discord.py",
         "matrix": BOT_TEST_DIR / "test_matrix.py",
         "mx": BOT_TEST_DIR / "test_matrix.py",
+        "slack": BOT_TEST_DIR / "test_slack.py",
+        "sl": BOT_TEST_DIR / "test_slack.py",
+        "feishu": BOT_TEST_DIR / "test_feishu.py",
+        "fs": BOT_TEST_DIR / "test_feishu.py",
+        "wechat": BOT_TEST_DIR / "test_wechat.py",
+        "wx": BOT_TEST_DIR / "test_wechat.py",
     }
 
     test_file = test_files.get(module)
@@ -696,6 +708,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         "mx": {"port": 5002, "test_file": "test_matrix.py", "mock_module": "mock_matrix", "mock_class": "MockMatrixServer"},
         "slack": {"port": 5003, "test_file": "test_slack.py", "mock_module": "mock_slack", "mock_class": "MockSlackServer"},
         "sl": {"port": 5003, "test_file": "test_slack.py", "mock_module": "mock_slack", "mock_class": "MockSlackServer"},
+        "feishu": {"port": 5004, "test_file": "test_feishu.py", "mock_module": "mock_feishu", "mock_class": "MockFeishuServer"},
+        "fs": {"port": 5004, "test_file": "test_feishu.py", "mock_module": "mock_feishu", "mock_class": "MockFeishuServer"},
+        "wechat": {"port": 5005, "test_file": "test_wechat.py", "mock_module": "mock_wechat", "mock_class": "MockWeChatServer"},
+        "wx": {"port": 5005, "test_file": "test_wechat.py", "mock_module": "mock_wechat", "mock_class": "MockWeChatServer"},
     }
     
     info = module_info.get(module)
@@ -870,7 +886,84 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 }
             }
         }
-    
+    elif module in ["feishu", "fs"]:
+        # 飞书 Webhook 模式
+        port = 5004
+        mock_module = "mock_feishu"
+        mock_class = "MockFeishuServer"
+        extra_env = {
+            "FEISHU_APP_ID": "cli_test_app_id",
+            "FEISHU_APP_SECRET": "test_app_secret",
+        }
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        config = {
+            "id": "test_feishu_bot",
+            "name": "Test Feishu Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "feishu",
+                    "mode": "webhook",
+                    "base_url": f"http://127.0.0.1:{port}",
+                    "webhook_port": 9321,
+                }],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
+                }
+            }
+        }
+    elif module in ["wechat", "wx"]:
+        # 微信 WebSocket bridge 模式
+        port = 5005
+        mock_module = "mock_wechat"
+        mock_class = "MockWeChatServer"
+        extra_env = {}
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        config = {
+            "id": "test_wechat_bot",
+            "name": "Test WeChat Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "wechat",
+                    "bridge_url": f"ws://127.0.0.1:{port}/ws",
+                }],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
+                }
+            }
+        }
+
     with open(config_file, "w") as f:
         json.dump(config, f, indent=2)
     
@@ -1790,7 +1883,7 @@ def main() -> int:
                 return 0 if passed else 1
             
             # Check if it's a valid module
-            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl"]
+            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx"]
             if action in valid_modules:
                 # Special case: check for 'list' subcommand
                 if len(remaining) > 1 and remaining[1] == "list":
