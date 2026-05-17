@@ -50,7 +50,8 @@ class BaseMockRunner:
                     if (msg.get("chat_id") == chat_id
                             or msg.get("channel_id") == chat_id
                             or msg.get("room_id") == chat_id
-                            or msg.get("channel") == chat_id):  # Slack uses "channel"
+                            or msg.get("channel") == chat_id
+                            or msg.get("to") == chat_id):  # WeChat uses "to"
                         return msg
             else:
                 return msgs[-1]
@@ -69,7 +70,8 @@ class BaseMockRunner:
                         if (msg.get("chat_id") == chat_id
                                 or msg.get("channel_id") == chat_id
                                 or msg.get("room_id") == chat_id
-                                or msg.get("channel") == chat_id):  # Slack uses "channel"
+                                or msg.get("channel") == chat_id
+                                or msg.get("to") == chat_id):  # WeChat uses "to"
                             return msg
                 else:
                     return msgs[-1]

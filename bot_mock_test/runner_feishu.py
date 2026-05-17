@@ -47,3 +47,9 @@ class FeishuTestRunner(BaseMockRunner):
         resp = httpx.post(f"{self.base_url}/_inject", json=payload, timeout=10)
         resp.raise_for_status()
         return resp.json()
+
+    def get_edit_history(self) -> list[dict]:
+        """获取所有编辑操作历史。"""
+        resp = httpx.get(f"{self.base_url}/_edit_history", timeout=10)
+        resp.raise_for_status()
+        return resp.json()

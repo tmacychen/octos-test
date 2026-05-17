@@ -44,6 +44,7 @@ class MockFeishuServer:
         self._injected_events: list[dict] = []
         self._access_tokens: list[dict] = []
         self._token_counter = 0
+        self._edit_history: list[dict] = []
 
         self.app = FastAPI(title="Feishu Mock Server")
         self._setup_routes()
@@ -224,6 +225,14 @@ class MockFeishuServer:
                 body = await request.json()
                 content = body.get("content", "{}")
 
+                # 记录编辑历史
+                edit_record = {
+                    "message_id": message_id,
+                    "content": content,
+                    "timestamp": time.time(),
+                }
+                self._edit_history.append(edit_record)
+
                 # 找到并更新消息
                 for msg in self._sent_messages:
                     if msg.get("message_id") == message_id:
@@ -340,12 +349,18 @@ class MockFeishuServer:
             """获取 bot 已发送的所有消息。"""
             return JSONResponse(self._sent_messages)
 
+        @app.get("/_edit_history")
+        async def get_edit_history():
+            """获取所有编辑操作历史。"""
+            return JSONResponse(self._edit_history)
+
         @app.post("/_clear")
         async def clear_state():
             """清理所有状态。"""
             self._sent_messages.clear()
             self._injected_events.clear()
             self._access_tokens.clear()
+            self._edit_history.clear()
             self._token_counter = 0
             logger.info("🗑 Cleared all mock server state")
             return JSONResponse({"success": True})

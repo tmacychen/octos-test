@@ -749,7 +749,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "deepseek-ai/deepseek-v4-flash",
+                        "model_id": "meta/llama-3.3-70b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -786,7 +786,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "deepseek-ai/deepseek-v4-flash",
+                        "model_id": "meta/llama-3.3-70b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -820,7 +820,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "deepseek-ai/deepseek-v4-flash",
+                        "model_id": "meta/llama-3.3-70b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -865,7 +865,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "deepseek-ai/deepseek-v4-flash",
+                        "model_id": "meta/llama-3.3-70b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -907,7 +907,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "deepseek-ai/deepseek-v4-flash",
+                        "model_id": "meta/llama-3.3-70b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -945,7 +945,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "deepseek-ai/deepseek-v4-flash",
+                        "model_id": "meta/llama-3.3-70b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
