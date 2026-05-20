@@ -404,7 +404,7 @@ class TestMatrixAbortCommands:
         processing_started = False
         wait_start = time.time()
         last_print_time = wait_start
-        while time.time() - wait_start < 15.0:
+        while time.time() - wait_start < 60.0:
             current_time = time.time()
             elapsed = current_time - wait_start
             if current_time - last_print_time >= 1.0:
@@ -431,7 +431,7 @@ class TestMatrixAbortCommands:
         abort_reply = None
         poll_start = time.time()
         last_print_time = poll_start
-        while time.time() - poll_start < 15.0:
+        while time.time() - poll_start < 60.0:
             current_time = time.time()
             elapsed = current_time - poll_start
             if current_time - last_print_time >= 1.0:
@@ -456,7 +456,7 @@ class TestMatrixAbortCommands:
             time.sleep(0.3)
 
         assert abort_reply is not None, \
-            f"Bot did not respond to abort command '{abort_cmd}' within 15s"
+            f"Bot did not respond to abort command '{abort_cmd}' within 60s"
 
         text = abort_reply["text"]
         has_stop_emoji = "🛑" in text

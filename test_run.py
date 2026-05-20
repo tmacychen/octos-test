@@ -369,11 +369,11 @@ def find_octos_binary() -> Optional[Path]:
     return None
 
 
-def build_octos(features: str = "telegram,discord,matrix,api") -> bool:
+def build_octos(features: str = "telegram,discord,slack,whatsapp,email,feishu,twilio,wecom,line,matrix,wecom-bot,qq-bot,wechat,api") -> bool:
     """Build octos binary with required features.
     
     Args:
-        features: Comma-separated list of features to enable (default: telegram,discord,matrix,api)
+        features: Comma-separated list of features to enable (default: all channel features + api)
     
     Note:
         This function requires the octos source code to be available.
@@ -389,63 +389,18 @@ def build_octos(features: str = "telegram,discord,matrix,api") -> bool:
         log.info(f"Using existing octos binary: {BINARY_PATH}")
         return True
     
-    # No binary found, need to build
-    log.info("No octos binary found, attempting to build...")
-    log.info("=" * 60)
-    log.info(f"Building octos ({features})")
-    log.info("=" * 60)
-    
-    # Find project root (where Cargo.toml is)
-    project_root = None
-    for parent in [SCRIPT_DIR, SCRIPT_DIR.parent, SCRIPT_DIR.parent.parent]:
-        if (parent / "Cargo.toml").exists():
-            project_root = parent
-            break
-    
-    if not project_root:
-        log.error("Cannot find octos project root (no Cargo.toml found)")
-        log.error("")
-        log.error("Options:")
-        log.error("  1. Set OCTOS_BINARY environment variable to point to pre-built binary")
-        log.error("     export OCTOS_BINARY=/path/to/octos")
-        log.error("  2. Run this script from within the octos project directory")
-        log.error("  3. Build octos manually: cargo build --release -p octos-cli --features telegram,discord,matrix,api")
-        log.error("")
-        return False
-    
-    build_log = LOG_DIR / "build.log"
-    
-    cmd = [
-        "cargo", "build", "--release", "-p", "octos-cli",
-        "--features", features
-    ]
-    
-    try:
-        with open(build_log, "w") as f:
-            result = subprocess.run(
-                cmd,
-                cwd=project_root,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-            )
-            f.write(result.stdout)
-            if result.returncode != 0:
-                log.error("Build failed! Check log: %s", build_log)
-                return False
-    except Exception as e:
-        log.error("Build failed: %s", e)
-        return False
-    
-    # Update BINARY_PATH
-    BINARY_PATH = project_root / "target" / "release" / "octos"
-    
-    if not BINARY_PATH.exists():
-        log.error("Binary not found after build: %s", BINARY_PATH)
-        return False
-    
-    log.info("✅ Build complete: %s", BINARY_PATH)
-    return True
+    # No binary found — instruct user to build manually
+    log.error("No octos binary found.")
+    log.error("")
+    log.error("Please build octos manually first:")
+    log.error("")
+    log.error("  cd <octos-project-root>")
+    log.error(f"  cargo build --release -p octos-cli --features {features}")
+    log.error("")
+    log.error("Or set OCTOS_BINARY environment variable to point to a pre-built binary:")
+    log.error("  export OCTOS_BINARY=/path/to/octos")
+    log.error("")
+    return False
 
 
 def prepare_test_environment():

@@ -9,9 +9,7 @@ import json
 API_KEY = "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"
 BASE_URL = "https://integrate.api.nvidia.com/v1"
 MODELS = [
-    "moonshotai/kimi-k2.6",
-    "deepseek-ai/deepseek-v4-flash",
-    "deepseek-ai/deepseek-v4-pro"
+    "meta/llama-3.3-70b-instruct",
 ]
 
 def test_model(model_name):

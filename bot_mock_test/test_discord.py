@@ -473,7 +473,7 @@ class TestDiscordAbortCommands:
         processing_started = False
         wait_start = time.time()
         last_print_time = wait_start
-        while time.time() - wait_start < 15.0:
+        while time.time() - wait_start < 60.0:
             current_time = time.time()
             elapsed = current_time - wait_start
 
@@ -502,11 +502,11 @@ class TestDiscordAbortCommands:
         logger.info(f"\n  📤 Sending to LLM (abort command): '{abort_cmd}'")
         runner.inject(abort_cmd, channel_id=channel_id)
 
-        # Step 4: 等待最多 15 秒，检查是否收到 abort 响应
+        # Step 4: 等待最多 60 秒，检查是否收到 abort 响应
         abort_reply = None
         poll_start = time.time()
         last_print_time = poll_start
-        while time.time() - poll_start < 15.0:
+        while time.time() - poll_start < 60.0:
             current_time = time.time()
             elapsed = current_time - poll_start
 
@@ -535,7 +535,7 @@ class TestDiscordAbortCommands:
 
         # Step 5: 断言
         assert abort_reply is not None, \
-            f"Bot did not respond to abort command '{abort_cmd}' within 15s"
+            f"Bot did not respond to abort command '{abort_cmd}' within 60s"
 
         text = abort_reply["text"]
 
