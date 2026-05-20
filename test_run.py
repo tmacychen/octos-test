@@ -1502,7 +1502,7 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
         log.info(f"Starting from test: {from_test}")
     log.info("=" * 60)
     
-    modules = ["telegram", "discord", "matrix", "slack"]
+    modules = ["telegram", "discord", "matrix", "slack", "feishu", "wechat"]
     all_passed = True
     errors = []
     
