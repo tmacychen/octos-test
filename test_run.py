@@ -14,6 +14,7 @@ Commands:
     --test bot [bot-args...]     Run bot mock tests
     --test cli [cli-args...]     Run CLI tests
     --test serve [serve-args...] Run serve tests
+    --test email [email-args...] Run Email tests (real mailbox)
     -h, --help                   Show this help message
 
 Bot test arguments (after --test bot):
@@ -223,6 +224,7 @@ def print_help():
     --test bot [bot-args...]     Run bot mock tests
     --test cli [cli-args...]     Run CLI tests
     --test serve [serve-args...] Run serve tests
+    --test email [email-args...] Run Email tests (real mailbox)
     -h, --help                   Show this help message
 
   Bot test arguments (after --test bot):
@@ -247,6 +249,10 @@ def print_help():
     list                       List available serve tests
     <test_id>                  Run specific test (e.g., 8.1, server_startup)
 
+  Email test arguments (after --test email):
+    <test_name>                Run specific test case (optional)
+    -v, --verbose              Verbose output
+
   Examples:
     test_run.py all                     # run everything
     test_run.py --test bot              # all bot tests
@@ -263,6 +269,8 @@ def print_help():
     test_run.py --test serve            # Serve tests
     test_run.py --test serve -v         # Serve tests, verbose
     test_run.py --test serve list       # List serve tests
+    test_run.py --test email            # Email tests (real mailbox)
+    test_run.py --test email -v         # Email tests, verbose
 
   Environment:
     OCTOS_BINARY       Path to octos binary (optional, auto-detected if not set)
@@ -437,7 +445,7 @@ def list_bot_modules():
     print("  slack (sl)     - Slack bot tests")
     print("  feishu (fs)    - Feishu bot tests")
     print("  wechat (wx)    - WeChat bot tests")
-    print("  email          - Email/IMAP bot tests")
+    print("  whatsapp (wa)  - WhatsApp bot tests")
     print("")
 
 
@@ -457,6 +465,8 @@ def list_bot_cases(module: str):
         "wechat": BOT_TEST_DIR / "test_wechat.py",
         "wx": BOT_TEST_DIR / "test_wechat.py",
         "email": BOT_TEST_DIR / "test_email.py",
+        "whatsapp": BOT_TEST_DIR / "test_whatsapp.py",
+        "wa": BOT_TEST_DIR / "test_whatsapp.py",
     }
     
     test_file = test_files.get(module)
@@ -604,6 +614,393 @@ def detect_flaky_failure(failed_tests: List[str], passed_tests: List[str], all_t
     return False
 
 
+def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], List[str]]:
+    """Run Email bot tests (real mailbox mode, no mock server).
+
+    Email tests connect to real IMAP/SMTP servers, so no mock server is needed.
+    Requires EMAIL_USERNAME, EMAIL_PASSWORD, and EMAIL_REAL_TEST in .env.
+
+    Returns:
+        Tuple of (passed, failed_test_names, passed_test_names)
+    """
+    module = "email"
+    module_logger = logger_mgr.get_module_logger("email")
+
+    module_logger.info("=" * 60)
+    module_logger.info("📧 Running Email bot tests")
+    module_logger.info("=" * 60)
+
+    # Check environment
+    required_vars = ["OPENAI_API_KEY"]
+    if not check_environment(required_vars):
+        return False, [], []
+
+    # Clean up any lingering octos processes
+    module_logger.info("Cleaning up lingering processes...")
+    try:
+        subprocess.run(["pkill", "-f", "octos gateway"], capture_output=True, timeout=5)
+    except Exception:
+        pass
+    time.sleep(1)
+
+    # Setup venv if needed
+    venv_python = BOT_TEST_DIR / ".venv" / "bin" / "python"
+    if not venv_python.exists():
+        module_logger.info("Creating Python venv...")
+        subprocess.run(["uv", "venv", str(BOT_TEST_DIR / ".venv")], check=True)
+        subprocess.run([
+            "uv", "pip", "install",
+            "fastapi", "uvicorn", "httpx", "pytest", "pytest-asyncio", "websockets",
+            "--python", str(venv_python),
+        ], check=True)
+
+    # Determine test file
+    port = 5080
+    test_path = BOT_TEST_DIR / "test_email.py"
+    if not test_path.exists():
+        module_logger.error(f"Test file not found: {test_path}")
+        return False, [], []
+
+    # Prepare config
+    config_dir = TEST_DIR / ".octos"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_file = config_dir / "test_email_config.json"
+
+    # ── 检查 .env 配置 ─────────────────────────────────────────────
+    env_file = SCRIPT_DIR / ".env"
+    email_header_written = False
+
+    def _ensure_env_var(key: str, default: str, comment: str):
+        nonlocal email_header_written
+        if key in os.environ:
+            return True
+        if env_file.exists():
+            with open(env_file) as f:
+                for line in f:
+                    stripped = line.strip()
+                    if stripped.startswith(f"# {key}=") or stripped.startswith(f"{key}="):
+                        return False
+        try:
+            with open(env_file, "a") as f:
+                if not email_header_written:
+                    f.write("""
+# ════════════════════════════════════════════════════════════════════════════
+# Email 测试配置（使用真实邮箱）
+# ════════════════════════════════════════════════════════════════════════════
+#
+# ── QQ 邮箱 ──────────────────────────────────────────────────────────────
+#   登录 mail.qq.com → 设置 → 账户
+#   → 开启 IMAP/SMTP 服务 → 生成授权码（16位字母，不是QQ密码）
+#   IMAP: imap.qq.com:993 (SSL)
+#   SMTP: smtp.qq.com:465 (SSL)
+#
+# ── 163 邮箱 ─────────────────────────────────────────────────────────────
+#   登录 mail.163.com → 设置 → POP3/SMTP/IMAP
+#   → 开启 IMAP/SMTP → 设置授权码
+#   IMAP: imap.163.com:993 (SSL)
+#   SMTP: smtp.163.com:465 (SSL)
+#
+""")
+                    email_header_written = True
+                if comment:
+                    f.write(f"# {comment}\n")
+                f.write(f"# {key}={default}\n")
+            module_logger.info(f"  → 已添加 {key} 到 .env")
+        except Exception:
+            pass
+        return False
+
+    has_user = _ensure_env_var("EMAIL_USERNAME", "your_bot@qq.com",
+                                "Bot 邮箱地址（必须，将 # 去掉并替换为你的邮箱）")
+    has_pass = _ensure_env_var("EMAIL_PASSWORD", "your_authorization_code",
+                                "邮箱授权码（必须，将 # 去掉并替换为你的授权码）")
+    has_real = _ensure_env_var("EMAIL_REAL_TEST", "true",
+                                "启用真实邮箱模式（必须，去掉 # 启用）")
+    _ensure_env_var("EMAIL_IMAP_HOST", "imap.qq.com",
+                     "IMAP 服务器（可选，QQ邮箱无需修改；163邮箱改为 imap.163.com）")
+    _ensure_env_var("EMAIL_IMAP_PORT", "993", "")
+    _ensure_env_var("EMAIL_SMTP_HOST", "smtp.qq.com",
+                     "SMTP 服务器（可选，QQ邮箱无需修改；163邮箱改为 smtp.163.com）")
+    _ensure_env_var("EMAIL_SMTP_PORT", "465", "")
+
+    module_logger.info("")
+    module_logger.info("=" * 60)
+    module_logger.info("📧 Email 测试使用真实邮箱，不需要 Mock 服务器")
+    module_logger.info("=" * 60)
+    module_logger.info("")
+
+    all_set = has_user and has_pass and has_real
+
+    if not all_set:
+        module_logger.info("请在 .env 中配置以下环境变量后重试：")
+        module_logger.info("")
+        if not has_user:
+            module_logger.info("  1. 设置 EMAIL_USERNAME=your_bot@qq.com（或 your_bot@163.com）")
+        if not has_pass:
+            module_logger.info("  2. 设置 EMAIL_PASSWORD=your_authorization_code（授权码！不是QQ密码）")
+        if not has_real:
+            module_logger.info("  3. 设置 EMAIL_REAL_TEST=true")
+        module_logger.info("")
+        module_logger.info("  ── QQ 邮箱 ──────────────────────────────────────")
+        module_logger.info("    1. 登录 mail.qq.com → 设置 → 账户")
+        module_logger.info("    2. 开启 IMAP/SMTP 服务 → 生成授权码（16位字母）")
+        module_logger.info("    3. IMAP: imap.qq.com:993 / SMTP: smtp.qq.com:465")
+        module_logger.info("")
+        return False, [], []
+    else:
+        module_logger.info("  ✓ EMAIL_USERNAME: " + os.environ.get("EMAIL_USERNAME", ""))
+        module_logger.info("  ✓ EMAIL_REAL_TEST=true")
+        module_logger.info("  ✓ IMAP: " + os.environ.get("EMAIL_IMAP_HOST", "imap.qq.com") + ":" + os.environ.get("EMAIL_IMAP_PORT", "993"))
+        module_logger.info("  ✓ SMTP: " + os.environ.get("EMAIL_SMTP_HOST", "smtp.qq.com") + ":" + os.environ.get("EMAIL_SMTP_PORT", "465"))
+        module_logger.info("")
+        module_logger.info("⏳ 正在启动 octos gateway 并连接真实邮箱...")
+        module_logger.info("")
+
+        # 构建真实邮箱配置
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        imap_host = os.environ.get("EMAIL_IMAP_HOST", "imap.qq.com")
+        imap_port = int(os.environ.get("EMAIL_IMAP_PORT", "993"))
+        smtp_host = os.environ.get("EMAIL_SMTP_HOST", "smtp.qq.com")
+        smtp_port = int(os.environ.get("EMAIL_SMTP_PORT", "465"))
+        from_addr = os.environ.get("EMAIL_FROM_ADDRESS", os.environ.get("EMAIL_USERNAME", ""))
+        extra_env = {}
+        config = {
+            "id": "test_email_bot",
+            "name": "Test Email Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "email",
+                    "imap_host": imap_host,
+                    "imap_port": imap_port,
+                    "smtp_host": smtp_host,
+                    "smtp_port": smtp_port,
+                    "username_env": "EMAIL_USERNAME",
+                    "password_env": "EMAIL_PASSWORD",
+                    "from_address": from_addr,
+                    "poll_interval_secs": 15,
+                    "allowed_senders": "",
+                    "max_body_chars": 50000,
+                }],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
+                }
+            }
+        }
+
+    with open(config_file, "w") as f:
+        json.dump(config, f, indent=2)
+
+    # Clean up previous test artifacts
+    module_logger.info("Cleaning up previous test artifacts...")
+
+    # Kill any existing processes on the port
+    try:
+        result = subprocess.run(
+            ["lsof", "-ti", f"tcp:{port}"],
+            capture_output=True,
+            text=True,
+        )
+        pids = result.stdout.strip().splitlines()
+        for pid in pids:
+            if pid:
+                try:
+                    os.kill(int(pid), signal.SIGKILL)
+                    module_logger.info(f"Killed process {pid} on port {port}")
+                except ProcessLookupError:
+                    pass
+        if pids:
+            time.sleep(1)
+    except Exception:
+        pass
+
+    # Remove database lock files
+    db_files = list(TEST_DIR.glob("*.redb")) + list(TEST_DIR.glob("*.redb.lock"))
+    for db_file in db_files:
+        try:
+            db_file.unlink()
+            module_logger.info(f"Removed database file: {db_file}")
+        except FileNotFoundError:
+            pass
+
+    # Clear Python cache
+    import shutil
+    for pattern in ["__pycache__", "*.pyc", ".pytest_cache"]:
+        for path in BOT_TEST_DIR.glob(f"**/{pattern}"):
+            if path.is_dir():
+                shutil.rmtree(path, ignore_errors=True)
+            elif path.is_file():
+                path.unlink(missing_ok=True)
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    bot_log = LOG_DIR / f"02_gateway_email_{timestamp}.log"
+
+    # No mock server for email
+    module_logger.info("📧 跳过 Mock 服务器，直接连接真实 IMAP/SMTP")
+
+    # Start Octos Gateway
+    if not BINARY_PATH.exists():
+        module_logger.error(f"Octos binary not found: {BINARY_PATH}")
+        return False, [], []
+
+    bot_env = {**os.environ, **extra_env}
+
+    # Open log file for bot output
+    bot_log_file = open(bot_log, 'w')
+
+    bot_proc = subprocess.Popen(
+        [str(BINARY_PATH), "gateway", "--profile", str(config_file), "--data-dir", str(TEST_DIR)],
+        env=bot_env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    bot_pid = bot_proc.pid
+    module_logger.info(f"Bot PID: {bot_pid}")
+
+    # Start tee thread
+    import threading
+    import sys as _sys
+
+    def tee_output(proc, log_file):
+        try:
+            while True:
+                if proc.poll() is not None:
+                    remaining = proc.stdout.read()
+                    if remaining:
+                        text = remaining.decode('utf-8', errors='ignore')
+                        try:
+                            log_file.write(text)
+                            log_file.flush()
+                        except (ValueError, IOError):
+                            pass
+                        _sys.stdout.write(text)
+                        _sys.stdout.flush()
+                    break
+                line = proc.stdout.readline()
+                if not line:
+                    time.sleep(0.1)
+                    continue
+                text = line.decode('utf-8', errors='ignore')
+                try:
+                    log_file.write(text)
+                    log_file.flush()
+                except (ValueError, IOError):
+                    pass
+                _sys.stdout.write(text)
+                _sys.stdout.flush()
+        except Exception as e:
+            if not isinstance(e, (ValueError, IOError)):
+                module_logger.error(f"Tee thread error: {e}")
+
+    tee_thread = threading.Thread(target=tee_output, args=(bot_proc, bot_log_file), daemon=True)
+    tee_thread.start()
+
+    # Wait for gateway to start
+    module_logger.info("Waiting for gateway to start...")
+    ready = False
+    max_wait = 60  # Email might be slower
+    start = time.time()
+
+    try:
+        while time.time() - start < max_wait:
+            if bot_proc.poll() is not None:
+                module_logger.error(f"Bot process exited prematurely (exit code: {bot_proc.returncode})")
+                break
+
+            line = bot_proc.stdout.readline()
+            if line:
+                text = line.decode('utf-8', errors='ignore')
+                _sys.stdout.write(text)
+
+                if "gateway started" in text.lower() or "listening" in text.lower() or "ready" in text.lower():
+                    ready = True
+                    break
+            else:
+                time.sleep(0.5)
+    except Exception as e:
+        module_logger.error(f"Error waiting for gateway: {e}")
+
+    if not ready:
+        module_logger.error("Email gateway failed to start within timeout")
+        bot_proc.terminate()
+        try:
+            bot_log_file.close()
+        except Exception:
+            pass
+        return False, [], []
+
+    module_logger.info("Email gateway is ready!")
+
+    # Run tests
+    module_logger.info(f"Running email tests...")
+    if test_case:
+        module_logger.info(f"  Test case filter: {test_case}")
+
+    extra_env = {}
+
+    # Build pytest command
+    pytest_args = [
+        str(venv_python), "-m", "pytest",
+        str(test_path),
+        "-v",
+        "--timeout=300",
+        "-x",  # Stop on first failure
+    ]
+
+    if test_case:
+        pytest_args.extend(["-k", test_case])
+
+    # Add annotation for slow marker
+    pytest_env = {
+        **os.environ,
+        **extra_env,
+        "PYTHONPATH": str(BOT_TEST_DIR),
+    }
+
+    result = subprocess.run(pytest_args, env=pytest_env)
+
+    passed = result.returncode == 0
+
+    # Collect test results
+    test_names = [f"email/{t}" for t in ["test_email"]]
+    failed_tests = [] if passed else test_names
+    passed_tests = test_names if passed else []
+
+    # Cleanup
+    module_logger.info("Cleaning up email gateway...")
+    try:
+        bot_log_file.close()
+    except Exception:
+        pass
+    bot_proc.terminate()
+    try:
+        bot_proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        bot_proc.kill()
+
+    # Wait for tee thread
+    tee_thread.join(timeout=5)
+
+    module_logger.info(f"Email test {'PASSED' if passed else 'FAILED'}")
+
+    return passed, failed_tests, passed_tests
+
+
 def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, List[str], List[str]]:
     """Run bot tests for a specific module.
 
@@ -659,6 +1056,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         ], check=True)
     
     # Determine test file and module info
+    # module_info dict - email has been moved to run_email_test()
     module_info = {
         "telegram": {"port": 5000, "test_file": "test_telegram.py", "mock_module": "mock_tg", "mock_class": "MockTelegramServer"},
         "tg": {"port": 5000, "test_file": "test_telegram.py", "mock_module": "mock_tg", "mock_class": "MockTelegramServer"},
@@ -672,7 +1070,8 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         "fs": {"port": 5004, "test_file": "test_feishu.py", "mock_module": "mock_feishu", "mock_class": "MockFeishuServer"},
         "wechat": {"port": 5005, "test_file": "test_wechat.py", "mock_module": "mock_wechat", "mock_class": "MockWeChatServer"},
         "wx": {"port": 5005, "test_file": "test_wechat.py", "mock_module": "mock_wechat", "mock_class": "MockWeChatServer"},
-        "email": {"port": 5080, "test_file": "test_email.py", "mock_module": "mock_email", "mock_class": "MockEmailServer"},
+        "whatsapp": {"port": 5006, "test_file": "test_whatsapp.py", "mock_module": "mock_whatsapp", "mock_class": "MockWhatsAppServer"},
+        "wa": {"port": 5006, "test_file": "test_whatsapp.py", "mock_module": "mock_whatsapp", "mock_class": "MockWhatsAppServer"},
     }
     
     info = module_info.get(module)
@@ -925,151 +1324,44 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
             }
         }
 
-
-    elif module in ["email"]:
-        # ── 检查 .env 配置 ─────────────────────────────────────────────
-        env_file = SCRIPT_DIR / ".env"
-        email_header_written = False
-
-        def _ensure_env_var(key: str, default: str, comment: str):
-            nonlocal email_header_written
-            if key in os.environ:
-                return True
-            # 检查 .env 中是否已有该 key（包括注释掉的）
-            if env_file.exists():
-                with open(env_file) as f:
-                    for line in f:
-                        stripped = line.strip()
-                        if stripped.startswith(f"# {key}=") or stripped.startswith(f"{key}="):
-                            return False
-            # 追加到 .env
-            try:
-                with open(env_file, "a") as f:
-                    if not email_header_written:
-                        f.write("""
-# ════════════════════════════════════════════════════════════════════════════
-# Email 测试配置（使用真实邮箱）
-# ════════════════════════════════════════════════════════════════════════════
-#
-# ── QQ 邮箱 ──────────────────────────────────────────────────────────────
-#   登录 mail.qq.com → 设置 → 账户
-#   → 开启 IMAP/SMTP 服务 → 生成授权码（16位字母，不是QQ密码）
-#   IMAP: imap.qq.com:993 (SSL)
-#   SMTP: smtp.qq.com:465 (SSL)
-#
-# ── 163 邮箱 ─────────────────────────────────────────────────────────────
-#   登录 mail.163.com → 设置 → POP3/SMTP/IMAP
-#   → 开启 IMAP/SMTP → 设置授权码
-#   IMAP: imap.163.com:993 (SSL)
-#   SMTP: smtp.163.com:465 (SSL)
-#
-""")
-                        email_header_written = True
-                    if comment:
-                        f.write(f"# {comment}\n")
-                    f.write(f"# {key}={default}\n")
-                module_logger.info(f"  → 已添加 {key} 到 .env")
-            except Exception:
-                pass
-            return False
-
-        has_user = _ensure_env_var("EMAIL_USERNAME", "your_bot@qq.com",
-                                    "Bot 邮箱地址（必须，将 # 去掉并替换为你的邮箱）")
-        has_pass = _ensure_env_var("EMAIL_PASSWORD", "your_authorization_code",
-                                    "邮箱授权码（必须，将 # 去掉并替换为你的授权码）")
-        has_real = _ensure_env_var("EMAIL_REAL_TEST", "true",
-                                    "启用真实邮箱模式（必须，去掉 # 启用）")
-        _ensure_env_var("EMAIL_IMAP_HOST", "imap.qq.com",
-                         "IMAP 服务器（可选，QQ邮箱无需修改；163邮箱改为 imap.163.com）")
-        _ensure_env_var("EMAIL_IMAP_PORT", "993", "")
-        _ensure_env_var("EMAIL_SMTP_HOST", "smtp.qq.com",
-                         "SMTP 服务器（可选，QQ邮箱无需修改；163邮箱改为 smtp.163.com）")
-        _ensure_env_var("EMAIL_SMTP_PORT", "465", "")
-
-        # ── 打印配置引导 ───────────────────────────────────────────────
-        module_logger.info("")
-        module_logger.info("=" * 60)
-        module_logger.info("📧 Email 测试使用真实邮箱，不需要 Mock 服务器")
-        module_logger.info("=" * 60)
-        module_logger.info("")
-
-        all_set = has_user and has_pass and has_real
-
-        if not all_set:
-            module_logger.info("请在 .env 中配置以下环境变量后重试：")
-            module_logger.info("")
-            if not has_user:
-                module_logger.info("  1. 设置 EMAIL_USERNAME=your_bot@qq.com（或 your_bot@163.com）")
-            if not has_pass:
-                module_logger.info("  2. 设置 EMAIL_PASSWORD=your_authorization_code（授权码！不是QQ密码）")
-            if not has_real:
-                module_logger.info("  3. 设置 EMAIL_REAL_TEST=true")
-            module_logger.info("")
-            module_logger.info("  ── QQ 邮箱 ──────────────────────────────────────")
-            module_logger.info("    1. 登录 mail.qq.com → 设置 → 账户")
-            module_logger.info("    2. 开启 IMAP/SMTP 服务 → 生成授权码（16位字母）")
-            module_logger.info("    3. IMAP: imap.qq.com:993 / SMTP: smtp.qq.com:465")
-            module_logger.info("")
-
-        else:
-            module_logger.info("  ✓ EMAIL_USERNAME: " + os.environ.get("EMAIL_USERNAME", ""))
-            module_logger.info("  ✓ EMAIL_REAL_TEST=true")
-            module_logger.info("  ✓ IMAP: " + os.environ.get("EMAIL_IMAP_HOST", "imap.qq.com") + ":" + os.environ.get("EMAIL_IMAP_PORT", "993"))
-            module_logger.info("  ✓ SMTP: " + os.environ.get("EMAIL_SMTP_HOST", "smtp.qq.com") + ":" + os.environ.get("EMAIL_SMTP_PORT", "465"))
-            module_logger.info("")
-            module_logger.info("⏳ 正在启动 octos gateway 并连接真实邮箱...")
-            module_logger.info("")
-        
-            # 构建真实邮箱配置
-            now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-            imap_host = os.environ.get("EMAIL_IMAP_HOST", "imap.qq.com")
-            imap_port = int(os.environ.get("EMAIL_IMAP_PORT", "993"))
-            smtp_host = os.environ.get("EMAIL_SMTP_HOST", "smtp.qq.com")
-            smtp_port = int(os.environ.get("EMAIL_SMTP_PORT", "465"))
-            from_addr = os.environ.get("EMAIL_FROM_ADDRESS", os.environ.get("EMAIL_USERNAME", ""))
-            extra_env = {}
-            config = {
-                "id": "test_email_bot",
-                "name": "Test Email Bot",
-                "enabled": True,
-                "created_at": now,
-                "updated_at": now,
-                "config": {
-                    "version": 1,
-                    "llm": {
-                        "primary": {
-                            "family_id": "openai",
-                            "model_id": "meta/llama-3.3-70b-instruct",
-                            "route": {
-                                "api_key_env": "OPENAI_API_KEY",
-                                "base_url": "https://integrate.api.nvidia.com/v1"
-                            }
-                        },
-                        "fallbacks": []
+    elif module in ["whatsapp", "wa"]:
+        # WhatsApp WebSocket bridge 模式
+        port = 5006
+        mock_module = "mock_whatsapp"
+        mock_class = "MockWhatsAppServer"
+        extra_env = {}
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        config = {
+            "id": "test_whatsapp_bot",
+            "name": "Test WhatsApp Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
                     },
-                    "channels": [{
-                        "type": "email",
-                        "imap_host": imap_host,
-                        "imap_port": imap_port,
-                        "smtp_host": smtp_host,
-                        "smtp_port": smtp_port,
-                        "username_env": "EMAIL_USERNAME",
-                        "password_env": "EMAIL_PASSWORD",
-                        "from_address": from_addr,
-                        "poll_interval_secs": 15,
-                        "allowed_senders": "",
-                        "max_body_chars": 50000,
-                    }],
-                    "gateway": {
-                        "max_history": 50,
-                        "max_concurrent_sessions": 10
-                    }
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "whatsapp",
+                    "bridge_url": f"ws://127.0.0.1:{port}/ws",
+                }],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
                 }
             }
-            
-            # 继续 gateway 启动流程（后续代码会写入配置并启动）
-            # 不 return，让代码继续执行到 with open(config_file,"w") 之后
-    
+        }
+
+
     with open(config_file, "w") as f:
         json.dump(config, f, indent=2)
     
@@ -1116,13 +1408,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     bot_log = LOG_DIR / f"02_gateway_{module}_{timestamp}.log"
-    
-    # Start Mock Server (skip for email — connects to real servers)
-    if module == "email":
-        mock_pid = None
-        module_logger.info("📧 跳过 Mock 服务器，直接连接真实 IMAP/SMTP")
-    else:
-        mock_code = f"""
+
+    # Start Mock Server
+    mock_code = f"""
 import time, signal, sys, logging
 from {mock_module} import {mock_class}
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -1135,48 +1423,49 @@ while True:
     time.sleep(1)
 """
 
-        mock_proc = subprocess.Popen(
-            [str(venv_python), "-c", mock_code],
-            env={**os.environ, **extra_env, "PYTHONPATH": str(BOT_TEST_DIR), "PYTHONDONTWRITEBYTECODE": "1"},
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
+    mock_proc = subprocess.Popen(
+        [str(venv_python), "-c", mock_code],
+        env={**os.environ, **extra_env, "PYTHONPATH": str(BOT_TEST_DIR), "PYTHONDONTWRITEBYTECODE": "1"},
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
 
-        health_timeout = 10 if module in ["telegram", "tg"] else (10 if module in ["discord", "dc"] else 3)
-        start = time.time()
-        mock_ready = False
-        last_error = None
+    health_timeout = 10 if module in ["telegram", "tg"] else (10 if module in ["discord", "dc"] else 3)
+    start = time.time()
+    mock_ready = False
+    last_error = None
 
-        while time.time() - start < health_timeout:
-            if mock_proc.poll() is not None:
-                stdout, _ = mock_proc.communicate()
-                last_error = stdout.decode('utf-8', errors='ignore') if stdout else "Unknown error"
+    while time.time() - start < health_timeout:
+        if mock_proc.poll() is not None:
+            stdout, _ = mock_proc.communicate()
+            last_error = stdout.decode('utf-8', errors='ignore') if stdout else "Unknown error"
+            break
+        try:
+            resp = httpx.get(f"http://127.0.0.1:{port}/health", timeout=2)
+            if resp.status_code == 200:
+                mock_ready = True
                 break
-            try:
-                resp = httpx.get(f"http://127.0.0.1:{port}/health", timeout=2)
-                if resp.status_code == 200:
-                    mock_ready = True
-                    break
-            except Exception as e:
-                last_error = str(e)
-            time.sleep(0.5)
+        except Exception as e:
+            last_error = str(e)
+        time.sleep(0.5)
 
-        if not mock_ready:
-            module_logger.error(f"{module} Mock server failed to start")
-            if last_error:
-                module_logger.error(f"Error details: {last_error}")
-            try:
-                mock_proc.terminate()
-                stdout, _ = mock_proc.communicate(timeout=2)
-                if stdout:
-                    output = stdout.decode('utf-8', errors='ignore')
-                    module_logger.error(f"Mock server output:\n{output}")
-            except Exception:
-                pass
-            return False, [], []
+    if not mock_ready:
+        module_logger.error(f"{module} Mock server failed to start")
+        if last_error:
+            module_logger.error(f"Error details: {last_error}")
+        try:
+            mock_proc.terminate()
+            stdout, _ = mock_proc.communicate(timeout=2)
+            if stdout:
+                output = stdout.decode('utf-8', errors='ignore')
+                module_logger.error(f"Mock server output:\n{output}")
+        except Exception:
+            pass
+        return False, [], []
 
-        mock_pid = mock_proc.pid
-        module_logger.info(f"{module} Mock server running on port {port} (PID {mock_pid})")
+    mock_pid = mock_proc.pid
+    module_logger.info(f"{module} Mock server running on port {port} (PID {mock_pid})")
+
 
     # Start Octos Gateway
     if not BINARY_PATH.exists():
@@ -1258,7 +1547,7 @@ while True:
     module_logger.info("Waiting for gateway to start...")
     
     ready = False
-    max_wait = 50 if module in ["discord", "dc"] else (60 if module == "email" else 40)
+    max_wait = 50 if module in ["discord", "dc"] else 40
     start = time.time()
     
     try:
@@ -1653,7 +1942,7 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
         log.info(f"Starting from test: {from_test}")
     log.info("=" * 60)
     
-    modules = ["telegram", "discord", "matrix", "slack", "feishu", "wechat"]
+    modules = ["telegram", "discord", "matrix", "slack", "feishu", "wechat", "whatsapp"]
     all_passed = True
     errors = []
     
@@ -1938,7 +2227,7 @@ def main() -> int:
             print_help()
             return 1
         
-        if test_target not in ["bot", "cli", "serve"]:
+        if test_target not in ["bot", "cli", "serve", "email"]:
             log.error(f"Unknown test target: {test_target}")
             print_help()
             return 1
@@ -1989,7 +2278,7 @@ def main() -> int:
                 return 0 if passed else 1
             
             # Check if it's a valid module
-            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "email"]
+            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa"]
             if action in valid_modules:
                 # Special case: check for 'list' subcommand
                 if len(remaining) > 1 and remaining[1] == "list":
@@ -2025,7 +2314,33 @@ def main() -> int:
             log.error(f"Unknown bot argument: {action}")
             print_help()
             return 1
-        
+
+        # Handle Email tests
+        elif test_target == "email":
+            if not remaining:
+                # Default: run all email tests
+                if not build_octos():
+                    return 1
+                prepare_test_environment()
+                passed, _, _ = run_email_test()
+                return 0 if passed else 1
+
+            action = remaining[0]
+
+            # Help for email
+            if action in ["-h", "--help"]:
+                print_help()
+                return 0
+
+            # Parse verbose flag
+            verbose = "-v" in remaining or "--verbose" in remaining
+
+            if not build_octos():
+                return 1
+            prepare_test_environment()
+            passed, _, _ = run_email_test(test_case=action if action and not action.startswith('-') else None)
+            return 0 if passed else 1
+
         # Handle CLI tests
         elif test_target == "cli":
             if not remaining:
