@@ -650,7 +650,7 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
         subprocess.run(["uv", "venv", str(BOT_TEST_DIR / ".venv")], check=True)
         subprocess.run([
             "uv", "pip", "install",
-            "fastapi", "uvicorn", "httpx", "pytest", "pytest-asyncio", "websockets",
+            "fastapi", "uvicorn", "httpx", "pytest", "pytest-asyncio", "pytest-timeout", "websockets",
             "--python", str(venv_python),
         ], check=True)
 
@@ -876,6 +876,8 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
     import threading
     import sys as _sys
 
+    _gateway_ready = threading.Event()
+
     def tee_output(proc, log_file):
         try:
             while True:
@@ -896,6 +898,9 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
                     time.sleep(0.1)
                     continue
                 text = line.decode('utf-8', errors='ignore')
+                # Check for gateway ready signal
+                if any(kw in text.lower() for kw in ["gateway started", "listening", "[gateway] ready"]):
+                    _gateway_ready.set()
                 try:
                     log_file.write(text)
                     log_file.flush()
@@ -910,7 +915,7 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
     tee_thread = threading.Thread(target=tee_output, args=(bot_proc, bot_log_file), daemon=True)
     tee_thread.start()
 
-    # Wait for gateway to start
+    # Wait for gateway to start (via tee thread signal)
     module_logger.info("Waiting for gateway to start...")
     ready = False
     max_wait = 60  # Email might be slower
@@ -922,16 +927,11 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
                 module_logger.error(f"Bot process exited prematurely (exit code: {bot_proc.returncode})")
                 break
 
-            line = bot_proc.stdout.readline()
-            if line:
-                text = line.decode('utf-8', errors='ignore')
-                _sys.stdout.write(text)
+            if _gateway_ready.is_set():
+                ready = True
+                break
 
-                if "gateway started" in text.lower() or "listening" in text.lower() or "ready" in text.lower():
-                    ready = True
-                    break
-            else:
-                time.sleep(0.5)
+            time.sleep(0.2)
     except Exception as e:
         module_logger.error(f"Error waiting for gateway: {e}")
 
@@ -1051,10 +1051,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         subprocess.run(["uv", "venv", str(BOT_TEST_DIR / ".venv")], check=True)
         subprocess.run([
             "uv", "pip", "install",
-            "fastapi", "uvicorn", "httpx", "pytest", "pytest-asyncio", "websockets",
+            "fastapi", "uvicorn", "httpx", "pytest", "pytest-asyncio", "pytest-timeout", "websockets",
             "--python", str(venv_python),
         ], check=True)
-    
+
     # Determine test file and module info
     # module_info dict - email has been moved to run_email_test()
     module_info = {
