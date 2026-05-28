@@ -11,7 +11,7 @@ class LineTestRunner(BaseMockRunner):
     """LINE 测试辅助工具。"""
 
     def __init__(self, base_url: str = "http://127.0.0.1:5007",
-                 webhook_port: int = 8646,
+                 webhook_port: int = 8647,
                  channel_secret: str = "test_secret"):
         super().__init__(base_url)
         self.webhook_port = webhook_port
