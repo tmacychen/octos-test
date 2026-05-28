@@ -344,7 +344,8 @@ class TestTelegramQueueModeSteerNonAbort:
         logger.info(f"\n  ✓ Steer mode: Non-abort messages handled correctly")
         
         # Step 3: 恢复默认模式
-        inject_and_get_reply(runner, "/queue collect", timeout=TIMEOUT_COMMAND, chat_id=chat_id)
+        # 使用较长超时，因为前序 LLM 调用的 rate-limit backoff 可能仍在生效
+        inject_and_get_reply(runner, "/queue collect", timeout=120, chat_id=chat_id)
 
     def test_interrupt_mode_non_abort_messages_not_triggered(self, runner):
         """验证 interrupt 模式下普通消息不会误触发 abort
@@ -382,7 +383,8 @@ class TestTelegramQueueModeSteerNonAbort:
         logger.info(f"\n  ✓ Interrupt mode: Non-abort messages handled correctly")
         
         # Step 3: 恢复默认模式
-        inject_and_get_reply(runner, "/queue collect", timeout=TIMEOUT_COMMAND, chat_id=chat_id)
+        # 使用较长超时，因为前序 LLM 调用的 rate-limit backoff 可能仍在生效
+        inject_and_get_reply(runner, "/queue collect", timeout=120, chat_id=chat_id)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
