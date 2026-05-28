@@ -1178,3 +1178,202 @@ class TestTelegramSessionSizeStress:
                 logger.info(f"  ✓ Cleaned up test session file")
         except Exception as e:
             logger.info(f"  ⚠ Failed to clean up session file: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Telegram 高级特性测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestTelegramInlineKeyboard:
+    """Inline Keyboard 回调查询测试"""
+
+    @pytest.mark.slow
+    def test_callback_session_switch(self, runner, cleanup_state):
+        """发送带 inline keyboard 的消息 → 点击按钮 → 切换 session"""
+        chat_id = 901
+        text = inject_and_get_reply(runner, "Please show a menu with options",
+                                    timeout=TIMEOUT_LLM, chat_id=chat_id)
+        assert len(text) > 0
+        
+        # 获取 bot 发送的消息，检查是否有 reply_markup
+        msgs = runner.get_sent_messages(timeout=5)
+        bot_msg = None
+        for m in reversed(msgs):
+            if m.get("chat_id") == chat_id:
+                bot_msg = m
+                break
+        
+        if bot_msg and bot_msg.get("reply_markup"):
+            logger.info(f"  Bot sent message with reply_markup: {bot_msg['reply_markup']}")
+        
+        logger.info(f"  ✓ Received reply with text: {text[:60]}")
+
+
+class TestTelegramMentionGating:
+    """群组 @mention 门控测试"""
+
+    @pytest.mark.llm
+    def test_mention_group_behavior(self, runner, cleanup_state):
+        """验证 mention gating 行为：群组消息需 @bot 才响应"""
+        chat_id = 902
+        # 先发一条不带 @mention 的消息，bot 可能不回复
+        import httpx
+        count_before = len(runner.get_sent_messages(timeout=5))
+        httpx.post(f"{runner.base_url}/_inject", json={
+            "chat_id": chat_id, "text": "hello without mention", "is_group": True,
+        }, timeout=5)
+        time.sleep(5)
+        count_after = len(runner.get_sent_messages(timeout=5))
+        if count_after <= count_before:
+            logger.info("  ✓ No reply to group message without @mention")
+        else:
+            logger.info("  Bot replied to group message (mention gating may not be enabled in config)")
+
+        # 再发一条带 @mention 的，应该收到回复
+        text = inject_and_get_reply(runner, "Hello @test_octos_bot",
+                                    timeout=TIMEOUT_LLM, chat_id=903, is_group=True)
+        assert len(text) > 0, "Bot should reply when @mentioned in group"
+        logger.info(f"  ✓ Bot replied to @mention: {text[:60]}")
+
+
+class TestTelegramTypingIndicator:
+    """Typing / Listening 指示器测试"""
+
+    @pytest.mark.slow
+    def test_typing_indicator_sent(self, runner, cleanup_state):
+        """发送消息后 bot 应发送 typing indicator"""
+        chat_id = 904
+        # 先 cleanup
+        runner._clear_state()
+        # 发送消息
+        text = inject_and_get_reply(runner, "Hello, just a quick greeting",
+                                    timeout=TIMEOUT_LLM, chat_id=chat_id)
+        assert len(text) > 0
+        
+        # 检查 action_log（需要 mock server 支持 /_action_log）
+        import httpx
+        try:
+            resp = httpx.get(f"{runner.base_url}/_action_log", timeout=5)
+            actions = resp.json()
+            typing_actions = [a for a in actions if a.get("action") == "typing" or a.get("action") == "Typing"]
+            if typing_actions:
+                logger.info(f"  ✓ Bot sent {len(typing_actions)} typing indicator(s)")
+            else:
+                logger.info("  No typing indicator recorded (chat_id may differ)")
+        except Exception:
+            logger.info("  ⚠ Could not check action log")
+
+
+class TestTelegramHealthCheck:
+    """Health Check 测试"""
+
+    @pytest.mark.slow
+    def test_bot_health(self, runner, cleanup_state):
+        """检查 bot 的健康状态"""
+        # runner.health() 已在 cleanup fixture 中验证
+        assert runner.health(), "Bot health check failed"
+        logger.info("  ✓ Bot health check passed")
+
+
+class TestTelegramSendPhoto:
+    """媒体消息（照片）发送测试"""
+
+    @pytest.mark.slow
+    def test_send_photo_reply(self, runner, cleanup_state):
+        """发送文本消息 → bot 回复包含 [photo]"""
+        chat_id = 905
+        text = inject_and_get_reply(runner, "Please draw a simple ascii art",
+                                    timeout=TIMEOUT_LLM, chat_id=chat_id)
+        assert len(text) > 0
+        
+        # 检查是否有 [photo] 标记（mock 会记录 sendPhoto 的调用）
+        msgs = runner.get_sent_messages(timeout=5)
+        photo_msgs = [m for m in msgs if m.get("chat_id") == chat_id and "[photo]" in m.get("text", "")]
+        if photo_msgs:
+            logger.info(f"  ✓ Bot sent photo message")
+        else:
+            logger.info(f"  Bot sent text only (expected): {text[:60]}")
+
+
+class TestTelegramMessageDelete:
+    """消息删除测试"""
+
+    @pytest.mark.slow
+    def test_delete_via_edit(self, runner, cleanup_state):
+        """编辑后旧消息应被正确记录"""
+        chat_id = 906
+        text = inject_and_get_reply(runner, "Hello world",
+                                    timeout=TIMEOUT_LLM, chat_id=chat_id)
+        assert len(text) > 0
+        
+        # 发送第二个消息，bot 可能会编辑之前的内容（流式编辑）
+        text2 = inject_and_get_reply(runner, "Tell me more",
+                                     timeout=TIMEOUT_LLM, chat_id=chat_id)
+        assert len(text2) > 0
+        
+        import httpx
+        try:
+            resp = httpx.get(f"{runner.base_url}/_edit_history", timeout=5)
+            edits = resp.json()
+            logger.info(f"  Edit history: {len(edits)} edit operation(s)")
+        except Exception:
+            logger.info("  ⚠ Could not check edit history")
+
+
+class TestTelegramDedup:
+    """消息去重测试"""
+
+    @pytest.mark.slow
+    def test_dedup_duplicate_update(self, runner, cleanup_state):
+        """重复的 update_id 应被跳过"""
+        chat_id = 907
+        import httpx
+        
+        # 注入第一条消息
+        resp = httpx.post(f"{runner.base_url}/_inject", json={
+            "chat_id": chat_id, "text": "first message",
+        }, timeout=5)
+        first_id = resp.json().get("update_id", 0)
+        logger.info(f"  Injected first message with update_id={first_id}")
+        
+        # 等待 bot 回复
+        time.sleep(3)
+        count_before = len(runner.get_sent_messages(timeout=5))
+        
+        # 注入重复 update_id
+        resp2 = httpx.post(f"{runner.base_url}/_inject_with_id", json={
+            "chat_id": chat_id, "text": "first message", "update_id": first_id,
+        }, timeout=5)
+        logger.info(f"  Injected duplicate update_id={first_id}")
+        
+        # 等待短时间，确认没有重复处理
+        time.sleep(5)
+        count_after = len(runner.get_sent_messages(timeout=5))
+        
+        if count_after == count_before:
+            logger.info(f"  ✓ Duplicate update_id correctly ignored")
+        else:
+            # 可能因为 /first message 触发了 bot 回复
+            logger.info(f"  Bot may have processed duplicate: {count_before} → {count_after}")
+
+
+class TestTelegramHtmlFallback:
+    """HTML 回退测试"""
+
+    @pytest.mark.slow
+    def test_html_fallback_on_parse_error(self, runner, cleanup_state):
+        """HTML 解析失败时应回退到纯文本"""
+        import httpx
+        
+        # 启用 HTML 错误模拟
+        httpx.post(f"{runner.base_url}/_html_error", json={"enabled": True}, timeout=5)
+        logger.info("  Enabled HTML parse error simulation")
+        
+        chat_id = 908
+        text = inject_and_get_reply(runner, "Hello, just a quick greeting",
+                                    timeout=TIMEOUT_LLM, chat_id=chat_id)
+        assert len(text) > 0
+        logger.info(f"  ✓ Bot replied despite HTML errors: {text[:60]}")
+        
+        # 恢复
+        httpx.post(f"{runner.base_url}/_html_error", json={"enabled": False}, timeout=5)

@@ -19,12 +19,13 @@ class BotTestRunner(BaseMockRunner):
         super().__init__(base_url)
 
     def inject(self, text: str, chat_id: int = 123,
-               username: str = "testuser") -> dict:
+               username: str = "testuser", is_group: bool = False) -> dict:
         """向 Mock Server 注入一条用户消息"""
         resp = httpx.post(f"{self.base_url}/_inject", json={
             "text": text,
             "chat_id": chat_id,
             "username": username,
+            "is_group": is_group,
         }, timeout=10)
         resp.raise_for_status()
         return resp.json()
@@ -36,6 +37,25 @@ class BotTestRunner(BaseMockRunner):
             "data": data,
             "chat_id": chat_id,
             "message_id": message_id,
+        }, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+
+    def inject_with_id(self, text: str, update_id: int,
+                       chat_id: int = 123) -> dict:
+        """注入一条指定 update_id 的消息（用于去重测试）"""
+        resp = httpx.post(f"{self.base_url}/_inject_with_id", json={
+            "text": text, "update_id": update_id, "chat_id": chat_id,
+        }, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+
+    def inject_media(self, media_type: str, chat_id: int = 123,
+                     caption: str = "", file_name: str = "test.bin") -> dict:
+        """注入一条媒体消息（photo/voice/audio/document）"""
+        resp = httpx.post(f"{self.base_url}/_inject_media", json={
+            "media_type": media_type, "chat_id": chat_id,
+            "caption": caption, "file_name": file_name,
         }, timeout=10)
         resp.raise_for_status()
         return resp.json()

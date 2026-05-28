@@ -269,12 +269,13 @@ def create_app():
         update_id = worker_next_update_id
         worker_next_update_id += 1
         
+        chat_type = "group" if data.get("is_group", False) else "private"
         update = {
             "update_id": update_id,
             "message": {
                 "message_id": update_id,
                 "from": {"id": data.get("chat_id", 123), "is_bot": False},
-                "chat": {"id": data.get("chat_id", 123), "type": "private"},
+                "chat": {"id": data.get("chat_id", 123), "type": chat_type},
                 "text": data.get("text", ""),
                 "date": 1234567890,
             }
@@ -307,6 +308,19 @@ def create_app():
         
         return {"ok": True, "update_id": update_id}
     
+    @app.api_route("/bot{token}/sendPhoto", methods=["GET", "POST"])
+    @app.api_route("/bot{token}/SendPhoto", methods=["GET", "POST"])
+    async def send_photo(token: str, request: Request):
+        data = await request.json()
+        chat_id = data.get("chat_id")
+        message_id = worker_next_update_id + 1000
+        worker_next_update_id += 1
+        entry = {"chat_id": chat_id, "text": "[photo]", "type": "photo"}
+        with _file_lock:
+            with open(msg_file, "a") as f:
+                f.write(json.dumps(entry) + "\n")
+        return {"ok": True, "result": {"message_id": message_id, "chat": {"id": chat_id}, "photo": [{"file_id": "photo123"}]}}
+
     @app.api_route("/bot{token}/{path:path}", methods=["GET", "POST"])
     async def catch_all(token: str, path: str, request: Request):
         return {"ok": True, "path": path}
@@ -347,6 +361,8 @@ class MockTelegramServer:
         }
         self._commands_registered = []
         self._edit_history: list = []  # Record all edit operations for testing
+        self._html_error_enabled: bool = False  # If True, sendMessage returns HTML parse error
+        self._action_log: list = []  # Record all sendChatAction calls
         
         # Media directory for file uploads
         import tempfile
@@ -402,6 +418,14 @@ class MockTelegramServer:
             
             if not chat_id:
                 raise HTTPException(status_code=400, detail="chat_id is required")
+            
+            # HTML parse error simulation: when enabled, reject HTML parse_mode
+            if self._html_error_enabled and parse_mode == "HTML":
+                return {
+                    "ok": False,
+                    "description": "Bad Request: can't parse entities",
+                    "error_code": 400,
+                }
             
             # Auto-split messages exceeding the length limit instead of rejecting.
             # The gateway already splits via split_message() (4000 chars), but
@@ -505,6 +529,24 @@ class MockTelegramServer:
                     "from": self._bot_info,
                     "chat": {"id": chat_id, "type": "private"},
                     "audio": {"file_id": "audio123", "duration": 60},
+                }
+            }
+        
+        @app.api_route("/bot{token}/sendPhoto", methods=["GET", "POST"])
+        @app.api_route("/bot{token}/SendPhoto", methods=["GET", "POST"])
+        async def send_photo(token: str, request: Request):
+            """Send a photo"""
+            data = await request.json()
+            chat_id = data.get("chat_id")
+            message_id = self._next_update_id + 1000
+            self._sent_messages.append(SentMessage(chat_id=chat_id, text="[photo]", parse_mode="Markdown"))
+            return {
+                "ok": True,
+                "result": {
+                    "message_id": message_id,
+                    "from": self._bot_info,
+                    "chat": {"id": chat_id, "type": "private"},
+                    "photo": [{"file_id": "photo123", "file_size": 1024, "width": 640, "height": 480}],
                 }
             }
         
@@ -669,6 +711,11 @@ class MockTelegramServer:
         @app.api_route("/bot{token}/SendChatAction", methods=["GET", "POST"])
         async def send_chat_action(token: str, request: Request):
             """Send typing/recording action"""
+            data = await request.json()
+            chat_id = data.get("chat_id")
+            action = data.get("action", "")
+            self._action_log.append({"chat_id": chat_id, "action": action, "timestamp": time.time()})
+            logger.debug(f"💬 Chat action: {action} for chat {chat_id}")
             return {"ok": True, "result": True}
         
         @app.get("/health")
@@ -722,6 +769,64 @@ class MockTelegramServer:
             )
             return {"ok": True, "update_id": update_id}
 
+        @app.post("/_inject_with_id")
+        async def inject_with_id(request: Request):
+            """Inject a message with a specific update_id (for dedup testing)"""
+            data = await request.json()
+            update_id = data.get("update_id", self._next_update_id)
+            if update_id >= self._next_update_id:
+                self._next_update_id = update_id + 1
+            update = Update(
+                update_id=update_id,
+                message={
+                    "message_id": update_id + 100,
+                    "from": {"id": data.get("chat_id", 123), "is_bot": False},
+                    "chat": {"id": data.get("chat_id", 123), "type": data.get("chat_type", "private")},
+                    "date": 1234567890,
+                    "text": data.get("text", ""),
+                }
+            )
+            self._updates.append(update)
+            return {"ok": True, "update_id": update_id}
+
+        @app.post("/_inject_media")
+        async def inject_media(request: Request):
+            """Inject a media message (photo/voice/audio) from user"""
+            data = await request.json()
+            media_type = data.get("media_type", "document")
+            update_id = self._next_update_id
+            self._next_update_id += 1
+            msg = {
+                "message_id": update_id + 100,
+                "from": {"id": data.get("chat_id", 123), "is_bot": False},
+                "chat": {"id": data.get("chat_id", 123), "type": "private"},
+                "date": 1234567890,
+                "caption": data.get("caption", ""),
+            }
+            if media_type == "photo":
+                msg["photo"] = [{"file_id": f"photo_{update_id}", "file_size": 1024}]
+            elif media_type == "voice":
+                msg["voice"] = {"file_id": f"voice_{update_id}", "duration": 5}
+            elif media_type == "audio":
+                msg["audio"] = {"file_id": f"audio_{update_id}", "duration": 30}
+            else:
+                msg["document"] = {"file_id": f"doc_{update_id}", "file_name": data.get("file_name", "test.bin")}
+            update = Update(update_id=update_id, message=msg)
+            self._updates.append(update)
+            return {"ok": True, "update_id": update_id}
+
+        @app.post("/_html_error")
+        async def toggle_html_error(request: Request):
+            """Enable/disable HTML parse error simulation"""
+            data = await request.json()
+            self._html_error_enabled = data.get("enabled", True)
+            return {"ok": True, "html_error_enabled": self._html_error_enabled}
+
+        @app.get("/_action_log")
+        async def get_action_log():
+            """Return all sendChatAction calls"""
+            return self._action_log.copy()
+
         @app.get("/_sent_messages")
         async def get_sent_messages():
             """Return all messages sent by the bot (for test assertions)"""
@@ -742,6 +847,8 @@ class MockTelegramServer:
             self._updates.clear()
             self._sent_messages.clear()
             self._edit_history.clear()
+            self._action_log.clear()
+            self._html_error_enabled = False
             return {"ok": True}
 
         @app.get("/_edit_history")
@@ -777,7 +884,7 @@ class MockTelegramServer:
     
     # --- Public API for tests ---
     
-    def inject_message(self, text: str, chat_id: int = 123, 
+    def inject_message(self, text: str, chat_id: int = 123,
                        from_username: str = "testuser",
                        is_group: bool = False) -> int:
         """Inject a message as if it came from a user"""
@@ -889,11 +996,53 @@ class MockTelegramServer:
         """Get all messages sent by the bot"""
         return [{"chat_id": m.chat_id, "text": m.text} for m in self._sent_messages]
     
+    def inject_message_with_id(self, text: str, update_id: int, chat_id: int = 123, chat_type: str = "private") -> int:
+        """Inject a message with a specific update_id (for dedup testing)"""
+        if update_id >= self._next_update_id:
+            self._next_update_id = update_id + 1
+        update = Update(
+            update_id=update_id,
+            message={
+                "message_id": update_id + 100,
+                "from": {"id": chat_id, "is_bot": False},
+                "chat": {"id": chat_id, "type": chat_type},
+                "date": 1234567890,
+                "text": text,
+            }
+        )
+        self._updates.append(update)
+        return update_id
+
+    def inject_media(self, media_type: str, chat_id: int = 123, caption: str = "", file_name: str = "test.bin") -> int:
+        """Inject a media message (photo/voice/audio/document) from user"""
+        update_id = self._next_update_id
+        self._next_update_id += 1
+        msg = {
+            "message_id": update_id + 100,
+            "from": {"id": chat_id, "is_bot": False},
+            "chat": {"id": chat_id, "type": "private"},
+            "date": 1234567890,
+            "caption": caption,
+        }
+        if media_type == "photo":
+            msg["photo"] = [{"file_id": f"photo_{update_id}", "file_size": 1024}]
+        elif media_type == "voice":
+            msg["voice"] = {"file_id": f"voice_{update_id}", "duration": 5}
+        elif media_type == "audio":
+            msg["audio"] = {"file_id": f"audio_{update_id}", "duration": 30}
+        else:
+            msg["document"] = {"file_id": f"doc_{update_id}", "file_name": file_name}
+        update = Update(update_id=update_id, message=msg)
+        self._updates.append(update)
+        return update_id
+
     def clear(self):
         """Clear all stored updates and messages"""
         self._updates.clear()
         self._sent_messages.clear()
         self._edit_history.clear()
+        self._action_log.clear()
+        self._html_error_enabled = False
     
     def get_edit_history(self) -> list:
         resp = httpx.get(f"http://{self.host}:{self.port}/_edit_history", timeout=5)
