@@ -1072,6 +1072,8 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         "wx": {"port": 5005, "test_file": "test_wechat.py", "mock_module": "mock_wechat", "mock_class": "MockWeChatServer"},
         "whatsapp": {"port": 5006, "test_file": "test_whatsapp.py", "mock_module": "mock_whatsapp", "mock_class": "MockWhatsAppServer"},
         "wa": {"port": 5006, "test_file": "test_whatsapp.py", "mock_module": "mock_whatsapp", "mock_class": "MockWhatsAppServer"},
+        "line": {"port": 5007, "test_file": "test_line.py", "mock_module": "mock_line", "mock_class": "MockLineServer"},
+        "ln": {"port": 5007, "test_file": "test_line.py", "mock_module": "mock_line", "mock_class": "MockLineServer"},
     }
     
     info = module_info.get(module)
@@ -1353,6 +1355,46 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "channels": [{
                     "type": "whatsapp",
                     "bridge_url": f"ws://127.0.0.1:{port}/ws",
+                }],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
+                }
+            }
+        }
+    elif module in ["line", "ln"]:
+        port = 5007
+        extra_env = {
+            "LINE_CHANNEL_SECRET": "test_secret",
+            "LINE_CHANNEL_ACCESS_TOKEN": "test_token",
+            "LINE_API_BASE_URL": f"http://127.0.0.1:{port}",
+        }
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        webhook_port = 8647
+        config = {
+            "id": "test_line_bot",
+            "name": "Test LINE Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "line",
+                    "channel_secret_env": "LINE_CHANNEL_SECRET",
+                    "channel_access_token_env": "LINE_CHANNEL_ACCESS_TOKEN",
+                    "webhook_port": webhook_port,
                 }],
                 "gateway": {
                     "max_history": 50,
@@ -2278,7 +2320,7 @@ def main() -> int:
                 return 0 if passed else 1
             
             # Check if it's a valid module
-            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa"]
+            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa", "line", "ln"]
             if action in valid_modules:
                 # Special case: check for 'list' subcommand
                 if len(remaining) > 1 and remaining[1] == "list":
