@@ -447,6 +447,7 @@ def list_bot_modules():
     print("  wechat (wx)        - WeChat bot tests")
     print("  whatsapp (wa)      - WhatsApp bot tests")
     print("  wecom-bot (wcb)    - WeCom Bot tests")
+    print("  wecom (we)         - WeCom Channel tests")
     print("")
 
 
@@ -470,6 +471,8 @@ def list_bot_cases(module: str):
         "wa": BOT_TEST_DIR / "test_whatsapp.py",
         "wecom-bot": BOT_TEST_DIR / "test_wecom_bot.py",
         "wcb": BOT_TEST_DIR / "test_wecom_bot.py",
+        "wecom": BOT_TEST_DIR / "test_wecom.py",
+        "we": BOT_TEST_DIR / "test_wecom.py",
     }
     
     test_file = test_files.get(module)
@@ -535,6 +538,8 @@ def get_test_order(module: str) -> List[str]:
         "wx": BOT_TEST_DIR / "test_wechat.py",
         "wecom-bot": BOT_TEST_DIR / "test_wecom_bot.py",
         "wcb": BOT_TEST_DIR / "test_wecom_bot.py",
+        "wecom": BOT_TEST_DIR / "test_wecom.py",
+        "we": BOT_TEST_DIR / "test_wecom.py",
     }
 
     test_file = test_files.get(module)
@@ -1081,6 +1086,8 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         "ln": {"port": 5007, "test_file": "test_line.py", "mock_module": "mock_line", "mock_class": "MockLineServer"},
         "wecom-bot": {"port": 5008, "test_file": "test_wecom_bot.py", "mock_module": "mock_wecom_bot", "mock_class": "MockWeComBotServer"},
         "wcb": {"port": 5008, "test_file": "test_wecom_bot.py", "mock_module": "mock_wecom_bot", "mock_class": "MockWeComBotServer"},
+        "wecom": {"port": 5009, "test_file": "test_wecom.py", "mock_module": "mock_wecom", "mock_class": "MockWeComServer"},
+        "we": {"port": 5009, "test_file": "test_wecom.py", "mock_module": "mock_wecom", "mock_class": "MockWeComServer"},
     }
     
     info = module_info.get(module)
@@ -1441,6 +1448,49 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "type": "wecom-bot",
                     "bot_id": "test_bot_id",
                     "secret_env": "WECOM_BOT_SECRET",
+                }],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
+                }
+            }
+        }
+    elif module in ["wecom", "we"]:
+        port = 5009
+        webhook_port = 9323
+        extra_env = {
+            "WECOM_API_BASE_URL": f"http://127.0.0.1:{port}/cgi-bin",
+            "WECOM_CORP_ID": "test_corp_id",
+            "WECOM_AGENT_SECRET": "test_agent_secret",
+        }
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        config = {
+            "id": "test_wecom",
+            "name": "Test WeCom",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "wecom",
+                    "corp_id_env": "WECOM_CORP_ID",
+                    "agent_secret_env": "WECOM_AGENT_SECRET",
+                    "agent_id": "test_agent",
+                    "verification_token": "test_verification_token",
+                    "encoding_aes_key": "5sYHlCoSGoM55cptBeBF48DRmOZbeYowtPcgwjRQSxc",
+                    "webhook_port": webhook_port,
                 }],
                 "gateway": {
                     "max_history": 50,
@@ -2030,7 +2080,7 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
         log.info(f"Starting from test: {from_test}")
     log.info("=" * 60)
     
-    modules = ["telegram", "discord", "matrix", "slack", "feishu", "wechat", "whatsapp", "wecom-bot"]
+    modules = ["telegram", "discord", "matrix", "slack", "feishu", "wechat", "whatsapp", "wecom-bot", "wecom"]
     all_passed = True
     errors = []
     
@@ -2366,7 +2416,7 @@ def main() -> int:
                 return 0 if passed else 1
             
             # Check if it's a valid module
-            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa", "line", "ln", "wecom-bot", "wcb"]
+            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa", "line", "ln", "wecom-bot", "wcb", "wecom", "we"]
             if action in valid_modules:
                 # Special case: check for 'list' subcommand
                 if len(remaining) > 1 and remaining[1] == "list":
