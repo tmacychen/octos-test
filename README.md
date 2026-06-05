@@ -8,737 +8,272 @@
    ```bash
    # 需要 Python 3.8+
    python3 --version
-   
-   # 推荐使用 uv（超快的 Python 包管理器，比 pip 快 10-100 倍）
-   # 安装 uv: https://docs.astral.sh/uv/getting-started/installation/
+
+   # 推荐使用 uv（超快的 Python 包管理器）
    curl -LsSf https://astral.sh/uv/install.sh | sh
-   
-   # 安装所有依赖（在项目根目录）
+
+   # 安装所有依赖
    uv sync
    ```
-   
-   > 💡 **提示**：查看 [UV_GUIDE.md](UV_GUIDE.md) 了解 uv 的详细使用方法和性能优势。
 
 2. **Octos 二进制文件**
-   
-   测试脚本会自动查找 octos 二进制文件，搜索顺序：
-   - `OCTOS_BINARY` 环境变量指定的路径
+
+   测试脚本自动查找 octos 二进制，搜索顺序：
+   - `OCTOS_BINARY` 环境变量
    - `./target/release/octos`
    - `../target/release/octos`
-   - 系统 PATH 中的 `octos` 命令
-   
-   **方式一：设置环境变量（推荐）**
+   - 系统 `PATH`
+
    ```bash
+   # 设置环境变量（推荐）
    export OCTOS_BINARY=/path/to/octos/target/release/octos
-   ```
-   
-   **方式二：在 octos 项目目录中运行**
-   ```bash
-   # 如果测试仓库在 octos 项目旁边
-   cd /path/to/octos-test
-   ./test_run.py all
-   ```
-   
-   **方式三：手动编译**
-   ```bash
-   # 需要有 octos 源代码
-   cargo build --release -p octos-cli --features telegram,discord,api
+
+   # 或手动编译（需要 octos 源码）
+   cargo build --release -p octos-cli --features telegram,discord,slack,matrix,feishu,wechat,whatsapp,line,wecom,wecom-bot,email,api
    ```
 
 3. **环境变量**
    ```bash
    # Bot 测试必需
    export ANTHROPIC_API_KEY=your_api_key
-   export TELEGRAM_BOT_TOKEN=your_bot_token  # Mock 模式下可为任意非空值
-   
-   # Discord 测试（可选，Mock 模式自动填充）
-   # DISCORD_BOT_TOKEN 不需要设置
+   export TELEGRAM_BOT_TOKEN=your_bot_token  # Mock 模式下任意非空值
    ```
 
 ### 运行测试
 
 ```bash
-# 查看所有帮助
-python test_run.py --help
+# 全部测试
+uv run python test_run.py all
 
-# 运行所有测试
-python test_run.py all
+# Bot 测试
+uv run python test_run.py --test bot
+uv run python test_run.py --test bot telegram   # 仅 Telegram
+uv run python test_run.py --test bot discord    # 仅 Discord
 
-# 仅运行 Bot 测试
-python test_run.py --test bot
-python test_run.py --test bot telegram  # 仅 Telegram
-python test_run.py --test bot discord   # 仅 Discord
-python test_run.py --test bot matrix    # 仅 Matrix
-python test_run.py --test bot tg test_new_default  # 运行单个用例
+# CLI 测试
+uv run python test_run.py --test cli
+uv run python test_run.py --test cli -s Init
 
-# 仅运行 CLI 测试
-python test_run.py --test cli
-python test_run.py --test cli -v        # 详细输出
-
-# 仅运行 Serve 测试
-python test_run.py --test serve
-python test_run.py --test serve list    # 列出可用测试
+# Serve 测试
+uv run python test_run.py --test serve
+uv run python test_run.py --test serve 8.1
 ```
 
 ---
 
-## 二、框架架构与组成
+## 二、测试模块
 
-### 整体架构
+### 2.1 Bot Mock 测试
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  test_run.py — 统一测试入口（Python）                                 │
-│  ├─ 自动检测 octos 二进制文件                                         │
-│  ├─ 可选的 cargo build（如果找到源代码）                              │
-│  ├─ Bot Mock Tests                                                   │
-│  │   └─ Python (pytest) + Mock Server                               │
-│  │       ├─ Telegram: mock_tg.py (HTTP REST, port 5000)             │
-│  │       ├─ Discord:  mock_discord.py (REST + WebSocket, port 5001) │
-│  │       └─ Matrix:   mock_matrix.py (REST + Appservice, port 5002) │
-│  ├─ CLI Tests                                                        │
-│  │   └─ test_cli.py（通过 test_cases.json 驱动）                     │
-│  │       └─ 隔离测试目录: /tmp/octos_test/cli/<Category>_<timestamp> │
-│  └─ Serve Tests                                                      │
-│      └─ test_serve.py（REST API、SSE、Dashboard 等测试）              │
-└──────────────────────────────────────────────────────────────────────┘
-```
+通过 **Mock Server + pytest** 对 octos gateway 进行黑盒测试。每个 channel 模拟第三方平台 API，验证 octos 在对话管理、命令响应、多用户隔离等方面的行为。
 
-### 文件结构
+#### 已实现 Channel（11 个）
+
+| Channel | Mock Server | 端口 | 协议 | 用例数 | 充分度 |
+|---------|-------------|:----:|------|:------:|:------:|
+| Telegram | `mock_tg.py` | 5000 | HTTP REST (长轮询) | 51 | 较充分 |
+| Discord | `mock_discord.py` | 5001 | REST + WebSocket Gateway | 37 | 较充分 |
+| Matrix | `mock_matrix.py` | 5002 | REST + Appservice | 41 | 较充分 |
+| Slack | `mock_slack.py` | 5003 | Events API | 47 | 较充分 |
+| Feishu | `mock_feishu.py` | 5004 | Webhook | 34 | 中等 |
+| WeChat | `mock_wechat.py` | 5005 | WebSocket Bridge | 34 | 中等 |
+| WhatsApp | `mock_whatsapp.py` | 5006 | WebSocket Bridge | 23 | 基础 |
+| LINE | `mock_line.py` | 5007 | Webhook | 9 | 较少 |
+| WeCom | `mock_wecom.py` | 5008 | REST + Webhook | 7 | 较少 |
+| WeCom Bot | `mock_wecom_bot.py` | 5009 | WebSocket | 14 | 较少 |
+| Email | — | — | 真实 IMAP/SMTP | 3 | 仅手动 |
+
+#### 未实现 Channel（4 个）
+
+| Channel | 说明 |
+|---------|------|
+| API | REST API Channel，无 Mock Server |
+| QQ Bot | WebSocket 事件流 |
+| Twilio | SMS/WhatsApp Webhook |
+
+#### 已覆盖的黑盒功能
+
+| 功能类别 | 说明 |
+|---------|------|
+| 会话管理 | `/new`, `/s`, `/back`, `/delete`, `/sessions` |
+| 配置命令 | `/soul`, `/queue`, `/status`, `/reset`, `/adaptive`, `/help` |
+| LLM 消息 | 英文/中文/身份信息 |
+| 中断命令 | 中/英/日/俄语 abort |
+| 多用户隔离 | 不同 chat_id 独立会话 |
+| 消息分片 | 超长消息自动拆分 |
+| 文件限制 | 10MB 大小上限 |
+| Stream 编辑 | 消息逐步更新（Telegram/Feishu/Discord） |
+| 并发限制 | 10 线程同时创建会话 |
+
+### 2.2 CLI 测试
+
+通过 `test_cases.json` 驱动的 CLI 子命令测试（35 个用例）：
+
+| 类别 | 用例数 | 说明 |
+|------|:------:|------|
+| CLI | 3 | `--help`, `--version`, 单消息模式 |
+| Init | 4 | `init --help`, `--defaults`, config.json 检查 |
+| Clean | 3 | `clean --help`, 无/空目录清理 |
+| Status | 2 | 状态查询 |
+| Skills | 5 | list/search/remove |
+| Auth | 2 | 登录状态 |
+| Channels | 2 | 频道状态 |
+| 其他 | 14 | Completions/Cron/Chat/Gateway/Serve/Docs/Tools/Security |
+| **合计** | **35** | |
+
+### 2.3 Serve 测试
+
+通过 `test_serve.py` 验证 `octos serve` 的 REST API、SSE 流式响应、Dashboard 和认证（7 个用例）。
+
+### 2.4 其他测试
+
+| 模块 | 文件 | 用例数 |
+|------|------|:------:|
+| Gateway 事件 | `test_gateway_events.py` | 2 |
+| NVIDIA API | `test_nvidia_api.py` | 2 |
+| Matrix 扩展 | `test_matrix_extensions.py` | 3 |
+
+---
+
+## 三、框架架构
 
 ```
 octos-test/
-├── test_run.py                     # 统一测试入口（1400+ 行）
-├── README.md                       # 本文档
-├── LICENSE                         # 许可证
-├── .gitignore                      # Git 忽略规则
-├── bot_mock_test/                  # Bot Mock 测试模块
-│   ├── README.md                   # Bot 测试框架详细文档
-│   ├── mock_tg.py                  # Telegram Mock Server（661 行）
-│   ├── mock_discord.py             # Discord Mock Server（743 行）
-│   ├── mock_matrix.py              # Matrix Mock Server（FastAPI, 8009 端口）
-│   ├── runner.py                   # Telegram BotTestRunner
-│   ├── runner_discord.py           # Discord DiscordTestRunner
-│   ├── runner_matrix.py            # Matrix MatrixTestRunner
-│   ├── test_telegram.py            # Telegram 测试用例（1100+ 行, 43 个）
-│   ├── test_discord.py             # Discord 测试用例（1200+ 行, 46 个）
-│   ├── test_matrix.py              # Matrix 测试用例（800+ 行, 38 个）
-│   ├── test_helpers.py             # 测试辅助函数
-│   ├── test_gateway_events.py      # Gateway 事件测试
-│   ├── diagnose_gateway.py         # Gateway 诊断工具
-│   ├── diagnose_mock.py            # Mock Server 诊断工具
-│   ├── conftest.py                 # pytest fixtures
-│   ├── requirements.txt            # Python 依赖
-│   └── __init__.py
-├── cli_test/                       # CLI 测试模块
-│   ├── test_cli.py                 # CLI 测试运行器（Python 实现）
-│   ├── test_cases.json             # CLI 测试用例定义（35 个）
-│   └── cli_test.sh                 # CLI 测试脚本（Bash 版本，保留）
-└── serve/                          # Serve 测试模块
-    ├── test_serve.py               # Serve 功能测试（650+ 行）
-    ├── run_serve_tests.py          # Serve 测试运行脚本
-    ├── README.md                   # Serve 测试文档
-    ├── CHANGELOG.md                # 变更日志
-    └── __init__.py
+├── test_run.py                    # 统一测试入口
+├── AGENTS.md                      # CodeBuddy 项目指引
+├── ROADMAP.md                     # 测试覆盖路线图
+├── README.md                      # 本文档
+│
+├── bot_mock_test/                 # Bot Mock 测试
+│   ├── mock_<channel>.py          # Mock Server (11 个)
+│   ├── runner_<channel>.py        # TestRunner (11 个)
+│   ├── test_<channel>.py          # 测试用例
+│   ├── base_runner.py             # 基础 Runner 类
+│   ├── conftest.py                # pytest fixtures
+│   ├── test_helpers.py            # 辅助函数
+│   ├── wecom_crypto.py            # 企微加密
+│   └── diagnose_gateway.py        # 诊断工具
+│
+├── cli_test/                      # CLI 测试
+│   ├── test_cli.py                # 测试运行器
+│   └── test_cases.json            # 用例定义（35 个）
+│
+├── serve/                         # Serve 测试
+│   ├── test_serve.py              # Serve 功能测试
+│   ├── run_serve_tests.py         # 运行脚本
+│   └── README.md
+│
+├── docs/                          # 文档
+│   ├── channel_test_coverage_analysis.md   # 覆盖分析
+│   ├── email_context_issue.md              # Email 上下文膨胀
+│   └── SPEC_bot_flaky_retry.md             # Flaky retry SPEC
+│
+├── archive/                       # 归档的旧文档
+└── test_*.py                      # 根目录独立测试
 ```
 
 ### 核心机制
 
 | 机制 | 说明 |
 |------|------|
-| **二进制自动检测** | 支持环境变量、相对路径、系统 PATH 等多种方式查找 octos 二进制 |
-| **可选编译** | 如果找到 octos 源代码，可以自动编译；否则使用预编译二进制 |
-| **目录隔离** | CLI 每个测试类别在独立子目录运行，Init 等操作不影响主测试目录 |
-| **Session 日志** | 全部 stdout/stderr 通过 Python logging 同时输出到终端和时间戳日志文件 |
-| **模块结果汇总** | 测试结束输出各模块 PASS/FAIL 状态 |
+| **二进制自动检测** | 支持环境变量、相对路径、系统 PATH |
+| **可选编译** | 自动检测 octos 源码并触发 `cargo build` |
+| **Mock Server 模式** | 无需真实 API 凭证即可运行 |
+| **Flaky 重试** | 失败检测 + 服务重启 + 重试机制 |
+| **目录隔离** | CLI/每个测试类别独立目录 |
+| **Session 日志** | 全部 stdout/stderr 输出到时间戳日志文件 |
 
 ---
 
-## 三、使用说明
-
-### 基本用法
+## 四、使用说明
 
 ```bash
 # 查看帮助
-python test_run.py --help
+uv run python test_run.py --help
 
-# 运行全部测试
-python test_run.py all
+# Bot 测试
+uv run python test_run.py --test bot                    # 全部
+uv run python test_run.py --test bot telegram           # 仅 Telegram
+uv run python test_run.py --test bot tg test_new_default  # 单个用例
+uv run python test_run.py --test bot list               # 列出模块
+uv run python test_run.py --test bot cases tg           # 列出用例
+uv run python test_run.py --test bot tg --from-test test_abort  # 从指定用例开始
 
-# 运行 Bot 测试
-python test_run.py --test bot              # 全部
-python test_run.py --test bot telegram     # 仅 Telegram
-python test_run.py --test bot discord      # 仅 Discord
-python test_run.py --test bot tg test_new_default  # 运行单个用例
+# CLI 测试
+uv run python test_run.py --test cli
+uv run python test_run.py --test cli -s Init
+uv run python test_run.py --test cli -v
 
-# 运行 CLI 测试
-python test_run.py --test cli              # 全部
-python test_run.py --test cli -s Init      # 仅 Init 类别
-python test_run.py --test cli -v           # 详细输出
-python test_run.py --test cli list         # 列出测试类别
-
-# 运行 Serve 测试
-python test_run.py --test serve            # 全部
-python test_run.py --test serve -v         # 详细输出
-python test_run.py --test serve list       # 列出可用测试
-python test_run.py --test serve 8.1        # 运行特定测试
-
-# 列出 Bot 测试模块/用例
-python test_run.py --test bot list
-python test_run.py --test bot cases tg
+# Serve 测试
+uv run python test_run.py --test serve
+uv run python test_run.py --test serve 8.1
+uv run python test_run.py --test serve list
 ```
 
 ### 环境变量
 
 | 变量 | 必需 | 说明 |
 |------|------|------|
-| `OCTOS_BINARY` | 否 | octos 二进制文件路径（可选，自动检测） |
+| `OCTOS_BINARY` | 否 | octos 二进制路径（自动检测） |
 | `ANTHROPIC_API_KEY` | Bot 测试 | LLM API 密钥 |
-| `TELEGRAM_BOT_TOKEN` | Telegram | Telegram Bot Token（Mock 模式下可为任意非空值） |
-| `DISCORD_BOT_TOKEN` | 否 | Discord Mock 模式自动填充假 token |
+| `TELEGRAM_BOT_TOKEN` | Telegram | Mock 模式下任意非空值 |
+| `DISCORD_BOT_TOKEN` | 否 | Mock 模式自动填充 |
+| `SLACK_BOT_TOKEN` | Slack | Mock 模式下任意非空值 |
 
-### 测试输出目录
-
-```
-/tmp/octos_test/
-├── .octos/                          # Bot 测试配置目录
-│   ├── test_telegram_config.json    # Telegram 测试配置
-│   └── test_discord_config.json     # Discord 测试配置
-├── cli/                             # CLI 测试隔离工作区
-│   ├── Init_<timestamp>/            # Init 测试临时目录
-│   ├── Clean_<timestamp>/           # Clean 测试临时目录
-│   └── temp/                        # 共享临时目录
-└── logs/
-    ├── build.log                    # 编译日志（如果执行了编译）
-    ├── cli_test.log                 # CLI 测试独立日志
-    ├── octos_bot_test_<ts>.log      # Bot 测试日志（gateway 输出）
-    └── sessions/                    # Session 日志（全部输出）
-        └── <timestamp>.log
-```
-
----
-
-## 三、测试模块概述
-
-### 3.1 CLI 测试
-
-CLI 测试通过 `cli_test.sh` + `test_cases.json` 驱动，验证 `octos` 命令行各子命令的正确性。
-
-**测试类型：**
-- `cli`：执行 octos 命令，检查输出是否包含预期字符串
-- `file_check`：检查文件/目录是否存在，存在时记录内容到日志
-
-**测试类别（35 个用例）：**
-
-| 类别 | 用例数 | 说明 |
-|------|--------|------|
-| CLI | 3 | `--help`, `--version`, 单消息模式 |
-| Tools | 1 | 工具调用 |
-| Security | 1 | 危险命令拒绝 |
-| Init | 4 | `init --help`, `--defaults`, config.json 检查, 重复 init |
-| Clean | 3 | `clean --help`, 无 .octos 目录, 空目录清理 |
-| Status | 2 | `status --help`, 状态查询 |
-| Completions | 6 | bash/zsh/fish/powershell 补全, 无效 shell |
-| Skills | 5 | list/search/remove 操作 |
-| Auth | 2 | `auth --help`, 登录状态 |
-| Channels | 2 | `channels --help`, 频道状态 |
-| Cron | 2 | `cron --help`, 定时任务列表 |
-| Chat | 1 | `chat --help` |
-| Gateway | 1 | `gateway --help` |
-| Serve | 1 | `serve --help` |
-| Docs | 1 | `docs --help` |
-
-> *CLI 测试用例详情待后续补充。*
-
----
-
-### 3.2 Telegram 测试
-
-通过 Mock Server 模拟 Telegram Bot API，验证 octos 在 Telegram 频道上的行为。
-
-**架构：**
-
-```
-  pytest (test_telegram.py)
-    │
-    │  HTTP 请求
-    ▼
-  ┌────────────────────────────────────────────────────────────────┐
-  │  Mock Server (mock_tg.py, FastAPI, port 5000)                 │
-  │                                                                │
-  │  ┌─ Telegram API 模拟 ─────────────────────────────────────┐  │
-  │  │  POST /bot{token}/sendMessage      ← octos 调用          │  │
-  │  │  POST /bot{token}/editMessageText  ← octos 流式编辑      │  │
-  │  │  GET  /bot{token}/getUpdates       ← octos 长轮询消息    │  │
-  │  │  POST /bot{token}/sendChatAction   ← octos 发送输入状态  │  │
-  │  └─────────────────────────────────────────────────────────┘  │
-  │                                                                │
-  │  ┌─ 测试控制接口 ─────────────────────────────────────────┐  │
-  │  │  POST /_inject            → 注入用户消息到 getUpdates   │  │
-  │  │  GET  /_sent_messages     → 读取 bot 已发送的消息       │  │
-  │  │  POST /_clear             → 清空消息/状态               │  │
-  │  │  GET  /health             → 健康检查                    │  │
-  │  └─────────────────────────────────────────────────────────┘  │
-  │                                                                │
-  │  内部状态: messages[], updates[], update_id (单调递增)         │
-  └────────────────────────────────────────────────────────────────┘
-            ▲                               │
-            │  TELOXIDE_API_URL              │  sendMessage / getUpdates
-            │  = http://127.0.0.1:5000       │
-            │                               ▼
-  ┌────────────────────────────────────────────────────────────────┐
-  │  octos bot (teloxide)                                          │
-  │  └─ Bot::new(token).set_api_url(url)                           │
-  │     → 所有 Bot API 请求重定向到 Mock Server                     │
-  └────────────────────────────────────────────────────────────────┘
-
-  测试流程:
-  1. bot_test.sh 启动 Mock Server + octos gateway
-  2. pytest 通过 /_inject 注入用户消息
-  3. octos 通过 getUpdates 获取消息 → LLM 处理 → sendMessage 回复
-  4. pytest 通过 /_sent_messages 断言 bot 回复内容
-```
-
-**测试用例（43 个）：**
-
-| 类别 | 用例数 | 说明 |
-|------|--------|------|
-| TestSessionCommands | 15 | `/new`, `/s`, `/sessions`, `/back`, `/delete`, `/soul` |
-| TestSessionActorCommands | 7 | `/adaptive`, `/queue`, `/status`, `/reset`, 未知命令 |
-| TestMultiUser | 2 | 多用户会话隔离, 回调切换 |
-| TestProfileMode | 3 | Profile 隔离, soul 按 profile 隔离 |
-| TestAbortCommands | 5 | 中/英/日/俄语中止, cancel 命令 |
-| TestMessageSplitting | 2 | 4096 字符限制, 自动分片 |
-| TestConcurrencyLimit | 2 | 并发会话创建, 队列模式 |
-| TestFileLimits | 2 | 10MB 累积大小限制 |
-| TestStreamingEdit | 1 | 流式编辑（已跳过） |
-| TestLLMMessages | 2 | 常规消息, 中文消息 |
-| TestDocumentUpload | 2 | 文档上传 |
-
-**超时配置：**
-- `TIMEOUT_COMMAND = 30s`（命令类）
-- `TIMEOUT_LLM = 90s`（LLM 消息）
-- `TIMEOUT_ABORT = 60s`（中止命令）
-- `TIMEOUT_LARGE = 180s`（大对话）
-
----
-
-### 3.3 Discord 测试
-
-通过 Mock Server 模拟 Discord API（REST + WebSocket Gateway），验证 octos 在 Discord 频道上的行为。
-
-**架构：**
-
-```
-  pytest (test_discord.py)
-    │
-    │  HTTP 请求
-    ▼
-  ┌────────────────────────────────────────────────────────────────────┐
-  │  Mock Discord Server (mock_discord.py, FastAPI + WebSocket, 5001) │
-  │                                                                    │
-  │  ┌─ Discord REST API 模拟 ────────────────────────────────────┐  │
-  │  │  GET  /api/v10/gateway/bot  → 返回 ws://127.0.0.1:5001/   │  │
-  │  │  POST /api/v10/channels/{id}/messages       → 发送/回复    │  │
-  │  │  PUT  /api/v10/channels/{id}/messages/{mid}  → 编辑消息    │  │
-  │  │  DELETE /api/v10/channels/{id}/messages/{mid} → 删除消息   │  │
-  │  │  POST .../reactions/{emoji}/@me              → 添加反应    │  │
-  │  │  GET  /api/v10/users/@me                     → Bot 信息    │  │
-  │  └────────────────────────────────────────────────────────────┘  │
-  │                                                                    │
-  │  ┌─ WebSocket Gateway (/) ────────────────────────────────────┐  │
-  │  │  1. serenity 连接 WS → Server 发送 Hello (opcode 10)       │  │
-  │  │  2. serenity 回复 Identify (opcode 2, 含 token)             │  │
-  │  │  3. Server 发送 Ready (opcode 0, 含 user/guilds 数据)       │  │
-  │  │  4. 开始心跳: serenity ↔ Server (opcode 1/11)               │  │
-  │  │  5. /_inject → Server 向 serenity 派发 MESSAGE_CREATE      │  │
-  │  └────────────────────────────────────────────────────────────┘  │
-  │                                                                    │
-  │  ┌─ 测试控制接口 ─────────────────────────────────────────────┐  │
-  │  │  POST /_inject              → 注入用户消息 (→ WS dispatch) │  │
-  │  │  POST /_inject_interaction  → 注入斜杠命令/按钮交互        │  │
-  │  │  GET  /_sent_messages       → 读取 bot 已发送的消息        │  │
-  │  │  POST /_clear               → 清空消息/状态                │  │
-  │  │  GET  /health               → 健康检查                     │  │
-  │  └────────────────────────────────────────────────────────────┘  │
-  │                                                                    │
-  │  内部状态: messages[], ws_connections[], session_id, seq           │
-  └────────────────────────────────────────────────────────────────────┘
-            ▲                                    │
-            │  DISCORD_API_BASE_URL               │  REST + WS
-            │  = http://127.0.0.1:5001             │
-            │                                    ▼
-  ┌────────────────────────────────────────────────────────────────────┐
-  │  octos bot (serenity)                                              │
-  │  └─ HttpBuilder::new(token).proxy(base_url).ratelimiter_disabled() │
-  │     → REST API 重定向到 Mock Server                                │
-  │  └─ ClientBuilder::new_with_http(http, intents)                    │
-  │     → Gateway WS URL 由 GET /gateway/bot 返回，自动连到 Mock       │
-  └────────────────────────────────────────────────────────────────────┘
-
-  测试流程:
-  1. bot_test.sh 启动 Mock Server + octos gateway
-  2. serenity 通过 REST 获取 Gateway URL → 建立 WS 连接 → 完成握手
-  3. pytest 通过 /_inject 注入用户消息 → Mock Server 通过 WS 派发 MESSAGE_CREATE
-  4. serenity 收到事件 → octos 处理 → 通过 REST sendMessage 回复
-  5. pytest 通过 /_sent_messages 断言 bot 回复内容
-```
-
-**关键机制：**
-1. **REST 代理**：`DISCORD_API_BASE_URL` 通过 `HttpBuilder::proxy()` 重定向所有 REST 请求
-2. **Gateway 自动连接**：serenity 先调 `GET /gateway/bot` 获取 WS URL（Mock 返回本地地址），然后自动建立 WS 连接
-3. **Ratelimiter 禁用**：Mock 模式下必须禁用 serenity 的限流器，因为 `Ratelimiter::perform()` 内部不传 proxy 参数，会绕过 URL 重写
-4. **Http 实例克隆**：`ClientBuilder::new_with_http()` 需要独占 Http 实例，因此通过 `build_http_for_client()` 创建独立但配置相同的 Http
-5. **无需真实 token**：Mock Server 不校验 bot token
-
-**测试用例（46 个）：**
-
-| 类别 | 用例数 | 说明 |
-|------|--------|------|
-| TestDiscordSessionCommands | 10 | `/new`, `/s`, `/sessions`, `/back`, `/delete`, `/soul` |
-| TestDiscordSessionActorCommands | 5 | `/adaptive`, `/queue`, `/status`, `/reset`, 未知命令 |
-| TestDiscordMultiUser | 1 | 多频道会话隔离 |
-| TestDiscordProfileMode | 3 | Profile 隔离, soul 按 profile 隔离 |
-| TestDiscordAbortCommands | 5 | 中/英/日/俄语中止, cancel 命令 |
-| TestDiscordMessageSplitting | 2 | 2000 字符限制, 自动分片 |
-| TestDiscordConcurrencyLimit | 2 | 并发会话创建 |
-| TestDiscordFileLimits | 2 | 10MB 累积大小限制 |
-| TestDiscordStreamingEdit | 1 | 流式编辑 |
-| TestDiscordLLMMessages | 2 | 常规消息, 中文消息 |
-| TestDiscordDocumentUpload | 2 | 文档上传 |
-| TestDiscordInteractions | 9 | 斜杠命令, 按钮回调 |
-
-**超时配置：**
-- `TIMEOUT_COMMAND = 20s`
-- `TIMEOUT_LLM = 40s`
-- （比 Telegram 稍长，因 Discord Gateway 有握手和心跳开销）
-
----
-
-### 3.4 Matrix 测试
-
-通过 Mock Server 模拟 Matrix Homeserver（Client-Server API + Appservice），验证 octos 在 Matrix 房间上的行为。
-
-**架构：**
-
-```
-  pytest (test_matrix.py)
-    │
-    │  HTTP 请求
-    ▼
-  ┌────────────────────────────────────────────────────────────────────┐
-  │  Mock Matrix Server (mock_matrix.py, FastAPI, port 5002)           │
-  │                                                                    │
-  │  ┌─ Matrix Client-Server API 模拟 ─────────────────────────────┐  │
-  │  │  GET  /_matrix/client/v3/account/me              → 用户信息   │  │
-  │  │  POST /_matrix/client/v3/rooms/{room_id}/send    → 发送消息   │  │
-  │  │  PUT  /_matrix/client/v3/rooms/{room_id}/send    → 发送消息   │  │
-  │  │  GET  /_matrix/client/v3/sync                   → 同步消息   │  │
-  │  └────────────────────────────────────────────────────────────┘  │
-  │                                                                    │
-  │  ┌─ Appservice API ────────────────────────────────────────────┐  │
-  │  │  PUT  /_matrix/app/v1/transactions/{txn_id}   → 推送事件    │  │
-  │  │  （octos gateway 通过此接口接收来自 Homeserver 的事件）       │  │
-  │  └────────────────────────────────────────────────────────────┘  │
-  │                                                                    │
-  │  ┌─ 测试控制接口 ─────────────────────────────────────────────┐  │
-  │  │  POST /_inject              → 注入用户消息到房间             │  │
-  │  │  GET  /_sent_messages       → 读取 bot 已发送的消息         │  │
-  │  │  POST /_clear               → 清空消息/状态                  │  │
-  │  │  GET  /health               → 健康检查                      │  │
-  │  └────────────────────────────────────────────────────────────┘  │
-  │                                                                    │
-  │  内部状态: messages[], sent_messages[], rooms[], appservice_registrations[] │
-  └────────────────────────────────────────────────────────────────────┘
-            ▲                                    │
-            │  MATRIX_HOMESERVER_URL              │  REST API
-            │  = http://127.0.0.1:5002           │
-            │                                    │
-            │  OCTOS_APPSERVICE_URL               │  Appservice 推送
-            │  = http://127.0.0.1:8009           │
-            ▼                                    ▼
-  ┌────────────────────────────────────────────────────────────────────┐
-  │  octos appservice channel (port 8009)                              │
-  │  └─ 接收来自 Homeserver 的事件推送，处理后通过 REST API 发送回复      │
-  └────────────────────────────────────────────────────────────────────┘
-
-  测试流程:
-  1. Mock Server 启动，配置 Appservice endpoint 指向 octos gateway (8009)
-  2. pytest 通过 /_inject 注入用户消息
-  3. Mock Server 通过 Appservice API 推送事件到 octos gateway
-  4. octos 处理消息 → 通过 Matrix REST API 发送回复
-  5. pytest 通过 /_sent_messages 断言 bot 回复内容
-```
-
-**关键机制：**
-1. **Appservice 事件推送**：Mock Server 配置 `appservice_endpoint` 后，通过 `PUT /_matrix/app/v1/transactions/{txn_id}` 推送事件到 octos gateway
-2. **双协议支持**：Matrix 同时使用 Client-Server API（用户消息）和 Appservice API（bot 接收事件）
-3. **事件去重**：通过 `txn_id` 实现事件去重，支持 PUT 和 POST 两种方法
-
-**测试用例（38 个）：**
-
-| 类别 | 用例数 | 说明 |
-|------|--------|------|
-| TestMatrixSessionCommands | 8 | `/new`, `/s`, `/sessions`, `/back`, `/delete`, `/soul` |
-| TestMatrixSessionActorCommands | 5 | `/adaptive`, `/queue`, `/status`, `/reset`, 未知命令 |
-| TestMatrixProfileMode | 3 | Profile 隔离, soul 按 profile 隔离 |
-| TestMatrixAbortCommands | 5 | 中/英/日/俄语中止, cancel 命令 |
-| TestMatrixMessageSplitting | 2 | 消息分片 |
-| TestMatrixLLMMessages | 2 | 常规消息, 中文消息 |
-| TestMatrixSpecialContent | 2 | HTML 格式消息, 特殊字符 |
-
-**超时配置：**
-- `TIMEOUT_COMMAND = 30s`
-- `TIMEOUT_LLM = 90s`
-
----
-
-## 四、测试目录与日志
-
-### 运行时目录结构
-
-测试运行时所有临时文件位于 `/tmp/octos_test/`，完整结构如下：
+### 测试输出
 
 ```
 /tmp/octos_test/
-├── octos                              # cargo build 编译后的二进制
-├── .octos_checksum                    # 二进制文件 SHA256 校验值（用于增量编译判断）
-│
-├── .octos/                            # Bot 测试配置目录
-│   ├── test_telegram_config.json      # Telegram 测试配置
-│   └── test_discord_config.json       # Discord 测试配置
-│
-├── cli/                               # CLI 测试隔离工作区
-│   ├── Init_<timestamp>/              # Init 测试专用目录（避免污染共享目录）
-│   │   └── .octos/
-│   │       └── config.json            # init --defaults 产生的配置文件
-│   ├── Clean_<timestamp>/             # Clean 测试专用目录
-│   └── temp/                          # 共享临时目录
-│       └── no-octos-dir/              # 用于 clean 测试"无 .octos 目录"场景
-│
+├── .octos/                             # Bot 测试配置
+│   ├── test_telegram_config.json
+│   ├── test_discord_config.json
+│   └── ...
+├── cli/                                # CLI 测试隔离工作区
+│   ├── Init_<timestamp>/
+│   └── Clean_<timestamp>/
 └── logs/
-    ├── build.log                      # cargo build 输出日志
-    ├── cli_test.log                   # CLI 测试独立日志（由 log() 函数写入）
-    ├── octos_telegram_bot_test_<ts>.log # Telegram bot 运行日志（gateway 输出）
-    ├── octos_discord_bot_test_<ts>.log  # Discord bot 运行日志（gateway 输出）
-    └── sessions/                      # Session 日志目录
-        └── <YYYYMMDD_HHMMSS>.log     # 完整测试会话日志（含所有 stdout/stderr）
-```
-
-### 日志体系
-
-测试框架采用**统一日志**设计，所有日志通过 Python logging 模块管理：
-
-| 日志文件 | 写入方式 | 内容 | 用途 |
-|----------|----------|------|------|
-| `sessions/<ts>.log` | LoggerManager | 所有 stdout/stderr 的完整副本 | 事后回溯整个测试过程 |
-| `cli_test.log` | CLI logger | CLI 测试的结构化日志（`[EXEC]`/`[STATUS]`/`[FILE]` 标签） | 快速定位 CLI 测试问题 |
-| `build.log` | cargo 重定向 | 编译输出 | 排查编译失败 |
-| `octos_*_bot_test_<ts>.log` | Bot logger | Bot 运行时日志 | 排查 Bot 行为异常 |
-
-**Session 日志**由 `test_run.py` 在启动时通过 LoggerManager 建立，所有子进程的输出均被捕获。
-
-**CLI 日志**中 `log()` 函数同时写入 stdout（被 session 日志捕获）和独立文件。
-
-**文件内容记录**：`file_check` 类型测试在检测到文件存在时，自动将内容输出到日志：
-
-```
-[FILE] BEGIN /tmp/octos_test/cli/Init_xxx/.octos/config.json
-{"version":1,"provider":"anthropic",...}
-[FILE] END
+    ├── build.log
+    ├── cli_test.log
+    ├── octos_*_bot_test_<ts>.log
+    └── sessions/<timestamp>.log
 ```
 
 ---
 
-## 五、Rust 代码修改分析
+## 五、Rust 代码修改
 
-为支持 Mock Server 测试模式，对 octos Rust 代码进行了 4 处必要修改。这些修改不影响生产环境行为，仅在设置特定环境变量时激活。
+为支持 Mock 测试模式，对 octos 进行了以下必要修改（不影响生产环境）：
 
-### 5.1 telegram_channel.rs — 支持自定义 API URL
+| 文件 | 改动 | 说明 |
+|------|------|------|
+| `telegram_channel.rs` | `TELOXIDE_API_URL` 环境变量 | 重定向所有 API 请求到 Mock Server |
+| `discord_channel.rs` | `DISCORD_API_BASE_URL` + `HttpBuilder::proxy()` | 支持自定义 API base URL + 禁 ratelimiter |
+| `gateway_dispatcher.rs` | Soul 按 chat_id 隔离存储 | `{data_dir}/users/{chat_id}/soul.md` |
+| `gateway_runtime.rs` | 补充缺失的 `MAIN_PROFILE_ID` import | 编译修复 |
 
-**文件**：`crates/octos-bus/src/telegram_channel.rs`（+14 行）
-**Commit**：`8fe2e06` feat(telegram): add mock testing framework for bot functionality
-
-**修改内容**：在 `TelegramChannel::new()` 中新增 `TELOXIDE_API_URL` 环境变量支持。
-
-```rust
-// 修改前
-Self {
-    bot: Bot::new(token),
-    ...
-}
-
-// 修改后
-let api_url = std::env::var("TELOXIDE_API_URL")
-    .ok()
-    .and_then(|u| reqwest::Url::parse(&u).ok());
-
-let bot = if let Some(url) = api_url {
-    info!("Using custom Telegram API URL: {}", url);
-    Bot::new(token).set_api_url(url)
-} else {
-    Bot::new(token)
-};
-
-Self {
-    bot,
-    ...
-}
-```
-
-**修改原因**：teloxide 默认连接 `https://api.telegram.org`，无法指向本地 Mock Server。通过 `Bot::set_api_url()` 将所有 API 请求重定向到 `http://127.0.0.1:5000`。生产环境不设置该变量，行为不变。
+详见 [AGENTS.md](AGENTS.md) 和 [TELEGRAM_PROFILE_ROUTING_ANALYSIS.md](TELEGRAM_PROFILE_ROUTING_ANALYSIS.md)。
 
 ---
 
-### 5.2 discord_channel.rs — 支持自定义 API Base URL + Proxy 模式
+## 六、当前统计
 
-**文件**：`crates/octos-bus/src/discord_channel.rs`（+47 行，-2 行）
-**Commit**：`7c6c20a` feat(tests): add Discord mock testing & refactor bot_mock framework
-
-**修改内容**：
-
-1. **Http 代理**：新增 `DISCORD_API_BASE_URL` 环境变量，通过 `HttpBuilder::proxy()` 重定向 REST API：
-
-```rust
-// 修改前
-let http = Arc::new(Http::new(token));
-
-// 修改后
-let http = if let Ok(base_url) = std::env::var("DISCORD_API_BASE_URL") {
-    Arc::new(
-        HttpBuilder::new(token)
-            .proxy(base_url)
-            .ratelimiter_disabled(true)  // 必须禁用！
-            .build(),
-    )
-} else {
-    Arc::new(Http::new(token))
-};
-```
-
-2. **Http 实例克隆**：新增 `build_http_for_client()` 方法，为 `ClientBuilder` 创建独立 Http：
-
-```rust
-fn build_http_for_client(&self) -> Http {
-    if let Some(proxy) = &self.http.proxy {
-        HttpBuilder::new(&self.token)
-            .proxy(proxy.clone())
-            .ratelimiter_disabled(true)
-            .build()
-    } else {
-        Http::new(&self.token)
-    }
-}
-```
-
-3. **Client 构建**：用 `ClientBuilder::new_with_http()` 替代 `Client::builder()`：
-
-```rust
-// 修改前
-let mut client = Client::builder(&self.token, intents)
-    .event_handler(handler)
-    .await?;
-
-// 修改后
-let http = self.build_http_for_client();
-let mut client = ClientBuilder::new_with_http(http, intents)
-    .event_handler(handler)
-    .await?;
-```
-
-**修改原因**：
-- Discord 的 REST 和 Gateway 是分离的。`HttpBuilder::proxy()` 只重定向 REST 请求；Gateway WS URL 由 `GET /gateway/bot` 返回
-- 必须禁用 ratelimiter：serenity 的 `Ratelimiter::perform()` 在构建请求时传 `None` 给 proxy 参数，绕过了 URL 重写，导致请求仍发往 discord.com
-- `Client::builder(token, intents)` 内部自建 Http，无法配置 proxy。改用 `new_with_http()` 传入已配置的 Http 实例
-- `self.http` 是 `Arc<Http>` 被 send/edit 方法共享，无法移交所有权给 ClientBuilder，因此需要 `build_http_for_client()` 创建独立实例
-
----
-
-### 5.3 gateway_dispatcher.rs — Soul 按 chat_id 隔离存储
-
-**文件**：`crates/octos-cli/src/gateway_dispatcher.rs`（+27 行，-4 行）
-**Commit**：`e8b2a3b` fix: isolate soul storage per user by chat_id
-
-**修改内容**：将 soul 存储路径从全局 `{data_dir}/soul.md` 改为按用户隔离的 `{data_dir}/users/{chat_id}/soul.md`。
-
-```rust
-// 修改前
-let data_dir = match &self.data_dir { ... };
-let reply = crate::soul_service::read_soul(data_dir);
-
-// 修改后
-let base_data_dir = match &self.data_dir { ... };
-let user_data_dir = base_data_dir.join("users").join(reply_chat_id);
-std::fs::create_dir_all(&user_data_dir)?;
-let reply = crate::soul_service::read_soul(&user_data_dir);
-```
-
-**修改原因**：原实现中所有用户共享同一个 `soul.md`，多用户场景下：
-- 用户 A 设置 `/soul You are a cat`
-- 用户 B 设置 `/soul You are a dog`
-- 用户 A 的 soul 被覆盖为 "You are a dog"
-
-这在 Telegram 群组和 Discord 服务器中是严重 bug。修改后每个用户拥有独立的 soul 存储。
-
----
-
-### 5.4 gateway_runtime.rs — 补充缺失的 import
-
-**文件**：`crates/octos-cli/src/commands/gateway/gateway_runtime.rs`（+1 行）
-**Commit**：`e9468e3` fix: add missing MAIN_PROFILE_ID import in gateway_runtime.rs
-
-**修改内容**：
-
-```rust
-use octos_core::MAIN_PROFILE_ID;
-```
-
-**修改原因**：5.3 中 gateway_dispatcher.rs 使用了 `MAIN_PROFILE_ID` 常量，但该 import 在 gateway_runtime.rs 中缺失，导致编译失败。这是 5.3 的配套修复。
-
----
-
-### 修改影响范围总结
-
-| 文件 | 修改类型 | 生产环境影响 | 测试必需性 |
-|------|----------|-------------|-----------|
-| telegram_channel.rs | 新增环境变量分支 | 无（未设置变量时行为不变） | Mock 测试必需 |
-| discord_channel.rs | 新增 proxy 模式 + Http 克隆 | 无（未设置变量时行为不变） | Mock 测试必需 |
-| gateway_dispatcher.rs | Bug 修复 | 有（改变 soul 存储路径） | 独立 bug 修复 |
-| gateway_runtime.rs | 补充 import | 无 | 编译修复 |
-
----
-
-## 六、工作总结
-
-### 提交统计
-
-| 指标 | 数值 |
-|------|------|
-| 核心脚本代码 | 3000+ 行（Python） |
-| 测试用例总数 | 129 个（Telegram 43 + Discord 46 + Matrix 38 + CLI 35） |
-| Mock Server 代码 | 2200+ 行 |
-
-### 解决的核心问题
-
-| 问题 | 优先级 | 状态 | 说明 |
-|------|--------|------|------|
-| Soul 按 chat_id 隔离存储 | P0 | ✅ 已修复 | 原全局共享导致多用户 soul 互相覆盖 |
-| CLI init 路径引号 Bug | P0 | ✅ 已修复 | `$cmd_args` 展开时引号被当作路径字面字符 |
-| CLI 测试目录污染 | P1 | ✅ 已修复 | Init 测试在共享 TEST_DIR 创建 .octos/，改为隔离到 cli/ 子目录 |
-| Abort 命令超时 | P1 | ✅ 已修复 | 增加 TIMEOUT_ABORT=60s |
-| LLM setup 超时 | P1 | ✅ 已修复 | conftest.py timeout 15s→30s |
-| 大对话测试超时 | P2 | ✅ 已修复 | 增加 TIMEOUT_LARGE=180s |
-| Stream Edit 失败 | P3 | ⏸️ 已跳过 | teloxide 与 Mock Server 交互问题，不影响核心功能 |
-| 测试日志不完整 | P2 | ✅ 已修复 | 添加 session log + 文件内容记录到日志 |
-| 独立测试仓库 | P1 | ✅ 已完成 | 从 octos 主项目分离，支持独立运行 |
-| test_run.py 测试结果误报 | P1 | ✅ 已修复 | pytest 输出多行导致正则无法匹配，添加 current_test_name 跟踪机制 |
-| Matrix 测试支持 | P2 | ✅ 已完成 | 新增 mock_matrix.py + test_matrix.py（38 个用例） |
-
-### 关键设计决策
-
-1. **Mock Server 模式**：无需真实 API 凭证即可运行，降低测试门槛
-2. **统一入口 `test_run.py`**：Python 实现，跨平台兼容性好
-3. **二进制自动检测**：支持多种查找方式，灵活适应不同部署场景
-4. **CLI 目录隔离**：每个测试类别在 `/tmp/octos_test/cli/<Category>_<timestamp>` 下运行，测试结束自动清理
-5. **统一日志系统**：Python logging 模块管理所有日志，格式统一，易于分析
-6. **file_check 内容记录**：文件存在时自动输出内容到日志，便于排查
+| 模块 | 用例数 |
+|------|:------:|
+| Telegram | 51 |
+| Discord | 37 |
+| Matrix | 41 |
+| Slack | 47 |
+| Feishu | 34 |
+| WeChat | 34 |
+| WhatsApp | 23 |
+| LINE | 9 |
+| WeCom | 7 |
+| WeCom Bot | 14 |
+| Email | 3 |
+| Gateway Events | 2 |
+| CLI | 35 |
+| Serve | 7 |
+| NVIDIA API | 2 |
+| Matrix Ext | 3 |
+| **Bot 测试合计** | **302** |
+| **全部测试合计** | **349** |

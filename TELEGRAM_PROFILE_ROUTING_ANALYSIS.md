@@ -62,6 +62,30 @@ let inbound = InboundMessage {
 
 ---
 
+### Soul 隔离代码的正确性
+
+在 `gateway_dispatcher.rs` 中，`handle_soul_command` 本身**正确地从 `SessionKey` 提取 `profile_id` 并使用对应数据目录**：
+
+```rust
+// crates/octos-cli/src/gateway_dispatcher.rs
+pub async fn handle_soul_command(
+    &self,
+    cmd: &str,
+    reply_channel: &str,
+    reply_chat_id: &str,
+    session_key: &SessionKey,
+) -> Option<DispatchResult> {
+    let profile_id = session_key.profile_id().unwrap_or(MAIN_PROFILE_ID);
+    let data_dir = match self.resolve_data_dir_for_profile(profile_id) {
+        Some(d) => d,
+        None => { /* error handling */ }
+    };
+    // ... write/read soul from data_dir
+}
+```
+
+**问题不在 soul 隔离代码，而在 `SessionKey` 中的 `profile_id` 始终是 `_main`**，因为 Telegram channel 没有注入 `target_profile_id`。
+
 ### 3. Gateway Dispatch 逻辑
 
 Gateway 依赖 `metadata.target_profile_id` 来路由消息到正确的 profile：
@@ -246,6 +270,23 @@ if let Ok(mapping) = std::env::var("TELEGRAM_CHAT_TO_PROFILE") {
 }
 ```
 
+### 方案 4：创建独立的测试环境（变通方案）
+
+为每个 profile 启动独立的 Bot 实例，使用不同的 `--data-dir`：
+
+```bash
+# Terminal 1: Profile A
+octos gateway --config config.json --data-dir /tmp/test-profile-a
+
+# Terminal 2: Profile B
+octos gateway --config config.json --data-dir /tmp/test-profile-b
+```
+
+然后测试分别连接到两个 Bot。
+
+**优点：** 不需要修改代码
+**缺点：** 测试复杂度高，需要管理多个进程
+
 ---
 
 ## 📊 对比总结
@@ -275,6 +316,25 @@ if let Ok(mapping) = std::env::var("TELEGRAM_CHAT_TO_PROFILE") {
 2. **中期**：实现方案 3（环境变量），快速支持测试
 3. **长期**：实现方案 1（映射表），提供完整的 profile routing 功能
 4. **最终**：考虑实现方案 2（配置文件），提供更灵活的配置方式
+
+---
+
+## 📝 相关代码位置
+
+1. **Octos 主仓库** (`/Volumes/AppleData/octos`):
+   - `crates/octos-bus/src/telegram_channel.rs` - 添加 profile router
+   - `crates/octos-cli/src/commands/gateway/gateway_runtime.rs` - 集成 router
+   - `crates/octos-core/src/gateway.rs` - 可能需要扩展 InboundMessage
+
+2. **测试仓库** (`/Volumes/AppleData/octos-test`):
+   - `bot_mock_test/test_telegram.py` - skip 或修改测试
+   - `bot_mock_test/mock_tg.py` - 可能需要支持 profile 相关的 mock
+
+## 🔗 参考资料
+
+- Matrix BotRouter 实现：`crates/octos-bus/src/matrix_channel.rs` Line 92-259
+- SessionKey 构建：`crates/octos-cli/src/commands/gateway/mod.rs` Line 144-152
+- Profile 数据存储：`crates/octos-cli/src/profiles.rs`
 
 ---
 

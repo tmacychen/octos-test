@@ -226,4 +226,4 @@ test_run.py --test bot tg --from-test test_first_failure
 
 **相关文档：**
 - [TEST_SKIP_ANALYSIS.md](./TEST_SKIP_ANALYSIS.md) - 测试跳过分析
-- [TEST_SOUL_PER_PROFILE_FAILURE.md](./TEST_SOUL_PER_PROFILE_FAILURE.md) - Soul 隔离测试失败分析
+- [TELEGRAM_PROFILE_ROUTING_ANALYSIS.md](./TELEGRAM_PROFILE_ROUTING_ANALYSIS.md) - Telegram Profile Routing 缺失分析
