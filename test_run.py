@@ -1136,7 +1136,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "channels": [{
                     "type": "telegram",
                     "token_env": "TELEGRAM_BOT_TOKEN",
-                    "allowed_senders": ""
+                    "allowed_senders": "testuser,user_a,user_b"
                 }],
                 "gateway": {
                     "max_history": 50,
@@ -1409,6 +1409,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "channel_secret_env": "LINE_CHANNEL_SECRET",
                     "channel_access_token_env": "LINE_CHANNEL_ACCESS_TOKEN",
                     "webhook_port": webhook_port,
+                    "allowed_senders": "U_test_user,U_line_test_1,U_line_test_2,U_line_test_3,U_line_dedup",
                 }],
                 "gateway": {
                     "max_history": 50,
@@ -2197,14 +2198,33 @@ def run_cli_tests(verbose: bool = False, output_dir: Optional[str] = None, scope
 def list_serve_tests():
     """List available serve tests."""
     print("\nAvailable Serve tests:")
-    print("  8.1  server_startup          - Server startup verification")
-    print("  8.2  rest_api_sessions       - REST API /api/sessions endpoint")
-    print("  8.3  sse_streaming           - SSE streaming response")
-    print("  8.4  dashboard_webui         - Dashboard Web UI loading")
-    print("  8.5  auth_token_required     - Auth token required (401)")
-    print("  8.6  bind_address_external   - Bind address --host 0.0.0.0 ⚠️")
-    print("  8.7  bind_address_local_default - Default bind to 127.0.0.1 ⚠️")
-    print("\n⚠️  Tests 8.6 and 8.7 have environment limitations. See README.md for details.\n")
+    print("  ── 公开端点 (无需认证) ──")
+    print("  8.1   server_startup          - /health 健康检查")
+    print("  8.2   version_endpoint       - /api/version 版本信息")
+    print("  8.3   metrics_endpoint       - /metrics Prometheus 格式")
+    print("  ── 认证 ──")
+    print("  8.4   auth_token_required     - 无 token 请求返回 401")
+    print("  8.5   auth_invalid_token      - 错误 token 返回 401/403")
+    print("  ── Dashboard ──")
+    print("  8.6   dashboard_webui         - Dashboard Web UI 加载")
+    print("  ── WebSocket UI Protocol (API Channel) ──")
+    print("  8.7   ws_connection           - WS 连接 + client/hello 握手")
+    print("  8.8   ws_system_status        - WS system/status.get")
+    print("  8.9   ws_session_list         - WS session/list")
+    print("  8.10  ws_session_open_chat    - WS session/open + turn/start (需 API Key)")
+    print("  8.11  ws_session_delete       - WS session/delete")
+    print("  8.14  ws_session_snapshot     - WS session/snapshot (合并引导)")
+    print("  8.15  ws_session_messages_page- WS session/messages_page (分页历史)")
+    print("  8.16  ws_session_status_get    - WS session/status.get (单会话状态)")
+    print("  8.17  ws_session_title_set     - WS session/title.set (重命名)")
+    print("  8.18  ws_content_list          - WS content/list (内容目录)")
+    print("  8.19  ws_turn_interrupt        - WS turn/interrupt (中断 turn, 需 API Key)")
+    print("  ── 绑定地址 (环境限制) ──")
+    print("  8.12  bind_address_external   - --host 0.0.0.0 绑定 ⚠️")
+    print("  8.13  bind_address_local      - 默认 127.0.0.1 绑定 ⚠️")
+    print("\n⚠️  8.10/8.19 需要 ANTHROPIC_API_KEY 或 OPENAI_API_KEY 才能获得 LLM 回复")
+    print("⚠️  8.14–8.18 需要 LLM profile 配置才能创建会话")
+    print("⚠️  8.12/8.13 存在环境限制, 详见 README.md\n")
 
 
 def run_serve_tests(verbose: bool = False, test_ids: Optional[List[str]] = None) -> Tuple[bool, List[str]]:
@@ -2244,12 +2264,24 @@ def run_serve_tests(verbose: bool = False, test_ids: Optional[List[str]] = None)
         # Define all tests
         all_tests = [
             ("8.1", "Server Startup", tester.test_server_startup),
-            ("8.2", "REST API (/api/sessions)", tester.test_rest_api_sessions),
-            ("8.3", "SSE Streaming", tester.test_sse_streaming),
-            ("8.4", "Dashboard Web UI", tester.test_dashboard_webui),
-            ("8.5", "Auth Token Required", tester.test_auth_token_required),
-            ("8.6", "Bind Address (--host 0.0.0.0)", tester.test_bind_address_external),
-            ("8.7", "Default Bind Address (127.0.0.1)", tester.test_bind_address_local_default),
+            ("8.2", "Version Endpoint", tester.test_version_endpoint),
+            ("8.3", "Metrics Endpoint", tester.test_metrics_endpoint),
+            ("8.4", "Auth Token Required", tester.test_auth_token_required),
+            ("8.5", "Auth Invalid Token", tester.test_auth_invalid_token),
+            ("8.6", "Dashboard Web UI", tester.test_dashboard_webui),
+            ("8.7", "WS Connection + Hello", tester.test_ws_connection),
+            ("8.8", "WS system/status.get", tester.test_ws_system_status),
+            ("8.9", "WS session/list", tester.test_ws_session_list),
+            ("8.10", "WS session/open + turn/start", tester.test_ws_session_open_and_chat),
+            ("8.11", "WS session/delete", tester.test_ws_session_delete),
+            ("8.14", "WS session/snapshot", tester.test_ws_session_snapshot),
+            ("8.15", "WS session/messages_page", tester.test_ws_session_messages_page),
+            ("8.16", "WS session/status.get", tester.test_ws_session_status_get),
+            ("8.17", "WS session/title.set", tester.test_ws_session_title_set),
+            ("8.18", "WS content/list", tester.test_ws_content_list),
+            ("8.19", "WS turn/interrupt", tester.test_ws_turn_interrupt),
+            ("8.12", "Bind Address (0.0.0.0)", tester.test_bind_address_external),
+            ("8.13", "Default Bind (127.0.0.1)", tester.test_bind_address_local_default),
         ]
         
         # Filter tests if specific IDs provided

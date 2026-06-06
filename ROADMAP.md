@@ -6,11 +6,11 @@
 
 ## 一、当前完成情况
 
-通过 `Mock Server ↔ octos gateway ↔ 断言回复` 的黑盒方式，**11 个 channel 已有测试文件**，**3 个完全空白**。
+通过 `Mock Server ↔ octos gateway ↔ 断言回复` 的黑盒方式，**12 个 channel 已有测试文件**，**2 个完全空白**。
 
 | Channel | 用例数 | 黑盒覆盖的外部功能 | 测试方式 |
 |---------|:------:|------------------|----------|
-| Telegram | 52 | `/new`, `/s`, `/back`, `/delete`, `/soul`, `/queue`, `/status`, `/reset`, `/adaptive`, `/abort`, `/clear`, LLM 消息、多用户隔离 | Mock HTTP API |
+| Telegram | 54 | `/new`, `/s`, `/back`, `/delete`, `/soul`, `/queue`, `/status`, `/reset`, `/adaptive`, `/abort`, `/clear`, LLM 消息、多用户隔离、白名单过滤 | Mock HTTP API |
 | Slack | 48 | 同上一批命令 + 并发限制 | Mock HTTP + WS |
 | Matrix | 42 | 同上一批命令 + profile 路由 | Mock HTTP |
 | Discord | 38 | 同上一批命令 + 多频道隔离 | Mock HTTP + WS Gateway |
@@ -18,10 +18,10 @@
 | WeChat | 35 | 同上一批命令 + 消息分片 + 10MB 限制 | Mock WS Bridge |
 | WhatsApp | 24 | 基础命令 + 多用户隔离 | Mock WS Bridge |
 | WeCom Bot | 15 | WS 连接、认证、消息收发 | Mock WS |
-| LINE | 11 | 基础命令、消息收发、消息去重 | Mock Webhook |
+| LINE | 13 | 基础命令、消息收发、消息去重、白名单过滤 | Mock Webhook |
 | WeCom | 8 | URL 验证、加密回调、消息发送 | Mock REST + Webhook |
 | Email | 3 | SMTP 发邮件 → IMAP 收回复（真实邮箱） | 真实 IMAP/SMTP |
-| **API** | **0** | **完全无测试** | — |
+| **API** | **19** | WS 连接/hello、session/list、session/open+turn/start、session/delete、session/snapshot、session/messages_page、session/status.get、session/title.set、content/list、turn/interrupt、system/status.get、/health、/api/version、/metrics、认证、Dashboard | WS JSON-RPC + REST |
 | **QQ Bot** | **0** | **完全无测试** | — |
 | **Twilio** | **0** | **完全无测试** | — |
 
@@ -41,6 +41,8 @@
 - **流式编辑**：飞书 PATCH 编辑后内容正确更新
 - **10MB 限制**：超大消息 / 会话文件被限制
 - **消息去重**：相同 message_id 只处理一次（Feishu, LINE）
+- **白名单过滤**：allowed_senders 非空时，非白名单用户消息被忽略（Telegram, LINE）
+- **API Channel**：WS 连接/hello、session/list、session/open+turn/start、session/delete、session/snapshot、session/messages_page、session/status.get、session/title.set、content/list、turn/interrupt、system/status.get（API）
 
 ---
 
@@ -51,10 +53,10 @@
 | # | 事项 | 黑盒验证方式 | 涉及 Channel | 状态 | 预估工作量 |
 |---|------|-------------|-------------|:----:|:----------:|
 | 1 | **`/clear` 命令** | 发送 `/clear` → 断言回复 == "Session cleared." | Telegram, Slack, Feishu, WeChat, WhatsApp, LINE, Discord, Matrix | ✅ 完成 | 0.5 天 |
-| 2 | **`allowed_senders` 过滤** | 配置白名单后，非白名单用户发送消息 → 断言 bot **无回复** | 全部支持配置的 channel | ⏳ 需 gateway 配置支持 | 0.5 天 |
+| 2 | **`allowed_senders` 过滤** | 配置白名单后，非白名单用户发送消息 → 断言 bot **无回复** | Telegram ✅, LINE ✅ | ✅ 完成 | 0.5 天 |
 | 3 | **消息去重 (`MessageDedup`)** | 同一 message_id 重复发送两次 → 断言 bot 只回复一次 | Feishu ✅, LINE ✅ | ✅ 完成 | 0.5 天 |
-| 4 | **未知命令帮助** | 发送 `/unknowncmd` → 断言回复包含帮助文本 | Feishu、WeChat、WhatsApp 等部分缺失 | ⏳ 待做 | 0.5 天 |
-| 5 | **API Channel 黑盒测试** | `POST /chat` → 检查 SSE 流式响应；Session CRUD 端点返回；`/metrics` 返回 | API | ⏳ 待做 | 3–4 天 |
+| 4 | **未知命令帮助** | octos 将未知 slash 命令发给 LLM 而非返回帮助文本，不属于黑盒测试范畴 | — | ❌ 不适用 | 0 |
+| 5 | **API Channel 黑盒测试** | WS 连接 + client/hello、session/list、session/open + turn/start、session/delete、system/status.get | API ✅ | ✅ 基础完成 | 2 天 |
 
 ### P1 — 中等优先级
 
@@ -103,14 +105,16 @@
 ## 六、建议执行顺序
 
 ### 本周（立即可做）
-1. `/clear` 命令测试 — 全部已测 channel 各补 1 个用例
-2. `allowed_senders` 过滤测试 — 挑 2–3 个 channel 验证
-3. `MessageDedup` 去重测试 — 飞书/Line 各补 1 个用例
-4. 未知命令帮助 — 补齐缺失的 channel
+1. ~~`/clear` 命令测试 — 全部已测 channel 各补 1 个用例~~ ✅
+2. ~~`allowed_senders` 过滤测试 — 挑 2–3 个 channel 验证~~ ✅ (Telegram, LINE)
+3. ~~`MessageDedup` 去重测试 — 飞书/Line 各补 1 个用例~~ ✅
+4. 未知命令帮助 — ❌ 不适用（octos 将未知命令发给 LLM）
+5. ~~API Channel 黑盒测试 — 最大缺口~~ ✅ 基础完成 (6 个 WS 测试 + 7 个 REST/基础测试)
 
 ### 2–3 周
-5. API Channel 测试框架设计 — 最大缺口
-6. LINE / WeCom / WeCom Bot 测试扩展到 20+ 用例
+5. ~~API Channel 测试框架设计 — 最大缺口~~ ✅ 基础完成
+6. API Channel 扩展 — ~~turn/interrupt、session/snapshot、content/list~~ ✅ 已完成 (6→19 用例), 继续扩展 session/files.list、task/list、task/cancel、approval/*
+7. LINE / WeCom / WeCom Bot 测试扩展到 20+ 用例
 
 ### 长期
 7. Email Mock Server（IMAP/SMTP Mock）
