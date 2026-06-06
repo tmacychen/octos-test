@@ -9,6 +9,8 @@
 """
 
 import logging
+import os
+import uuid
 import pytest
 import time
 import httpx
@@ -807,3 +809,41 @@ class TestWeChatJSONLPersistence:
         # 至少应有 user 或 assistant 之一
         assert roles_found & {"user", "assistant"}, \
             f"JSONL should contain user or assistant entries: {roles_found}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 消息去重测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestWeChatMessageDedup:
+    """消息去重测试"""
+
+    @pytest.mark.skipif(
+        not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("OPENAI_API_KEY"),
+        reason="No LLM API key configured",
+    )
+    def test_duplicate_message_id_ignored(self, runner):
+        """相同 message_id 的重复消息应被忽略"""
+        dedup_msg_id = f"msg_dedup_{uuid.uuid4().hex[:12]}"
+        dedup_user = f"dedup_{uuid.uuid4().hex[:6]}@im.wechat"
+
+        # 第一次发送，应收到回复
+        reply1 = inject_and_get_reply(runner, "Dedup test", timeout=TIMEOUT_LLM,
+                                       sender=dedup_user, message_id=dedup_msg_id)
+        assert len(reply1) > 0, "Bot should reply to first message"
+
+        # 记录当前消息数
+        count_before = len(runner.get_sent_messages(timeout=5))
+
+        # 第二次发送相同 message_id
+        runner.inject("Dedup test", sender=dedup_user, message_id=dedup_msg_id)
+
+        # 等待确保去重生效
+        time.sleep(3)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Duplicate message_id should be deduplicated, but got {new_replies} new replies"
+        logger.info("  ✓ Duplicate message_id correctly deduplicated")

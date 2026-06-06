@@ -92,7 +92,7 @@ class MockWeChatServer:
                 text = body.get("text", "")
                 sender = body.get("sender", "test_user@im.wechat")
 
-                message_id = self._generate_message_id()
+                message_id = body.get("message_id") or self._generate_message_id()
                 context_token = self._generate_context_token()
 
                 event = {

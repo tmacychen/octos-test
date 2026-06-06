@@ -104,7 +104,8 @@ class MockWhatsAppServer:
                 chat_id = sender.split("@")[0]
 
             message_type = body.get("message_type", "message")
-            message_id = self._generate_message_id()
+            # 支持外部传入 message_id（去重测试需要）
+            message_id = body.get("message_id") or self._generate_message_id()
 
             if message_type == "image":
                 event = {
