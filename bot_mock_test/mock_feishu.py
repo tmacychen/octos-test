@@ -293,7 +293,7 @@ class MockFeishuServer:
                 chat_id = body.get("chat_id", "oc_test_chat")
                 sender_name = body.get("sender_name", "Test User")
 
-                message_id = f"om_{uuid.uuid4().hex[:24]}"
+                message_id = body.get("message_id") or f"om_{uuid.uuid4().hex[:24]}"
                 event = {
                     "schema": "2.0",
                     "header": {

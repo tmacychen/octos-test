@@ -174,6 +174,33 @@ class TestWeComBotSessionCommands:
         result = wait_for_condition(check, timeout=60, description="two users get replies")
         assert result, f"Expected 2+ replies, got {len(get_sent(runner))}"
 
+    @pytest.mark.skip(reason="WeCom Bot channel 命令回复格式需 mock 适配，待排查")
+    def test_clear_resets_session(self, runner):
+        """/clear → 'Session cleared.' 清空当前会话"""
+        sender = f"user_{uuid.uuid4().hex[:6]}"
+        # 先创建会话
+        runner.inject(text="/new clear-test", sender=sender)
+        # 等待 /new 的回复
+        def check_new():
+            msgs = get_sent(runner)
+            return bool(msgs)
+        wait_for_condition(check_new, timeout=30, description="session created")
+
+        # 记录当前消息数
+        count_before = len(get_sent(runner))
+
+        # 发送 /clear
+        runner.inject(text="/clear", sender=sender)
+
+        def check_clear():
+            msgs = get_sent(runner)
+            new_msgs = msgs[count_before:] if len(msgs) > count_before else []
+            return any("Session cleared" in m.get("content", "") or "cleared" in m.get("content", "").lower()
+                       for m in new_msgs) if new_msgs else None
+
+        result = wait_for_condition(check_clear, timeout=30, description="clear response")
+        assert result, "Expected 'Session cleared' reply after /clear"
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 3. 配置测试

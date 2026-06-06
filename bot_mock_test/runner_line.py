@@ -18,8 +18,9 @@ class LineTestRunner(BaseMockRunner):
         self.channel_secret = channel_secret
 
     def inject(self, text: str, chat_id: str = "U_test_user",
-               username: str = "testuser", **kwargs):
+               username: str = "testuser", message_id: str = None, **kwargs):
         """注入一条 LINE 文本消息到 bot webhook。"""
+        msg_id = message_id or f"msg_{int(__import__('time').time() * 1000)}"
         event = {
             "type": "message",
             "replyToken": f"reply_{int(__import__('time').time())}",
@@ -29,7 +30,7 @@ class LineTestRunner(BaseMockRunner):
             },
             "message": {
                 "type": "text",
-                "id": f"msg_{int(__import__('time').time() * 1000)}",
+                "id": msg_id,
                 "text": text,
             },
         }

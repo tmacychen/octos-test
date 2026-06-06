@@ -226,6 +226,12 @@ class TestSlackSessionCommands:
         assert len(text) > 0, "回复为空"
         logger.info(f"\n  /soul → {text[:80]}")
     
+    def test_clear_resets_session(self, runner):
+        """/clear → 'Session cleared.' 清空当前会话"""
+        inject_and_get_reply(runner, "/new clear-test", timeout=TIMEOUT_COMMAND, channel=self.CHANNEL)
+        text = inject_and_get_reply(runner, "/clear", timeout=TIMEOUT_COMMAND, channel=self.CHANNEL)
+        assert text == "Session cleared.", f"实际回复: {text}"
+    
     def test_soul_set(self, runner):
         """/soul <text> → 'Soul updated. Takes effect in new sessions.'"""
         text = inject_and_get_reply(runner, "/soul You are a helpful assistant.", timeout=TIMEOUT_COMMAND, channel=self.CHANNEL)

@@ -10,16 +10,16 @@
 
 | Channel | 用例数 | 黑盒覆盖的外部功能 | 测试方式 |
 |---------|:------:|------------------|----------|
-| Telegram | 51 | `/new`, `/s`, `/back`, `/delete`, `/soul`, `/queue`, `/status`, `/reset`, `/adaptive`, `/abort`, LLM 消息、多用户隔离 | Mock HTTP API |
-| Slack | 47 | 同上一批命令 + 并发限制 | Mock HTTP + WS |
-| Matrix | 41 | 同上一批命令 + profile 路由 | Mock HTTP |
-| Discord | 37 | 同上一批命令 + 多频道隔离 | Mock HTTP + WS Gateway |
-| Feishu | 34 | 同上一批命令 + 流式编辑 + 10MB 限制 | Mock Webhook |
-| WeChat | 34 | 同上一批命令 + 消息分片 + 10MB 限制 | Mock WS Bridge |
-| WhatsApp | 23 | 基础命令 + 多用户隔离 | Mock WS Bridge |
-| WeCom Bot | 14 | WS 连接、认证、消息收发 | Mock WS |
-| LINE | 9 | 基础命令、消息收发 | Mock Webhook |
-| WeCom | 7 | URL 验证、加密回调、消息发送 | Mock REST + Webhook |
+| Telegram | 52 | `/new`, `/s`, `/back`, `/delete`, `/soul`, `/queue`, `/status`, `/reset`, `/adaptive`, `/abort`, `/clear`, LLM 消息、多用户隔离 | Mock HTTP API |
+| Slack | 48 | 同上一批命令 + 并发限制 | Mock HTTP + WS |
+| Matrix | 42 | 同上一批命令 + profile 路由 | Mock HTTP |
+| Discord | 38 | 同上一批命令 + 多频道隔离 | Mock HTTP + WS Gateway |
+| Feishu | 36 | 同上一批命令 + 流式编辑 + 10MB 限制 + 消息去重 | Mock Webhook |
+| WeChat | 35 | 同上一批命令 + 消息分片 + 10MB 限制 | Mock WS Bridge |
+| WhatsApp | 24 | 基础命令 + 多用户隔离 | Mock WS Bridge |
+| WeCom Bot | 15 | WS 连接、认证、消息收发 | Mock WS |
+| LINE | 11 | 基础命令、消息收发、消息去重 | Mock Webhook |
+| WeCom | 8 | URL 验证、加密回调、消息发送 | Mock REST + Webhook |
 | Email | 3 | SMTP 发邮件 → IMAP 收回复（真实邮箱） | 真实 IMAP/SMTP |
 | **API** | **0** | **完全无测试** | — |
 | **QQ Bot** | **0** | **完全无测试** | — |
@@ -31,7 +31,7 @@
 
 以下功能已通过**外部消息交互**验证：
 
-- **会话管理**：`/new`, `/s`, `/back`, `/delete`, `/sessions`（全部已测 channel）
+- **会话管理**：`/new`, `/s`, `/back`, `/delete`, `/sessions`, `/clear`（全部已测 channel）
 - **配置命令**：`/soul`, `/queue`, `/status`, `/reset`, `/adaptive`, `/help`（全部已测 channel）
 - **LLM 消息**：英文/中文普通消息（全部已测 channel）
 - **中断**：`/abort` + 中英日俄多语言触发词
@@ -40,6 +40,7 @@
 - **消息分片**：超长消息自动拆分（WeChat 4000 字符等）
 - **流式编辑**：飞书 PATCH 编辑后内容正确更新
 - **10MB 限制**：超大消息 / 会话文件被限制
+- **消息去重**：相同 message_id 只处理一次（Feishu, LINE）
 
 ---
 
@@ -47,13 +48,13 @@
 
 ### P0 — 高价值、工作量小
 
-| # | 事项 | 黑盒验证方式 | 涉及 Channel | 预估工作量 |
-|---|------|-------------|-------------|:----------:|
-| 1 | **`/clear` 命令** | 发送 `/clear` → 断言回复包含 "cleared" 或会话历史被清空 | **全部已测 channel**（均缺失） | 0.5 天 |
-| 2 | **`allowed_senders` 过滤** | 配置白名单后，非白名单用户发送消息 → 断言 bot **无回复** | **全部支持配置的 channel** | 0.5 天 |
-| 3 | **消息去重 (`MessageDedup`)** | 同一 message_id 重复发送两次 → 断言 bot 只回复一次 | Feishu、LINE 等 | 0.5 天 |
-| 4 | **未知命令帮助** | 发送 `/unknowncmd` → 断言回复包含帮助文本 | Feishu、WeChat、WhatsApp 等部分缺失 | 0.5 天 |
-| 5 | **API Channel 黑盒测试** | `POST /chat` → 检查 SSE 流式响应；Session CRUD 端点返回；`/metrics` 返回 | API | 3–4 天 |
+| # | 事项 | 黑盒验证方式 | 涉及 Channel | 状态 | 预估工作量 |
+|---|------|-------------|-------------|:----:|:----------:|
+| 1 | **`/clear` 命令** | 发送 `/clear` → 断言回复 == "Session cleared." | Telegram, Slack, Feishu, WeChat, WhatsApp, LINE, Discord, Matrix | ✅ 完成 | 0.5 天 |
+| 2 | **`allowed_senders` 过滤** | 配置白名单后，非白名单用户发送消息 → 断言 bot **无回复** | 全部支持配置的 channel | ⏳ 需 gateway 配置支持 | 0.5 天 |
+| 3 | **消息去重 (`MessageDedup`)** | 同一 message_id 重复发送两次 → 断言 bot 只回复一次 | Feishu ✅, LINE ✅ | ✅ 完成 | 0.5 天 |
+| 4 | **未知命令帮助** | 发送 `/unknowncmd` → 断言回复包含帮助文本 | Feishu、WeChat、WhatsApp 等部分缺失 | ⏳ 待做 | 0.5 天 |
+| 5 | **API Channel 黑盒测试** | `POST /chat` → 检查 SSE 流式响应；Session CRUD 端点返回；`/metrics` 返回 | API | ⏳ 待做 | 3–4 天 |
 
 ### P1 — 中等优先级
 

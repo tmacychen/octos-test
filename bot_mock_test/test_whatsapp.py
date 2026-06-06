@@ -138,6 +138,12 @@ class TestWhatsAppSessionCommands:
         reply = inject_and_get_reply(runner, "/delete to-delete", timeout=TIMEOUT_COMMAND, sender=USER_A)
         assert reply, "应返回删除确认"
 
+    def test_clear_resets_session(self, runner):
+        """/clear → 'Session cleared.' 清空当前会话"""
+        inject_and_get_reply(runner, "/new clear-test", timeout=TIMEOUT_COMMAND, sender=USER_A)
+        reply = inject_and_get_reply(runner, "/clear", timeout=TIMEOUT_COMMAND, sender=USER_A)
+        assert reply == "Session cleared.", f"实际回复: {reply}"
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 基本消息测试

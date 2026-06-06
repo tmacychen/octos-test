@@ -178,6 +178,14 @@ class TestFeishuSessionCommands:
                                     sender_id=self.SENDER, chat_id=self.CHAT)
         assert text == "Soul updated. Takes effect in new sessions.", f"实际回复: {text}"
 
+    def test_clear_resets_session(self, runner):
+        """/clear → 'Session cleared.' 清空当前会话"""
+        inject_and_get_reply(runner, "/new clear-test", timeout=TIMEOUT_COMMAND,
+                            sender_id=self.SENDER, chat_id=self.CHAT)
+        text = inject_and_get_reply(runner, "/clear", timeout=TIMEOUT_COMMAND,
+                                    sender_id=self.SENDER, chat_id=self.CHAT)
+        assert text == "Session cleared.", f"实际回复: {text}"
+
     def test_soul_reset(self, runner):
         """/soul reset 应该重置 soul"""
         text = inject_and_get_reply(runner, "/soul reset", timeout=TIMEOUT_COMMAND,
@@ -866,3 +874,52 @@ class TestFeishuJSONLPersistence:
         # 至少应有 user 或 assistant 之一
         assert roles_found & {"user", "assistant"}, \
             f"JSONL should contain user or assistant entries: {roles_found}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 测试类：消息去重
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestFeishuMessageDedup:
+    """验证飞书消息去重 (MessageDedup)
+
+    根据 feishu_channel.rs:
+    - 使用 MessageDedup 基于 message_id 去重
+    - MAX_SEEN_IDS = 1000
+    - 相同 message_id 的事件只处理一次
+    """
+
+    SENDER = "ou_dedup_tester"
+    CHAT = "oc_test_dedup"
+
+    def test_duplicate_message_id_ignored(self, runner):
+        """验证相同 message_id 的重复消息被忽略，bot 只回复一次"""
+        import uuid
+
+        runner.clear()
+        dedup_msg_id = f"om_dedup_{uuid.uuid4().hex[:12]}"
+
+        # 第一次发送，应收到回复
+        reply1 = inject_and_get_reply(runner, "Dedup test message", timeout=TIMEOUT_LLM,
+                                       sender_id=self.SENDER, chat_id=self.CHAT,
+                                       message_id=dedup_msg_id)
+        assert len(reply1) > 0, "Bot should reply to first message"
+
+        # 记录当前消息数
+        count_before = len(runner.get_sent_messages(timeout=5))
+
+        # 第二次发送相同 message_id，应被去重忽略
+        runner.inject("Dedup test message", sender_id=self.SENDER, chat_id=self.CHAT,
+                     message_id=dedup_msg_id)
+
+        # 等待一小段时间，确保如果去重失败（bot 回复了）能检测到
+        import time
+        time.sleep(3)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        # 去重应阻止 bot 对重复消息再次回复
+        assert new_replies == 0, \
+            f"Duplicate message_id should be deduplicated, but got {new_replies} new replies"
+        logger.info(f"\n  ✓ Duplicate message_id correctly deduplicated (0 new replies)")

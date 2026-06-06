@@ -24,6 +24,7 @@ class FeishuTestRunner(BaseMockRunner):
         sender_id: str = "ou_test_user",
         chat_id: str = "oc_test_chat",
         sender_name: str = "Test User",
+        message_id: Optional[str] = None,
     ) -> dict:
         """向 Mock Server 注入一条飞书消息事件。
 
@@ -34,6 +35,7 @@ class FeishuTestRunner(BaseMockRunner):
             sender_id: 飞书用户 open_id
             chat_id: 飞书群聊/会话 chat_id
             sender_name: 发送者姓名
+            message_id: 可选自定义 message_id（用于去重测试）
 
         Returns:
             Mock Server 响应
@@ -44,6 +46,8 @@ class FeishuTestRunner(BaseMockRunner):
             "chat_id": chat_id,
             "sender_name": sender_name,
         }
+        if message_id:
+            payload["message_id"] = message_id
         resp = httpx.post(f"{self.base_url}/_inject", json=payload, timeout=10)
         resp.raise_for_status()
         return resp.json()

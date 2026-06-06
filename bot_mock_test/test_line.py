@@ -94,6 +94,13 @@ class TestLineSessionCommands:
         assert "help" in text.lower() or len(text) > 20
         logger.info(f"  ✓ /help received ({len(text)} chars)")
 
+    def test_clear_resets_session(self, runner):
+        """/clear → 'Session cleared.' 清空当前会话"""
+        inject_and_get_reply(runner, "/new clear-test", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
+        text = inject_and_get_reply(runner, "/clear", timeout=TIMEOUT_COMMAND, chat_id=self.CHAT_ID)
+        assert text == "Session cleared.", f"实际回复: {text}"
+        logger.info(f"  ✓ /clear: {text}")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 配置命令测试
@@ -145,3 +152,42 @@ class TestLineLLMMessages:
         text = inject_and_get_reply(runner, "你好，请用中文回复", timeout=TIMEOUT_LLM, chat_id=self.CHAT_ID)
         assert len(text) > 0
         logger.info(f"  ✓ Chinese reply: {text[:60]}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 消息去重测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestLineMessageDedup:
+    """验证 LINE 消息去重 (MessageDedup)"""
+
+    CHAT_ID = "U_line_dedup"
+
+    @pytest.mark.llm
+    def test_duplicate_message_id_ignored(self, runner):
+        """验证相同 message_id 的重复消息被忽略"""
+        import uuid
+        import time
+
+        dedup_msg_id = f"msg_dedup_{uuid.uuid4().hex[:12]}"
+
+        # 第一次发送，应收到回复
+        reply1 = inject_and_get_reply(runner, "Dedup test", timeout=TIMEOUT_LLM,
+                                       chat_id=self.CHAT_ID, message_id=dedup_msg_id)
+        assert len(reply1) > 0, "Bot should reply to first message"
+
+        # 记录当前消息数
+        count_before = len(runner.get_sent_messages(timeout=5))
+
+        # 第二次发送相同 message_id
+        runner.inject("Dedup test", chat_id=self.CHAT_ID, message_id=dedup_msg_id)
+
+        # 等待确保去重生效
+        time.sleep(3)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Duplicate message_id should be deduplicated, but got {new_replies} new replies"
+        logger.info(f"  ✓ Duplicate message_id correctly deduplicated")

@@ -167,6 +167,12 @@ class TestWeChatSessionCommands:
         text = inject_and_get_reply(runner, "/soul 你是一个助手", timeout=TIMEOUT_COMMAND, sender=self.SENDER)
         assert text == "Soul updated. Takes effect in new sessions.", f"实际回复: {text}"
 
+    def test_clear_resets_session(self, runner):
+        """/clear → 'Session cleared.' 清空当前会话"""
+        inject_and_get_reply(runner, "/new clear-test", timeout=TIMEOUT_COMMAND, sender=self.SENDER)
+        text = inject_and_get_reply(runner, "/clear", timeout=TIMEOUT_COMMAND, sender=self.SENDER)
+        assert text == "Session cleared.", f"实际回复: {text}"
+
     def test_soul_reset(self, runner):
         """/soul reset 应该重置 soul"""
         text = inject_and_get_reply(runner, "/soul reset", timeout=TIMEOUT_COMMAND, sender=self.SENDER)
