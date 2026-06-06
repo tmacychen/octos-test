@@ -93,3 +93,13 @@ class BaseMockRunner:
         """清除 Mock Server 中存储的所有消息和状态"""
         resp = httpx.post(f"{self.base_url}/_clear", timeout=5)
         resp.raise_for_status()
+
+    def disconnect_ws(self) -> dict:
+        """断开所有 WebSocket 连接，模拟网络断线。
+
+        Returns:
+            包含断开连接数量的字典。
+        """
+        resp = httpx.post(f"{self.base_url}/_ws_disconnect", timeout=5)
+        resp.raise_for_status()
+        return resp.json()

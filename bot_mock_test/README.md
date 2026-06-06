@@ -13,29 +13,29 @@ octos-test 通过 **Mock Server + pytest + TestRunner** 对 octos gateway 进行
 | **Test Runner** | `runner_<channel>.py` | 测试辅助工具，提供注入/断言方法 |
 | **Test Cases** | `test_<channel>.py` | pytest 测试用例 |
 
-### 已实现 Channel（11 个）
+### 已实现 Channel（13 个）
 
 | Channel | Mock Server | 端口 | 协议 | 测试用例 | 充分度 |
 |---------|-------------|:----:|------|:-------:|:------:|
-| Telegram | `mock_tg.py` | 5000 | HTTP REST (长轮询) | 51 | 较充分 |
-| Discord | `mock_discord.py` | 5001 | REST + WebSocket Gateway | 40 | 较充分 |
-| Matrix | `mock_matrix.py` | 5002 | REST + Appservice | 44 | 较充分 |
+| Telegram | `mock_tg.py` | 5000 | HTTP REST (长轮询) | 54 | 较充分 |
 | Slack | `mock_slack.py` | 5003 | Events API | 51 | 较充分 |
+| Matrix | `mock_matrix.py` | 5002 | REST + Appservice | 44 | 较充分 |
+| Discord | `mock_discord.py` | 5001 | REST + WebSocket Gateway | 40 | 较充分 |
 | Feishu | `mock_feishu.py` | 5004 | Webhook | 38 | 中等 |
 | WeChat | `mock_wechat.py` | 5005 | WebSocket Bridge | 36 | 中等 |
 | WhatsApp | `mock_whatsapp.py` | 5006 | WebSocket Bridge | 27 | 中等 |
 | LINE | `mock_line.py` | 5007 | Webhook | 21 | 中等 |
-| WeCom | `mock_wecom.py` | 5009 | REST + Webhook | 14 | 较少 |
+| QQ Bot | `mock_qq.py` | 5010 | WebSocket Gateway | 22 | 中等 |
+| Twilio | `mock_twilio.py` | 5011 | Webhook (SMS) | 21 | 中等 |
 | WeCom Bot | `mock_wecom_bot.py` | 5008 | WebSocket | 17 | 较少 |
+| WeCom | `mock_wecom.py` | 5009 | REST + Webhook | 14 | 较少 |
 | Email | — | — | 真实 IMAP/SMTP | 3 | 仅手动 |
 
-### 未实现 Channel（4 个）
+### 未实现 Channel（1 个）
 
 | Channel | 说明 |
 |---------|------|
 | API | REST API Channel，无 Mock Server |
-| QQ Bot | WebSocket 事件流 |
-| Twilio | SMS/WhatsApp Webhook |
 
 ## 运行测试
 
@@ -49,6 +49,8 @@ uv run python test_run.py --test bot discord      # 仅 Discord
 uv run python test_run.py --test bot slack        # 仅 Slack
 uv run python test_run.py --test bot feishu       # 仅飞书
 uv run python test_run.py --test bot matrix       # 仅 Matrix
+uv run python test_run.py --test bot qq-bot       # 仅 QQ Bot
+uv run python test_run.py --test bot twilio       # 仅 Twilio
 uv run python test_run.py --test bot tg test_new_default  # 单个用例
 uv run python test_run.py --test bot list         # 列出模块
 uv run python test_run.py --test bot cases tg     # 列出用例

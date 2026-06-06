@@ -106,6 +106,9 @@ class MockWeComBotServer:
                 chatid = body.get("chatid", "test_group")
                 msgtype = body.get("msgtype", "text")
                 chattype = body.get("chattype", "group")
+                msgid = body.get("message_id")  # optional: for dedup testing
+                if not msgid:
+                    msgid = self._generate_message_id()
 
                 req_id = self._generate_req_id()
 
@@ -115,7 +118,7 @@ class MockWeComBotServer:
                         "req_id": req_id,
                     },
                     "body": {
-                        "msgid": self._generate_message_id(),
+                        "msgid": msgid,
                         "msgtype": msgtype,
                         "chatid": chatid,
                         "chattype": chattype,
@@ -159,6 +162,23 @@ class MockWeComBotServer:
             # and octos won't re-subscribe after a cleared state.
             logger.info("Cleared mock server message state (preserved WS + subscription)")
             return JSONResponse({"success": True})
+
+        @app.post("/_ws_disconnect")
+        async def ws_disconnect():
+            """Simulate network disconnection: close all WebSocket connections."""
+            import starlette.websockets as _ws_state
+            count = 0
+            for ws in list(self._ws_connections):
+                try:
+                    if ws.client_state != _ws_state.WebSocketState.DISCONNECTED:
+                        await ws.close(code=1001, reason="Test disconnect")
+                        count += 1
+                except Exception:
+                    pass
+            self._ws_connections.clear()
+            self._subscribed = False
+            logger.info(f"🔌 Disconnected {count} WebSocket connections")
+            return JSONResponse({"disconnected": count})
 
         @app.get("/_subscribe_state")
         async def get_subscribe_state():

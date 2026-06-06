@@ -156,6 +156,22 @@ class MockWhatsAppServer:
             self._injected_events.clear()
             return JSONResponse({"status": "cleared"})
 
+        @app.post("/_ws_disconnect")
+        async def ws_disconnect():
+            """Simulate network disconnection: close all WebSocket connections."""
+            import starlette.websockets as _ws_state
+            count = 0
+            for ws in list(self._ws_connections):
+                try:
+                    if ws.client_state != _ws_state.WebSocketState.DISCONNECTED:
+                        await ws.close(code=1001, reason="Test disconnect")
+                        count += 1
+                except Exception:
+                    pass
+            self._ws_connections.clear()
+            logger.info(f"🔌 Disconnected {count} WebSocket connections")
+            return JSONResponse({"disconnected": count})
+
         @app.websocket("/ws")
         async def websocket_endpoint(ws: WebSocket):
             await ws.accept()

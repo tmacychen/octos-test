@@ -21,12 +21,15 @@ def inject_and_get_reply(runner, text: str, timeout: int = 15, **inject_kwargs) 
 
     # Determine filter_id for wait_for_reply.
     # Priority: explicit routing keys > sender.
-    # chatid (WeCom Bot), chat_id (Telegram), channel_id (Discord), room_id (Matrix)
+    # chatid (WeCom Bot), chat_id (Telegram), channel_id (Discord), room_id (Matrix),
+    # group_openid (QQ Bot), from_number (Twilio)
     filter_id = (
         inject_kwargs.get("chatid")
         or inject_kwargs.get("chat_id")
         or inject_kwargs.get("channel_id")
         or inject_kwargs.get("room_id")
+        or inject_kwargs.get("group_openid")
+        or inject_kwargs.get("from_number")
         or inject_kwargs.get("sender")
     )
     msg = runner.wait_for_reply(count_before=count_before, timeout=timeout, chat_id=filter_id)
@@ -96,3 +99,53 @@ def wait_for_abort_reply(runner, count_before: int, timeout: int = 15,
     
     # Timeout reached
     assert False, f"Timeout waiting for cancel response after {timeout}s. Last messages: {[m['text'][:50] for m in msgs[count_before:][-3:]]}"
+
+
+def test_ws_reconnect_basic(runner, timeout_cmd: int = 30, **inject_kwargs) -> str:
+    """通用的 WS 断线重连测试流程。
+
+    步骤:
+      1. 发送 /new 验证连接正常
+      2. 断开 WS 连接
+      3. 等待 bot 重连（15s 检测窗口）
+      4. 再发 /new 验证重连成功
+
+    Args:
+        runner: Mock runner 实例
+        timeout_cmd: 命令超时时间
+        **inject_kwargs: 透传给 inject_and_get_reply 的参数
+                         (chat_id/channel_id/group_openid 等)
+
+    Returns:
+        重连后发送命令得到的回复文本
+
+    Raises:
+        AssertionError: 如果任一步骤失败
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Step 1: Baseline — verify connection works
+    text = inject_and_get_reply(runner, "/new", timeout=timeout_cmd, **inject_kwargs)
+    assert "cleared" in text.lower() or "session" in text.lower() or "new" in text.lower(), \
+        f"Baseline /new failed: {text[:80]}"
+    logger.info(f"  Step 1 ✓ Baseline /new OK")
+
+    # Step 2: Disconnect WS connections
+    result = runner.disconnect_ws()
+    logger.info(f"  Step 2 ✓ WS disconnect: {result}")
+
+    # Step 3: Wait for bot to detect and reconnect
+    import time
+    logger.info("  Step 3 Waiting 15s for bot to reconnect...")
+    time.sleep(15)
+
+    # Step 4: Verify reconnection works
+    reconnect_text = inject_and_get_reply(
+        runner, "/new reconnect-test", timeout=timeout_cmd, **inject_kwargs,
+    )
+    assert "cleared" in reconnect_text.lower() or "session" in reconnect_text.lower() \
+        or "new" in reconnect_text.lower(), \
+        f"Expected bot to reply after reconnect, got: {reconnect_text[:80]}"
+    logger.info(f"  Step 4 ✓ Reconnect verified: {reconnect_text[:60]}")
+    return reconnect_text

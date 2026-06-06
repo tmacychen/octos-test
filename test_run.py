@@ -448,6 +448,8 @@ def list_bot_modules():
     print("  whatsapp (wa)      - WhatsApp bot tests")
     print("  wecom-bot (wcb)    - WeCom Bot tests")
     print("  wecom (we)         - WeCom Channel tests")
+    print("  qq-bot (qq)        - QQ Bot tests")
+    print("  twilio (tw)        - Twilio tests")
     print("")
 
 
@@ -542,6 +544,11 @@ def get_test_order(module: str) -> List[str]:
         "wcb": BOT_TEST_DIR / "test_wecom_bot.py",
         "wecom": BOT_TEST_DIR / "test_wecom.py",
         "we": BOT_TEST_DIR / "test_wecom.py",
+        "qq-bot": BOT_TEST_DIR / "test_qq.py",
+        "qq_bot": BOT_TEST_DIR / "test_qq.py",
+        "qq": BOT_TEST_DIR / "test_qq.py",
+        "twilio": BOT_TEST_DIR / "test_twilio.py",
+        "tw": BOT_TEST_DIR / "test_twilio.py",
     }
 
     test_file = test_files.get(module)
@@ -1091,6 +1098,11 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         "wcb": {"port": 5008, "test_file": "test_wecom_bot.py", "mock_module": "mock_wecom_bot", "mock_class": "MockWeComBotServer"},
         "wecom": {"port": 5009, "test_file": "test_wecom.py", "mock_module": "mock_wecom", "mock_class": "MockWeComServer"},
         "we": {"port": 5009, "test_file": "test_wecom.py", "mock_module": "mock_wecom", "mock_class": "MockWeComServer"},
+        "qq-bot": {"port": 5010, "test_file": "test_qq.py", "mock_module": "mock_qq", "mock_class": "MockQqServer"},
+        "qq_bot": {"port": 5010, "test_file": "test_qq.py", "mock_module": "mock_qq", "mock_class": "MockQqServer"},
+        "qq": {"port": 5010, "test_file": "test_qq.py", "mock_module": "mock_qq", "mock_class": "MockQqServer"},
+        "twilio": {"port": 5011, "test_file": "test_twilio.py", "mock_module": "mock_twilio", "mock_class": "MockTwilioServer"},
+        "tw": {"port": 5011, "test_file": "test_twilio.py", "mock_module": "mock_twilio", "mock_class": "MockTwilioServer"},
     }
     
     info = module_info.get(module)
@@ -1412,7 +1424,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "channel_secret_env": "LINE_CHANNEL_SECRET",
                     "channel_access_token_env": "LINE_CHANNEL_ACCESS_TOKEN",
                     "webhook_port": webhook_port,
-                    "allowed_senders": "U_test_user,U_line_test_1,U_line_test_2,U_line_test_3,U_line_dedup",
+                    "allowed_senders": "U_test_user,U_line_test_1,U_line_test_2,U_line_test_3,U_line_dedup,U_line_media,U_line_mention",
                 }],
                 "gateway": {
                     "max_history": 50,
@@ -1452,6 +1464,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "type": "wecom-bot",
                     "bot_id": "test_bot_id",
                     "secret_env": "WECOM_BOT_SECRET",
+                    "allowed_senders": "wcb_user1,wcb_user2,wcb_allowed,wcb_dedup_user",
                 }],
                 "gateway": {
                     "max_history": 50,
@@ -1495,6 +1508,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "verification_token": "test_verification_token",
                     "encoding_aes_key": "5sYHlCoSGoM55cptBeBF48DRmOZbeYowtPcgwjRQSxc",
                     "webhook_port": webhook_port,
+                    "allowed_senders": "wecom_session_user,wecom_config_user,wecom_allowed,wecom_dedup_user",
                 }],
                 "gateway": {
                     "max_history": 50,
@@ -1502,7 +1516,98 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 }
             }
         }
-
+    elif module in ["qq-bot", "qq_bot", "qq"]:
+        port = 5010
+        extra_env = {
+            "QQ_BOT_API_BASE_URL": f"http://127.0.0.1:{port}",
+        }
+        if not os.environ.get("QQ_BOT_APP_ID"):
+            os.environ["QQ_BOT_APP_ID"] = "test_app_id"
+            module_logger.info("QQ_BOT_APP_ID not set, using dummy value (mock mode)")
+        if not os.environ.get("QQ_BOT_CLIENT_SECRET"):
+            os.environ["QQ_BOT_CLIENT_SECRET"] = "test_client_secret"
+            module_logger.info("QQ_BOT_CLIENT_SECRET not set, using dummy value (mock mode)")
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        config = {
+            "id": "test_qq_bot",
+            "name": "Test QQ Bot",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "qq-bot",
+                    "app_id_env": "QQ_BOT_APP_ID",
+                    "client_secret_env": "QQ_BOT_CLIENT_SECRET",
+                    "allowed_senders": "member_test_001,member_test_002,member_test_003,user_c2c_session,user_c2c_config,user_c2c_dedup",
+                }],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
+                }
+            }
+        }
+    elif module in ["twilio", "tw"]:
+        port = 5011
+        webhook_port = 8649
+        extra_env = {
+            "TWILIO_API_BASE_URL": f"http://127.0.0.1:{port}",
+        }
+        if not os.environ.get("TWILIO_ACCOUNT_SID"):
+            os.environ["TWILIO_ACCOUNT_SID"] = "ACtest"
+            module_logger.info("TWILIO_ACCOUNT_SID not set, using dummy value (mock mode)")
+        if not os.environ.get("TWILIO_AUTH_TOKEN"):
+            os.environ["TWILIO_AUTH_TOKEN"] = "test_auth_token"
+            module_logger.info("TWILIO_AUTH_TOKEN not set, using dummy value (mock mode)")
+        if not os.environ.get("TWILIO_FROM_NUMBER"):
+            os.environ["TWILIO_FROM_NUMBER"] = "+15559999999"
+            module_logger.info("TWILIO_FROM_NUMBER not set, using dummy value (mock mode)")
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        config = {
+            "id": "test_twilio",
+            "name": "Test Twilio",
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now,
+            "config": {
+                "version": 1,
+                "llm": {
+                    "primary": {
+                        "family_id": "openai",
+                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "route": {
+                            "api_key_env": "OPENAI_API_KEY",
+                            "base_url": "https://integrate.api.nvidia.com/v1"
+                        }
+                    },
+                    "fallbacks": []
+                },
+                "channels": [{
+                    "type": "twilio",
+                    "account_sid_env": "TWILIO_ACCOUNT_SID",
+                    "auth_token_env": "TWILIO_AUTH_TOKEN",
+                    "from_number_env": "TWILIO_FROM_NUMBER",
+                    "webhook_port": webhook_port,
+                    "allowed_senders": "+15550000001,+15550001001,+15550001002,+15550001003,+15550001004,+15550001005",
+                }],
+                "gateway": {
+                    "max_history": 50,
+                    "max_concurrent_sessions": 10
+                }
+            }
+        }
 
     with open(config_file, "w") as f:
         json.dump(config, f, indent=2)
@@ -2084,7 +2189,7 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
         log.info(f"Starting from test: {from_test}")
     log.info("=" * 60)
     
-    modules = ["telegram", "discord", "matrix", "slack", "feishu", "wechat", "whatsapp", "wecom-bot", "wecom"]
+    modules = ["telegram", "discord", "matrix", "slack", "feishu", "wechat", "whatsapp", "wecom-bot", "wecom", "qq-bot", "twilio"]
     all_passed = True
     errors = []
     
@@ -2451,7 +2556,7 @@ def main() -> int:
                 return 0 if passed else 1
             
             # Check if it's a valid module
-            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa", "line", "ln", "wecom-bot", "wecom_bot", "wcb", "wecom", "we"]
+            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa", "line", "ln", "wecom-bot", "wecom_bot", "wcb", "wecom", "we", "qq-bot", "qq_bot", "qq", "twilio", "tw"]
             if action in valid_modules:
                 # Special case: check for 'list' subcommand
                 if len(remaining) > 1 and remaining[1] == "list":

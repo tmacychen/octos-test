@@ -196,6 +196,7 @@ class MockWeComServer:
                 body = _json.loads(raw)
                 text = body.get("text", "")
                 sender = body.get("sender", "test_user")
+                msg_id_override = body.get("message_id")  # optional: for dedup testing
                 webhook_url = body.get("webhook_url")
                 if webhook_url:
                     self._octos_webhook_url = webhook_url
@@ -209,7 +210,7 @@ class MockWeComServer:
                 actual_webhook = webhook_url or self._octos_webhook_url
 
                 # Build XML message
-                msg_id = str(uuid.uuid4())
+                msg_id = msg_id_override or str(uuid.uuid4())
                 xml = build_text_xml(sender, text, msg_id=msg_id)
                 logger.info(f"📄 XML payload:\n{xml}")
 

@@ -21,6 +21,7 @@ class WeComTestRunner(BaseMockRunner):
         text: str,
         sender: str = "test_user",
         webhook_url: str = "http://127.0.0.1:9323/wecom/webhook",
+        message_id: Optional[str] = None,
     ) -> dict:
         """向 Mock Server 注入一条 WeCom 消息事件。
 
@@ -30,6 +31,7 @@ class WeComTestRunner(BaseMockRunner):
             text: 消息文本内容
             sender: 发送者用户 ID (FromUserName)
             webhook_url: octos wecom webhook URL
+            message_id: 可选消息 ID（用于去重测试）
 
         Returns:
             Mock Server 响应
@@ -39,6 +41,8 @@ class WeComTestRunner(BaseMockRunner):
             "sender": sender,
             "webhook_url": webhook_url,
         }
+        if message_id:
+            payload["message_id"] = message_id
         resp = httpx.post(f"{self.base_url}/_inject", json=payload, timeout=10)
         resp.raise_for_status()
         return resp.json()

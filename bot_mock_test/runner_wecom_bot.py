@@ -25,6 +25,7 @@ class WeComBotTestRunner(BaseMockRunner):
         chatid: str = "test_group",
         msgtype: str = "text",
         chattype: str = "group",
+        message_id: Optional[str] = None,
     ) -> dict:
         """向 Mock Server 注入一条 WeCom Bot 消息事件。
 
@@ -36,6 +37,7 @@ class WeComBotTestRunner(BaseMockRunner):
             chatid: 群聊 ID
             msgtype: 消息类型 (text/mixed/image/etc)
             chattype: 聊天类型 (group/single)
+            message_id: 可选消息 ID（用于去重测试）
 
         Returns:
             Mock Server 响应
@@ -47,6 +49,8 @@ class WeComBotTestRunner(BaseMockRunner):
             "msgtype": msgtype,
             "chattype": chattype,
         }
+        if message_id:
+            payload["message_id"] = message_id
         resp = httpx.post(f"{self.base_url}/_inject", json=payload, timeout=10)
         resp.raise_for_status()
         return resp.json()

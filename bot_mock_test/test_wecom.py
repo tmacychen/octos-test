@@ -34,6 +34,12 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 TIMEOUT_COMMAND = 30
 TIMEOUT_LLM = 90
+TIMEOUT_DEDUP = 10
+
+# Senders must be in the allowed_senders list defined in test_run.py.
+# The current list is: wecom_session_user, wecom_config_user, wecom_allowed, wecom_dedup_user
+ALLOWED_SENDER = "wecom_allowed"
+DEDUP_SENDER = "wecom_dedup_user"
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -168,8 +174,7 @@ class TestWeComLLM:
     )
     def test_simple_greeting(self, runner):
         """发送简单英文问候"""
-        sender = f"llm_user_{uuid.uuid4().hex[:6]}"
-        text = inject_and_get_reply(runner, "Hello! What is 2+2?", timeout=TIMEOUT_LLM, sender=sender)
+        text = inject_and_get_reply(runner, "Hello! What is 2+2?", timeout=TIMEOUT_LLM, sender=ALLOWED_SENDER)
         assert len(text) > 0, "Expected LLM to reply"
         logger.info(f"  ✓ Greeting reply: {text[:60]}")
 
@@ -179,8 +184,7 @@ class TestWeComLLM:
     )
     def test_chinese_message(self, runner):
         """发送中文消息"""
-        sender = f"cn_user_{uuid.uuid4().hex[:6]}"
-        text = inject_and_get_reply(runner, "你好，请用中文回复", timeout=TIMEOUT_LLM, sender=sender)
+        text = inject_and_get_reply(runner, "你好，请用中文回复", timeout=TIMEOUT_LLM, sender=ALLOWED_SENDER)
         assert len(text) > 0, "Expected LLM reply in Chinese"
         logger.info(f"  ✓ Chinese reply: {text[:60]}")
 
@@ -190,8 +194,7 @@ class TestWeComLLM:
     )
     def test_llm_has_content(self, runner):
         """验证 LLM 回复有非空内容。"""
-        sender = f"llm_content_{uuid.uuid4().hex[:6]}"
-        text = inject_and_get_reply(runner, "Hi there, please say something!", timeout=TIMEOUT_LLM, sender=sender)
+        text = inject_and_get_reply(runner, "Hi there, please say something!", timeout=TIMEOUT_LLM, sender=ALLOWED_SENDER)
         assert len(text) > 0, "Expected LLM to reply with non-empty content"
         logger.info(f"  ✓ LLM content reply: {text[:60]}")
 
@@ -206,14 +209,11 @@ class TestWeComMultiUser:
 
     def test_multiple_users_isolated(self, runner):
         """两个不同用户的消息应该各自得到回复，不会混淆。"""
-        user_a = f"user_a_{uuid.uuid4().hex[:4]}"
-        user_b = f"user_b_{uuid.uuid4().hex[:4]}"
-
         count_before = len(runner.get_sent_messages(timeout=5))
-        result_a = runner.inject(text="Hello for user A", sender=user_a)
+        result_a = runner.inject(text="Hello for user A", sender=ALLOWED_SENDER)
         assert result_a.get("success"), f"Injection A failed: {result_a}"
         time.sleep(2)
-        result_b = runner.inject(text="Hello for user B", sender=user_b)
+        result_b = runner.inject(text="Hello for user B", sender="wecom_config_user")
         assert result_b.get("success"), f"Injection B failed: {result_b}"
 
         # Wait for at least 2 replies
@@ -231,23 +231,61 @@ class TestWeComMultiUser:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class TestWeComDedup:
-    """消息去重测试"""
+class TestWeComMessageDedup:
+    """验证 WeCom 消息去重 (msg_id)"""
 
-    def test_different_messages_both_replied(self, runner):
-        """发送两条不同内容的消息，验证两者都获得回复。"""
-        sender = f"dedup_user_{uuid.uuid4().hex[:6]}"
-        result_a = runner.inject(text="First message hello", sender=sender)
-        assert result_a.get("success")
-        time.sleep(3)
-        result_b = runner.inject(text="Second message world", sender=sender)
-        assert result_b.get("success")
+    SENDER = "wecom_dedup_user"
+
+    @pytest.mark.skipif(
+        not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("OPENAI_API_KEY"),
+        reason="No LLM API key configured",
+    )
+    def test_duplicate_message_id_ignored(self, runner):
+        """验证相同 msg_id 的重复消息被忽略"""
+        dedup_msg_id = f"msg_wec_dedup_{uuid.uuid4().hex[:12]}"
+
+        # 第一次发送 — bot 应回复
+        reply1 = inject_and_get_reply(runner, "Dedup test first", timeout=TIMEOUT_LLM,
+                                      sender=self.SENDER, message_id=dedup_msg_id)
+        assert len(reply1) > 0, "Bot should reply to first message"
 
         count_before = len(runner.get_sent_messages(timeout=5))
-        # Wait for replies
-        time.sleep(10)
-        all_msgs = runner.get_sent_messages(timeout=5)
-        # May have more than 2 from earlier tests due to timing
-        assert len(all_msgs) >= 2, \
-            f"Expected 2+ replies, got {len(all_msgs)}"
-        logger.info(f"  ✓ Both messages got replies ({len(all_msgs)} total)")
+
+        # 第二次发送相同 msg_id — bot 应忽略
+        runner.inject("Dedup test second should be ignored",
+                      sender=self.SENDER, message_id=dedup_msg_id)
+        time.sleep(TIMEOUT_DEDUP)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Duplicate msg_id should be deduplicated, but got {new_replies} new replies"
+        logger.info("  ✓ Duplicate msg_id correctly deduplicated")
+
+
+class TestWeComAllowedSenders:
+    """验证 WeCom allowed_senders 白名单过滤"""
+
+    SENDER = "wecom_allowed"
+
+    def test_allowed_sender_gets_reply(self, runner):
+        """白名单内用户发送消息 → bot 正常回复"""
+        text = inject_and_get_reply(runner, "/new", timeout=TIMEOUT_COMMAND, sender=self.SENDER)
+        assert "cleared" in text.lower() or "session" in text.lower(), \
+            f"Allowed sender should get reply, got: {text[:60]}"
+        logger.info(f"  ✓ Allowed sender got reply: {text[:60]}")
+
+    def test_blocked_sender_no_reply(self, runner):
+        """白名单外用户发送消息 → bot 不回复"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject("Hello from stranger", sender="stranger_not_allowed")
+
+        time.sleep(8)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Blocked sender should get no reply, but got {new_replies} new replies"
+        logger.info("  ✓ Blocked sender correctly ignored")

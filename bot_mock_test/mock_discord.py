@@ -568,6 +568,7 @@ class MockDiscordServer:
         app.add_api_route("/_inject_document", self._handle_inject_document, methods=["POST"])
         app.add_api_route("/_sent_messages", self._handle_sent_messages, methods=["GET"])
         app.add_api_route("/_clear", self._handle_clear, methods=["POST"])
+        app.add_api_route("/_ws_disconnect", self._handle_ws_disconnect, methods=["POST"])
         app.add_api_route("/health", self._handle_health, methods=["GET"])
 
     # ------------------------------------------------------------------
@@ -963,6 +964,21 @@ class MockDiscordServer:
         self._injected_interactions.clear()
         self._injected_documents.clear()
         return {"ok": True}
+
+    async def _handle_ws_disconnect(self):
+        """Simulate network disconnection: close all WebSocket connections."""
+        import starlette.websockets as _ws_state
+        count = 0
+        for ws in list(self._ws_clients):
+            try:
+                if ws.client_state != _ws_state.WebSocketState.DISCONNECTED:
+                    await ws.close(code=1001, reason="Test disconnect")
+                    count += 1
+            except Exception:
+                pass
+        self._ws_clients.clear()
+        logger.info(f"🔌 Disconnected {count} WebSocket connections")
+        return {"disconnected": count}
 
     async def _handle_health(self):
         """Health check."""

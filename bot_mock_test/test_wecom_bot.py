@@ -34,18 +34,24 @@ import uuid
 import pytest
 
 from runner_wecom_bot import WeComBotTestRunner
-from test_helpers import inject_and_get_reply
+from test_helpers import inject_and_get_reply, test_ws_reconnect_basic
 
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 TIMEOUT_COMMAND = 30
 TIMEOUT_LLM = 90
+TIMEOUT_DEDUP = 10
 
 # WeCom Bot uses chatid (group ID) as the routing key, not sender.
 # Each test class uses a unique chatid to ensure session isolation.
 CHAT_SESSION = "wcb_session_group"
 CHAT_CONFIG = "wcb_config_group"
+
+# Senders must be in the allowed_senders list defined in test_run.py.
+# The current list is: wcb_user1, wcb_user2, wcb_allowed, wcb_dedup_user
+ALLOWED_SENDER = "wcb_allowed"
+DEDUP_SENDER = "wcb_dedup_user"
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -222,10 +228,9 @@ class TestWeComBotLLM:
     )
     def test_simple_greeting(self, runner):
         """发送简单英文问候"""
-        sender = f"llm_user_{uuid.uuid4().hex[:6]}"
         text = inject_and_get_reply(
             runner, "Hello!", timeout=TIMEOUT_LLM,
-            sender=sender, chatid=f"llm_group_{uuid.uuid4().hex[:4]}",
+            sender=ALLOWED_SENDER, chatid=f"llm_group_{uuid.uuid4().hex[:4]}",
         )
         assert len(text) > 0, "Expected LLM to reply"
         logger.info(f"  ✓ Greeting reply: {text[:60]}")
@@ -236,10 +241,9 @@ class TestWeComBotLLM:
     )
     def test_chinese_message(self, runner):
         """验证 LLM 支持中文问答"""
-        sender = f"cn_user_{uuid.uuid4().hex[:6]}"
         text = inject_and_get_reply(
             runner, "你好，请用中文回复", timeout=TIMEOUT_LLM,
-            sender=sender, chatid=f"cn_group_{uuid.uuid4().hex[:4]}",
+            sender=ALLOWED_SENDER, chatid=f"cn_group_{uuid.uuid4().hex[:4]}",
         )
         assert len(text) > 0, "Expected LLM reply in Chinese"
         logger.info(f"  ✓ Chinese reply: {text[:60]}")
@@ -250,10 +254,10 @@ class TestWeComBotLLM:
     )
     def test_llm_meaningful_reply(self, runner):
         """验证 LLM 对有意义的问题给出回复。"""
-        sender = f"llm_qa_{uuid.uuid4().hex[:6]}"
         text = inject_and_get_reply(
             runner, "What is the capital of France? Please answer in one word.",
-            timeout=TIMEOUT_LLM, sender=sender, chatid=f"qa_group_{uuid.uuid4().hex[:4]}",
+            timeout=TIMEOUT_LLM, sender=ALLOWED_SENDER,
+            chatid=f"qa_group_{uuid.uuid4().hex[:4]}",
         )
         assert len(text) > 0, "Expected LLM to reply to a question"
         logger.info(f"  ✓ LLM question reply: {text[:60]}")
@@ -273,10 +277,9 @@ class TestWeComBotStreaming:
     )
     def test_stream_chunks_received(self, runner):
         """验证 LLM 回复以流式片段发送，最后一个带有 finish=True。"""
-        sender = f"stream_user_{uuid.uuid4().hex[:6]}"
         runner.inject(
             text="Write a short story about a robot, 3 sentences.",
-            sender=sender, chatid=f"stream_group_{uuid.uuid4().hex[:4]}",
+            sender=ALLOWED_SENDER, chatid=f"stream_group_{uuid.uuid4().hex[:4]}",
         )
 
         start = time.time()
@@ -294,10 +297,9 @@ class TestWeComBotStreaming:
     )
     def test_stream_final_content_nonempty(self, runner):
         """验证流式回复的最终内容非空。"""
-        sender = f"stream2_user_{uuid.uuid4().hex[:6]}"
         runner.inject(
             text="Count to 5 in words: one two three four five.",
-            sender=sender, chatid=f"stream2_group_{uuid.uuid4().hex[:4]}",
+            sender=ALLOWED_SENDER, chatid=f"stream2_group_{uuid.uuid4().hex[:4]}",
         )
 
         start = time.time()
@@ -323,21 +325,21 @@ class TestWeComBotMultiUser:
     @pytest.mark.llm
     def test_multiple_users_isolated(self, runner):
         """两个不同群组的消息应该各自得到回复，不会混淆。"""
-        user_a = f"user_a_{uuid.uuid4().hex[:4]}"
-        user_b = f"user_b_{uuid.uuid4().hex[:4]}"
+        group_a = f"group_a_{uuid.uuid4().hex[:4]}"
+        group_b = f"group_b_{uuid.uuid4().hex[:4]}"
 
         text_a = inject_and_get_reply(
             runner, "Hello for user A", timeout=TIMEOUT_LLM,
-            sender=user_a, chatid="group_a_test",
+            sender=ALLOWED_SENDER, chatid=group_a,
         )
-        assert len(text_a) > 0, "Expected reply for user A"
+        assert len(text_a) > 0, "Expected reply for group A"
 
         time.sleep(3)
         text_b = inject_and_get_reply(
             runner, "Hello for user B", timeout=TIMEOUT_LLM,
-            sender=user_b, chatid="group_b_test",
+            sender=ALLOWED_SENDER, chatid=group_b,
         )
-        assert len(text_b) > 0, "Expected reply for user B"
+        assert len(text_b) > 0, "Expected reply for group B"
         logger.info("  ✓ Two groups got replies")
 
 
@@ -346,25 +348,79 @@ class TestWeComBotMultiUser:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class TestWeComBotDedup:
-    """消息去重测试"""
+class TestWeComBotMessageDedup:
+    """验证 WeCom Bot 消息去重 (msgid)"""
 
-    @pytest.mark.llm
-    def test_different_messages_both_replied(self, runner):
-        """发送两条不同内容的消息，验证两者都获得回复。"""
-        sender = f"dedup_user_{uuid.uuid4().hex[:6]}"
-        chatid = f"dedup_group_{uuid.uuid4().hex[:4]}"
+    CHAT_ID = "wcb_dedup_group"
 
-        text1 = inject_and_get_reply(
-            runner, "First message hello", timeout=TIMEOUT_LLM,
-            sender=sender, chatid=chatid,
-        )
-        assert len(text1) > 0, "Expected reply to first message"
+    @pytest.mark.skipif(
+        not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("OPENAI_API_KEY"),
+        reason="No LLM API key configured",
+    )
+    def test_duplicate_message_id_ignored(self, runner):
+        """验证相同 msgid 的重复消息被忽略"""
+        dedup_msg_id = f"msg_wcb_dedup_{uuid.uuid4().hex[:12]}"
 
-        time.sleep(3)
-        text2 = inject_and_get_reply(
-            runner, "Second message world", timeout=TIMEOUT_LLM,
-            sender=sender, chatid=chatid,
-        )
-        assert len(text2) > 0, "Expected reply to second message"
-        logger.info("  ✓ Both messages got replies")
+        # 第一次发送 — bot 应回复
+        reply1 = inject_and_get_reply(runner, "Dedup test first", timeout=TIMEOUT_LLM,
+                                      sender=DEDUP_SENDER, chatid=self.CHAT_ID,
+                                      message_id=dedup_msg_id)
+        assert len(reply1) > 0, "Bot should reply to first message"
+
+        count_before = len(runner.get_sent_messages(timeout=5))
+
+        # 第二次发送相同 msgid — bot 应忽略
+        runner.inject("Dedup test second should be ignored",
+                      sender=DEDUP_SENDER, chatid=self.CHAT_ID,
+                      message_id=dedup_msg_id)
+        time.sleep(TIMEOUT_DEDUP)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Duplicate msgid should be deduplicated, but got {new_replies} new replies"
+        logger.info("  ✓ Duplicate msgid correctly deduplicated")
+
+
+class TestWeComBotAllowedSenders:
+    """验证 WeCom Bot allowed_senders 白名单过滤"""
+
+    CHAT_ID = "wcb_whitelist_group"
+
+    def test_allowed_sender_gets_reply(self, runner):
+        """白名单内用户发送消息 → bot 正常回复"""
+        text = inject_and_get_reply(runner, "/new", timeout=TIMEOUT_COMMAND,
+                                    sender="wcb_allowed", chatid=self.CHAT_ID)
+        assert "cleared" in text.lower() or "session" in text.lower(), \
+            f"Allowed sender should get reply, got: {text[:60]}"
+        logger.info(f"  ✓ Allowed sender got reply: {text[:60]}")
+
+    def test_blocked_sender_no_reply(self, runner):
+        """白名单外用户发送消息 → bot 不回复"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject("Hello from stranger",
+                      sender="stranger_not_allowed", chatid=self.CHAT_ID)
+
+        time.sleep(8)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Blocked sender should get no reply, but got {new_replies} new replies"
+        logger.info("  ✓ Blocked sender correctly ignored")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WebSocket 断线重连测试
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestWeComBotWsReconnect:
+    """WeCom Bot WebSocket 断线重连测试"""
+
+    def test_ws_reconnect(self, runner):
+        """断开 WS 连接后验证 bot 能自动重连并正常通信"""
+        test_ws_reconnect_basic(runner, timeout_cmd=TIMEOUT_COMMAND,
+                                sender=ALLOWED_SENDER, chatid=CHAT_SESSION)

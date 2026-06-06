@@ -15,7 +15,7 @@ import uuid
 import pytest
 import time
 import httpx
-from test_helpers import inject_and_get_reply
+from test_helpers import inject_and_get_reply, test_ws_reconnect_basic
 from runner_whatsapp import WhatsAppTestRunner
 
 logger = logging.getLogger(__name__)
@@ -377,5 +377,15 @@ class TestWhatsAppAllowedSenders:
         logger.info("  ✓ Blocked sender correctly ignored")
 
 
-if __name__ == "__main__":
+# ══════════════════════════════════════════════════════════════════════════════
+# WebSocket 断线重连测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestWhatsAppWsReconnect:
+    """WhatsApp WebSocket 断线重连测试"""
+
+    def test_ws_reconnect(self, runner):
+        """断开 WS 连接后验证 bot 能自动重连并正常通信"""
+        test_ws_reconnect_basic(runner, timeout_cmd=TIMEOUT_COMMAND, sender=USER_A)if __name__ == "__main__":
     pytest.main([__file__, "-v", "-m", "llm"])

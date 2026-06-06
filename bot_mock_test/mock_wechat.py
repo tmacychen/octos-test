@@ -133,6 +133,22 @@ class MockWeChatServer:
             logger.info("🗑 Cleared all mock server state (preserved WS connections)")
             return JSONResponse({"success": True})
 
+        @app.post("/_ws_disconnect")
+        async def ws_disconnect():
+            """模拟网络断线：断开所有 WebSocket 连接。"""
+            import starlette.websockets as _ws_state
+            count = 0
+            for ws in list(self._ws_connections):
+                try:
+                    if ws.client_state != _ws_state.WebSocketState.DISCONNECTED:
+                        await ws.close(code=1001, reason="Test disconnect")
+                        count += 1
+                except Exception:
+                    pass
+            self._ws_connections.clear()
+            logger.info(f"🔌 Disconnected {count} WebSocket connections")
+            return JSONResponse({"disconnected": count})
+
         @app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             """

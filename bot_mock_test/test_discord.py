@@ -17,7 +17,7 @@ import pytest
 import time
 import logging
 from runner_discord import DiscordTestRunner
-from test_helpers import inject_and_get_reply
+from test_helpers import inject_and_get_reply, test_ws_reconnect_basic
 
 # Configure logger for this module
 logger = logging.getLogger(__name__)
@@ -863,3 +863,17 @@ class TestDiscordAllowedSenders:
         assert new_replies == 0, \
             f"Blocked sender should get no reply, but got {new_replies} new replies"
         logger.info("  ✓ Blocked sender correctly ignored")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# WebSocket 断线重连测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestDiscordWsReconnect:
+    """Discord WebSocket 断线重连测试"""
+
+    def test_ws_reconnect(self, runner):
+        """断开 WS 连接后验证 bot 能自动重连并正常通信"""
+        test_ws_reconnect_basic(runner, timeout_cmd=TIMEOUT_COMMAND,
+                                channel_id="1039178386623557754")

@@ -346,3 +346,150 @@ class TestLineAllowedSenders:
         assert new_replies == 0, \
             f"Blocked sender should get no reply, but got {new_replies} new replies"
         logger.info("  ✓ Blocked sender (U_stranger_not_allowed) correctly ignored")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 9. 媒体消息测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLineMediaMessages:
+    """LINE 媒体消息测试 — 注入各种非文本消息类型，验证 bot 合理响应"""
+
+    CHAT_ID = "U_line_media"
+
+    def test_image_message(self, runner):
+        """注入图片消息 → bot 应回复确认"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject_event(
+            chat_id=self.CHAT_ID,
+            message_type="image",
+            message_body={"contentProvider": {"type": "line"}},
+        )
+        msg = runner.wait_for_reply(count_before=count_before, timeout=TIMEOUT_COMMAND,
+                                    chat_id=self.CHAT_ID)
+        assert msg is not None, "Expected reply to image message"
+        logger.info(f"  ✓ Image message got reply: {msg['text'][:60]}")
+
+    def test_audio_message(self, runner):
+        """注入语音消息 → bot 应回复确认"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject_event(
+            chat_id=self.CHAT_ID,
+            message_type="audio",
+            message_body={"duration": 30000},
+        )
+        msg = runner.wait_for_reply(count_before=count_before, timeout=TIMEOUT_COMMAND,
+                                    chat_id=self.CHAT_ID)
+        assert msg is not None, "Expected reply to audio message"
+        logger.info(f"  ✓ Audio message got reply: {msg['text'][:60]}")
+
+    def test_video_message(self, runner):
+        """注入视频消息 → bot 应回复确认"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject_event(
+            chat_id=self.CHAT_ID,
+            message_type="video",
+            message_body={"duration": 60000},
+        )
+        msg = runner.wait_for_reply(count_before=count_before, timeout=TIMEOUT_COMMAND,
+                                    chat_id=self.CHAT_ID)
+        assert msg is not None, "Expected reply to video message"
+        logger.info(f"  ✓ Video message got reply: {msg['text'][:60]}")
+
+    def test_file_message(self, runner):
+        """注入文件消息 → bot 应回复确认"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject_event(
+            chat_id=self.CHAT_ID,
+            message_type="file",
+            message_body={"fileName": "report.pdf", "fileSize": 102400},
+        )
+        msg = runner.wait_for_reply(count_before=count_before, timeout=TIMEOUT_COMMAND,
+                                    chat_id=self.CHAT_ID)
+        assert msg is not None, "Expected reply to file message"
+        logger.info(f"  ✓ File message got reply: {msg['text'][:60]}")
+
+    def test_location_message(self, runner):
+        """注入位置消息 → bot 应回复确认"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject_event(
+            chat_id=self.CHAT_ID,
+            message_type="location",
+            message_body={
+                "title": "Test Location",
+                "address": "123 Test St, Tokyo",
+                "latitude": 35.6762,
+                "longitude": 139.6503,
+            },
+        )
+        msg = runner.wait_for_reply(count_before=count_before, timeout=TIMEOUT_COMMAND,
+                                    chat_id=self.CHAT_ID)
+        assert msg is not None, "Expected reply to location message"
+        logger.info(f"  ✓ Location message got reply: {msg['text'][:60]}")
+
+    def test_sticker_message(self, runner):
+        """注入贴图消息 → bot 应回复确认"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject_event(
+            chat_id=self.CHAT_ID,
+            message_type="sticker",
+            message_body={"packageId": "1", "stickerId": "1"},
+        )
+        msg = runner.wait_for_reply(count_before=count_before, timeout=TIMEOUT_COMMAND,
+                                    chat_id=self.CHAT_ID)
+        assert msg is not None, "Expected reply to sticker message"
+        logger.info(f"  ✓ Sticker message got reply: {msg['text'][:60]}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 10. @提及群组门控
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLineMention:
+    """LINE 群组 @提及门控测试
+
+    在群组中，bot 应当在被 @mention 时回复，未被 @mention 时保持沉默。
+    """
+
+    CHAT_ID = "U_line_mention"
+
+    def test_mentioned_in_group_gets_reply(self, runner):
+        """在群组中被 @mention → bot 应回复"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject_event(
+            chat_id=self.CHAT_ID,
+            source_type="group",
+            group_id="G_line_mention_test",
+            message_type="text",
+            message_body={
+                "text": "@TestBot Hello everyone!",
+                "mention": {
+                    "mentionees": [{"userId": "U_mock_bot"}],
+                },
+            },
+        )
+        msg = runner.wait_for_reply(count_before=count_before, timeout=TIMEOUT_COMMAND,
+                                    chat_id=self.CHAT_ID)
+        assert msg is not None, "Bot should reply when @mentioned in group"
+        logger.info(f"  ✓ @mentioned in group got reply: {msg['text'][:60]}")
+
+    def test_not_mentioned_in_group_no_reply(self, runner):
+        """在群组中未被 @mention → bot 不应回复"""
+        # 使用唯一 ID 确保不会与提及测试的 chat 混淆
+        silent_user = f"U_line_silent_{uuid.uuid4().hex[:6]}"
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject_event(
+            chat_id=silent_user,
+            source_type="group",
+            group_id="G_line_silent_test",
+            message_type="text",
+            message_body={"text": "Hey everyone, what's up?"},
+        )
+        time.sleep(8)
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+        assert new_replies == 0, \
+            f"Bot should not reply when not @mentioned, got {new_replies} new replies"
+        logger.info("  ✓ Not @mentioned correctly ignored")
