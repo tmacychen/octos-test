@@ -1385,3 +1385,42 @@ class TestTelegramHtmlFallback:
         
         # 恢复
         httpx.post(f"{runner.base_url}/_html_error", json={"enabled": False}, timeout=5)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# allowed_senders 白名单过滤测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestTelegramAllowedSenders:
+    """验证 Telegram allowed_senders 白名单过滤
+
+    gateway 配置 allowed_senders="testuser,user_a,user_b"，
+    非白名单用户的 username 会被 check_allowed() 拒绝。
+    sender_id 格式为 "chat_id|username"，check_allowed 按 | 拆分后逐段匹配。
+    """
+
+    CHAT_ID = 10999
+
+    def test_allowed_sender_gets_reply(self, runner):
+        """白名单内用户发送消息 → bot 正常回复"""
+        text = inject_and_get_reply(runner, "/new", timeout=TIMEOUT_COMMAND,
+                                    chat_id=self.CHAT_ID, username="testuser")
+        assert "cleared" in text.lower() or "session" in text.lower(), \
+            f"Allowed sender should get reply, got: {text[:60]}"
+        logger.info(f"  ✓ Allowed sender (testuser) got reply: {text[:60]}")
+
+    def test_blocked_sender_no_reply(self, runner):
+        """白名单外用户发送消息 → bot 不回复"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject("Hello from stranger", chat_id=self.CHAT_ID + 1,
+                      username="stranger")
+
+        # 等待足够时间确认 bot 不回复（不允许太长，避免拖慢测试）
+        time.sleep(8)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Blocked sender should get no reply, but got {new_replies} new replies"
+        logger.info("  ✓ Blocked sender (stranger) correctly ignored")

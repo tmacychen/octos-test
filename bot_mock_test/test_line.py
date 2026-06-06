@@ -191,3 +191,38 @@ class TestLineMessageDedup:
         assert new_replies == 0, \
             f"Duplicate message_id should be deduplicated, but got {new_replies} new replies"
         logger.info(f"  ✓ Duplicate message_id correctly deduplicated")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# allowed_senders 白名单过滤测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestLineAllowedSenders:
+    """验证 LINE allowed_senders 白名单过滤
+
+    gateway 配置 allowed_senders="U_test_user,U_line_test_1,...",
+    非白名单用户的 userId 会被 check_allowed() 拒绝。
+    """
+
+    def test_allowed_sender_gets_reply(self, runner):
+        """白名单内用户发送消息 → bot 正常回复"""
+        text = inject_and_get_reply(runner, "/new", timeout=TIMEOUT_COMMAND,
+                                    chat_id="U_line_test_1")
+        assert "cleared" in text.lower() or "session" in text.lower(), \
+            f"Allowed sender should get reply, got: {text[:60]}"
+        logger.info(f"  ✓ Allowed sender (U_line_test_1) got reply: {text[:60]}")
+
+    def test_blocked_sender_no_reply(self, runner):
+        """白名单外用户发送消息 → bot 不回复"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject("Hello from stranger", chat_id="U_stranger_not_allowed")
+
+        # 等待足够时间确认 bot 不回复
+        time.sleep(8)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Blocked sender should get no reply, but got {new_replies} new replies"
+        logger.info("  ✓ Blocked sender (U_stranger_not_allowed) correctly ignored")
