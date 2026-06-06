@@ -27,6 +27,7 @@ class SlackTestRunner(BaseMockRunner):
         text: str,
         channel: str = "C012AB3CD",
         user: str = "U012AB3CD",
+        event_id: Optional[str] = None,
     ) -> dict:
         """向 Mock Server 注入一条 Slack 消息事件。
         
@@ -36,6 +37,7 @@ class SlackTestRunner(BaseMockRunner):
             text: 消息文本内容
             channel: Slack channel ID (e.g., "C012AB3CD")
             user: Slack user ID (e.g., "U012AB3CD")
+            event_id: 可选事件 ID（用于去重测试）
         
         Returns:
             Mock Server 响应，包含生成的 event
@@ -45,6 +47,8 @@ class SlackTestRunner(BaseMockRunner):
             "channel": channel,
             "user": user,
         }
+        if event_id:
+            payload["event_id"] = event_id
         
         resp = httpx.post(f"{self.base_url}/_inject", json=payload, timeout=10)
         resp.raise_for_status()

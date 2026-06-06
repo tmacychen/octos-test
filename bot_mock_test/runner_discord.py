@@ -25,6 +25,7 @@ class DiscordTestRunner(BaseMockRunner):
         sender_id: str = "123456789012345678",
         username: str = "TestUser",
         guild_id: Optional[str] = "927930120308613120",
+        message_id: Optional[str] = None,
     ) -> dict:
         """向 Mock Server 注入一条用户消息（分发为 MESSAGE_CREATE）"""
         payload: dict = {
@@ -35,6 +36,8 @@ class DiscordTestRunner(BaseMockRunner):
         }
         if guild_id:
             payload["guild_id"] = guild_id
+        if message_id:
+            payload["message_id"] = message_id
         resp = httpx.post(f"{self.base_url}/_inject", json=payload, timeout=5)
         resp.raise_for_status()
         return resp.json()

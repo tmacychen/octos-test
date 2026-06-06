@@ -18,9 +18,9 @@ octos-test 通过 **Mock Server + pytest + TestRunner** 对 octos gateway 进行
 | Channel | Mock Server | 端口 | 协议 | 测试用例 | 充分度 |
 |---------|-------------|:----:|------|:-------:|:------:|
 | Telegram | `mock_tg.py` | 5000 | HTTP REST (长轮询) | 51 | 较充分 |
-| Discord | `mock_discord.py` | 5001 | REST + WebSocket Gateway | 37 | 较充分 |
-| Matrix | `mock_matrix.py` | 5002 | REST + Appservice | 41 | 较充分 |
-| Slack | `mock_slack.py` | 5003 | Events API | 47 | 较充分 |
+| Discord | `mock_discord.py` | 5001 | REST + WebSocket Gateway | 40 | 较充分 |
+| Matrix | `mock_matrix.py` | 5002 | REST + Appservice | 44 | 较充分 |
+| Slack | `mock_slack.py` | 5003 | Events API | 51 | 较充分 |
 | Feishu | `mock_feishu.py` | 5004 | Webhook | 34 | 中等 |
 | WeChat | `mock_wechat.py` | 5005 | WebSocket Bridge | 36 | 中等 |
 | WhatsApp | `mock_whatsapp.py` | 5006 | WebSocket Bridge | 27 | 中等 |

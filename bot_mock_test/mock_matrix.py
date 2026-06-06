@@ -80,6 +80,7 @@ class InjectedMessage:
     sender: str = DEFAULT_SENDER
     msgtype: str = "m.text"
     formatted_body: Optional[str] = None
+    event_id: Optional[str] = None  # 可选，用于去重测试
 
 
 @dataclass
@@ -261,6 +262,7 @@ class MockMatrixServer:
                 sender=body.get("sender", DEFAULT_SENDER),
                 msgtype=body.get("msgtype", "m.text"),
                 formatted_body=body.get("formatted_body"),
+                event_id=body.get("event_id"),
             )
             self._injected_messages.append(injected)
 
@@ -269,7 +271,7 @@ class MockMatrixServer:
                 "type": "m.room.message",
                 "room_id": injected.room_id,
                 "sender": injected.sender,
-                "event_id": self._generate_event_id(),
+                "event_id": injected.event_id or self._generate_event_id(),
                 "origin_server_ts": int(time.time() * 1000),
                 "content": {
                     "msgtype": injected.msgtype,

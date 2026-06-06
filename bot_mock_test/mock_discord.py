@@ -85,6 +85,7 @@ class InjectedMessage:
     sender_id: str = DEFAULT_USER_ID
     sender_name: str = "TestUser"
     mention_everyone: bool = False
+    message_id: Optional[str] = None  # 可选，用于去重测试
 
 
 @dataclass
@@ -648,7 +649,7 @@ class MockDiscordServer:
 
     def _build_message_create(self, msg: InjectedMessage) -> dict:
         """Build a MESSAGE_CREATE event payload matching Discord's format."""
-        mid = str(self._next_id())
+        mid = msg.message_id or str(self._next_id())
         base: Dict[str, Any] = {
             "id": mid,
             "channel_id": msg.channel_id,
@@ -878,6 +879,7 @@ class MockDiscordServer:
             sender_id=str(data.get("sender_id", DEFAULT_USER_ID)),
             sender_name=str(data.get("username", "TestUser")),
             mention_everyone=data.get("mention_everyone", False),
+            message_id=str(data["message_id"]) if data.get("message_id") else None,
         )
         self._injected_messages.append(msg)
         for ws in list(self._ws_clients):

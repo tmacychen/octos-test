@@ -11,6 +11,8 @@ Slack Bot 集成测试用例
   pytest test_slack.py -v                        # 直接运行 pytest
 """
 
+import os
+import uuid
 import pytest
 import time
 import logging
@@ -752,6 +754,74 @@ class TestSlackAbortCommands:
 
         logger.info(f"\n  ✓ {language} abort test passed")
         logger.info(f"  📥 Bot: {text[:100]}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 消息去重测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestSlackMessageDedup:
+    """消息去重测试"""
+
+    @pytest.mark.skipif(
+        not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("OPENAI_API_KEY"),
+        reason="No LLM API key configured",
+    )
+    def test_duplicate_event_id_ignored(self, runner):
+        """相同 event_id 的重复消息应被忽略"""
+        dedup_event_id = f"Ev{uuid.uuid4().hex[:10]}"
+        dedup_channel = f"C{uuid.uuid4().hex[:8].upper()}"
+
+        # 第一次发送，应收到回复
+        reply1 = inject_and_get_reply(runner, "Dedup test", timeout=TIMEOUT_LLM,
+                                       channel=dedup_channel, event_id=dedup_event_id)
+        assert len(reply1) > 0, "Bot should reply to first message"
+
+        # 记录当前消息数
+        count_before = len(runner.get_sent_messages(timeout=5))
+
+        # 第二次发送相同 event_id
+        runner.inject("Dedup test", channel=dedup_channel, event_id=dedup_event_id)
+
+        # 等待确保去重生效
+        time.sleep(3)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Duplicate event_id should be deduplicated, but got {new_replies} new replies"
+        logger.info("  ✓ Duplicate event_id correctly deduplicated")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# allowed_senders 白名单过滤测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestSlackAllowedSenders:
+    """allowed_senders 白名单过滤测试"""
+
+    def test_allowed_sender_gets_reply(self, runner):
+        """白名单内用户发送消息 → bot 正常回复"""
+        text = inject_and_get_reply(runner, "/new", timeout=TIMEOUT_COMMAND)
+        assert "clear" in text.lower() or "session" in text.lower(), \
+            f"Allowed sender should get reply, got: {text[:60]}"
+        logger.info(f"  ✓ Allowed sender got reply: {text[:60]}")
+
+    def test_blocked_sender_no_reply(self, runner):
+        """白名单外用户发送消息 → bot 不回复"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject("Hello from stranger", user="U_STRANGER_NOT_ALLOWED")
+
+        # 等待足够时间确认 bot 不回复
+        time.sleep(8)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Blocked sender should get no reply, but got {new_replies} new replies"
+        logger.info("  ✓ Blocked sender correctly ignored")
 
 
 if __name__ == "__main__":

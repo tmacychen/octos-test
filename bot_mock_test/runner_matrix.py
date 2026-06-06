@@ -37,6 +37,7 @@ class MatrixTestRunner(BaseMockRunner):
         sender: str = "@user:localhost",
         msgtype: str = "m.text",
         formatted_body: Optional[str] = None,
+        event_id: Optional[str] = None,
     ) -> dict:
         """向 Mock Server 注入一条 Matrix 消息事件。
 
@@ -48,6 +49,7 @@ class MatrixTestRunner(BaseMockRunner):
             sender: 发送者 Matrix 用户 ID
             msgtype: 消息类型 (m.text, m.notice, etc.)
             formatted_body: HTML 格式内容 (可选)
+            event_id: 可选事件 ID（用于去重测试）
 
         Returns:
             Mock Server 响应，包含生成的 event
@@ -60,6 +62,8 @@ class MatrixTestRunner(BaseMockRunner):
         }
         if formatted_body:
             payload["formatted_body"] = formatted_body
+        if event_id:
+            payload["event_id"] = event_id
 
         resp = httpx.post(f"{self.base_url}/_inject", json=payload, timeout=10)
         resp.raise_for_status()

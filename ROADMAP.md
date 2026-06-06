@@ -11,9 +11,9 @@
 | Channel | 用例数 | 黑盒覆盖的外部功能 | 测试方式 |
 |---------|:------:|------------------|----------|
 | Telegram | 54 | `/new`, `/s`, `/back`, `/delete`, `/soul`, `/queue`, `/status`, `/reset`, `/adaptive`, `/abort`, `/clear`, LLM 消息、多用户隔离、白名单过滤 | Mock HTTP API |
-| Slack | 48 | 同上一批命令 + 并发限制 | Mock HTTP + WS |
-| Matrix | 42 | 同上一批命令 + profile 路由 | Mock HTTP |
-| Discord | 38 | 同上一批命令 + 多频道隔离 | Mock HTTP + WS Gateway |
+| Slack | 51 | 同上一批命令 + 并发限制 + 去重 + 白名单过滤 | Mock HTTP + WS |
+| Matrix | 44 | 同上一批命令 + profile 路由 + 去重 + 白名单过滤 | Mock HTTP |
+| Discord | 40 | 同上一批命令 + 多频道隔离 + 去重 + 白名单过滤 | Mock HTTP + WS Gateway |
 | Feishu | 36 | 同上一批命令 + 流式编辑 + 10MB 限制 + 消息去重 | Mock Webhook |
 | WeChat | 36 | 同上一批命令 + 消息分片 + 10MB 限制 + 去重 | Mock WS Bridge |
 | WhatsApp | 27 | 基础命令 + 多用户隔离 + 去重 + 白名单过滤 | Mock WS Bridge |
@@ -40,8 +40,8 @@
 - **消息分片**：超长消息自动拆分（WeChat 4000 字符等）
 - **流式编辑**：飞书 PATCH 编辑后内容正确更新
 - **10MB 限制**：超大消息 / 会话文件被限制
-- **消息去重**：相同 message_id 只处理一次（Feishu, LINE）
-- **白名单过滤**：allowed_senders 非空时，非白名单用户消息被忽略（Telegram, LINE）
+- **消息去重**：相同 message_id 只处理一次（Feishu, LINE, WhatsApp, WeChat, Discord, Slack, Matrix）
+- **白名单过滤**：allowed_senders 非空时，非白名单用户消息被忽略（Telegram, LINE, WhatsApp, Discord, Slack, Matrix）
 - **API Channel**：WS 连接/hello、session/list、session/open+turn/start、session/delete、session/snapshot、session/messages_page、session/status.get、session/title.set、content/list、turn/interrupt、system/status.get（API）
 
 ---

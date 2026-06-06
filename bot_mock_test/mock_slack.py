@@ -290,9 +290,12 @@ class MockSlackServer:
                 channel = body.get("channel", "C012AB3CD")
                 user = body.get("user", "U012AB3CD")
                 
+                # 支持外部传入 event_id（去重测试）
+                event_id = body.get("event_id") or self._generate_event_id()
+                
                 # Create a Slack Socket Mode envelope
                 envelope = {
-                    "envelope_id": self._generate_event_id(),
+                    "envelope_id": event_id,
                     "payload": {
                         "token": "test_token",
                         "team_id": "T012AB3CD",
@@ -306,7 +309,7 @@ class MockSlackServer:
                             "event_ts": str(time.time()),
                         },
                         "type": "event_callback",
-                        "event_id": self._generate_event_id(),
+                        "event_id": event_id,
                         "event_time": int(time.time()),
                         "authorizations": [
                             {

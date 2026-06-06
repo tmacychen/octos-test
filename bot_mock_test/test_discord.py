@@ -11,6 +11,8 @@ Discord Bot 集成测试用例
   pytest test_discord.py -v -m "not llm"       # 跳过 LLM 测试
 """
 
+import os
+import uuid
 import pytest
 import time
 import logging
@@ -792,3 +794,72 @@ class TestDiscordStreaming:
         # 或者直接在 Mock Server 增加接口。这里先验证消息发送成功且无报错。
         assert len(text) > 0, "Should receive a response"
         print(f"\n  ✓ Stream response received: {len(text)} chars")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 消息去重测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestDiscordMessageDedup:
+    """消息去重测试"""
+
+    @pytest.mark.skipif(
+        not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("OPENAI_API_KEY"),
+        reason="No LLM API key configured",
+    )
+    def test_duplicate_message_id_ignored(self, runner):
+        """相同 message_id 的重复消息应被忽略"""
+        dedup_msg_id = str(uuid.uuid4().int >> 64)  # Discord 用 snowflake ID
+        dedup_channel = f"1{uuid.uuid4().hex[:18]}"
+
+        # 第一次发送，应收到回复
+        reply1 = inject_and_get_reply(runner, "Dedup test", timeout=TIMEOUT_LLM,
+                                       channel_id=dedup_channel, message_id=dedup_msg_id)
+        assert len(reply1) > 0, "Bot should reply to first message"
+
+        # 记录当前消息数
+        count_before = len(runner.get_sent_messages(timeout=5))
+
+        # 第二次发送相同 message_id
+        runner.inject("Dedup test", channel_id=dedup_channel, message_id=dedup_msg_id)
+
+        # 等待确保去重生效
+        time.sleep(3)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Duplicate message_id should be deduplicated, but got {new_replies} new replies"
+        logger.info("  ✓ Duplicate message_id correctly deduplicated")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# allowed_senders 白名单过滤测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestDiscordAllowedSenders:
+    """allowed_senders 白名单过滤测试"""
+
+    def test_allowed_sender_gets_reply(self, runner):
+        """白名单内用户发送消息 → bot 正常回复"""
+        text = inject_and_get_reply(runner, "/new", timeout=TIMEOUT_COMMAND)
+        assert "clear" in text.lower() or "session" in text.lower(), \
+            f"Allowed sender should get reply, got: {text[:60]}"
+        logger.info(f"  ✓ Allowed sender got reply: {text[:60]}")
+
+    def test_blocked_sender_no_reply(self, runner):
+        """白名单外用户发送消息 → bot 不回复"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        # 使用非白名单 sender_id
+        runner.inject("Hello from stranger", sender_id="999999999999999999")
+
+        # 等待足够时间确认 bot 不回复
+        time.sleep(8)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Blocked sender should get no reply, but got {new_replies} new replies"
+        logger.info("  ✓ Blocked sender correctly ignored")
