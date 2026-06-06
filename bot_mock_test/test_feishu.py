@@ -923,3 +923,35 @@ class TestFeishuMessageDedup:
         assert new_replies == 0, \
             f"Duplicate message_id should be deduplicated, but got {new_replies} new replies"
         logger.info(f"\n  ✓ Duplicate message_id correctly deduplicated (0 new replies)")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# allowed_senders 白名单过滤测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestFeishuAllowedSenders:
+    """allowed_senders 白名单过滤测试"""
+
+    def test_allowed_sender_gets_reply(self, runner):
+        """白名单内用户发送消息 → bot 正常回复"""
+        text = inject_and_get_reply(runner, "/new", timeout=TIMEOUT_COMMAND,
+                                    sender_id="ou_test_user", chat_id="oc_allowed_test")
+        assert "clear" in text.lower() or "session" in text.lower(), \
+            f"Allowed sender should get reply, got: {text[:60]}"
+        logger.info(f"  ✓ Allowed sender got reply: {text[:60]}")
+
+    def test_blocked_sender_no_reply(self, runner):
+        """白名单外用户发送消息 → bot 不回复"""
+        count_before = len(runner.get_sent_messages(timeout=5))
+        runner.inject("Hello from stranger", sender_id="ou_stranger_not_allowed",
+                      chat_id="oc_blocked_test")
+
+        # 等待足够时间确认 bot 不回复
+        time.sleep(8)
+
+        count_after = len(runner.get_sent_messages(timeout=5))
+        new_replies = count_after - count_before
+
+        assert new_replies == 0, \
+            f"Blocked sender should get no reply, but got {new_replies} new replies"
+        logger.info("  ✓ Blocked sender correctly ignored")
