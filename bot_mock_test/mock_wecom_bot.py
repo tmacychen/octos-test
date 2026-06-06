@@ -222,6 +222,7 @@ class MockWeComBotServer:
                                 "chatid": body.get("chatid", ""),
                                 "msgtype": body.get("msgtype", ""),
                                 "content": body.get("markdown", {}).get("content", ""),
+                                "text": body.get("markdown", {}).get("content", ""),
                                 "timestamp": time.time(),
                             }
                             self._sent_messages.append(record)

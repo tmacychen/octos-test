@@ -470,6 +470,7 @@ def list_bot_cases(module: str):
         "whatsapp": BOT_TEST_DIR / "test_whatsapp.py",
         "wa": BOT_TEST_DIR / "test_whatsapp.py",
         "wecom-bot": BOT_TEST_DIR / "test_wecom_bot.py",
+        "wecom_bot": BOT_TEST_DIR / "test_wecom_bot.py",
         "wcb": BOT_TEST_DIR / "test_wecom_bot.py",
         "wecom": BOT_TEST_DIR / "test_wecom.py",
         "we": BOT_TEST_DIR / "test_wecom.py",
@@ -537,6 +538,7 @@ def get_test_order(module: str) -> List[str]:
         "wechat": BOT_TEST_DIR / "test_wechat.py",
         "wx": BOT_TEST_DIR / "test_wechat.py",
         "wecom-bot": BOT_TEST_DIR / "test_wecom_bot.py",
+        "wecom_bot": BOT_TEST_DIR / "test_wecom_bot.py",
         "wcb": BOT_TEST_DIR / "test_wecom_bot.py",
         "wecom": BOT_TEST_DIR / "test_wecom.py",
         "we": BOT_TEST_DIR / "test_wecom.py",
@@ -1085,6 +1087,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         "line": {"port": 5007, "test_file": "test_line.py", "mock_module": "mock_line", "mock_class": "MockLineServer"},
         "ln": {"port": 5007, "test_file": "test_line.py", "mock_module": "mock_line", "mock_class": "MockLineServer"},
         "wecom-bot": {"port": 5008, "test_file": "test_wecom_bot.py", "mock_module": "mock_wecom_bot", "mock_class": "MockWeComBotServer"},
+        "wecom_bot": {"port": 5008, "test_file": "test_wecom_bot.py", "mock_module": "mock_wecom_bot", "mock_class": "MockWeComBotServer"},
         "wcb": {"port": 5008, "test_file": "test_wecom_bot.py", "mock_module": "mock_wecom_bot", "mock_class": "MockWeComBotServer"},
         "wecom": {"port": 5009, "test_file": "test_wecom.py", "mock_module": "mock_wecom", "mock_class": "MockWeComServer"},
         "we": {"port": 5009, "test_file": "test_wecom.py", "mock_module": "mock_wecom", "mock_class": "MockWeComServer"},
@@ -1417,7 +1420,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 }
             }
         }
-    elif module in ["wecom-bot", "wcb"]:
+    elif module in ["wecom-bot", "wecom_bot", "wcb"]:
         port = 5008
         extra_env = {
             "WECOM_BOT_WS_URL": f"ws://127.0.0.1:{port}/ws",
@@ -2448,7 +2451,7 @@ def main() -> int:
                 return 0 if passed else 1
             
             # Check if it's a valid module
-            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa", "line", "ln", "wecom-bot", "wcb", "wecom", "we"]
+            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa", "line", "ln", "wecom-bot", "wecom_bot", "wcb", "wecom", "we"]
             if action in valid_modules:
                 # Special case: check for 'list' subcommand
                 if len(remaining) > 1 and remaining[1] == "list":

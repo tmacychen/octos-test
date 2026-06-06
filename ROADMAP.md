@@ -17,9 +17,9 @@
 | Feishu | 36 | 同上一批命令 + 流式编辑 + 10MB 限制 + 消息去重 | Mock Webhook |
 | WeChat | 35 | 同上一批命令 + 消息分片 + 10MB 限制 | Mock WS Bridge |
 | WhatsApp | 24 | 基础命令 + 多用户隔离 | Mock WS Bridge |
-| WeCom Bot | 15 | WS 连接、认证、消息收发 | Mock WS |
+| WeCom Bot | 17 | WS 连接、认证、消息收发、会话管理命令、配置命令、LLM、流式回复、多用户隔离、去重 | Mock WS |
 | LINE | 13 | 基础命令、消息收发、消息去重、白名单过滤 | Mock Webhook |
-| WeCom | 8 | URL 验证、加密回调、消息发送 | Mock REST + Webhook |
+| WeCom | 14 | URL 验证、加密回调、消息发送、会话管理命令、配置命令、LLM、多用户隔离、去重 | Mock REST + Webhook |
 | Email | 3 | SMTP 发邮件 → IMAP 收回复（真实邮箱） | 真实 IMAP/SMTP |
 | **API** | **19** | WS 连接/hello、session/list、session/open+turn/start、session/delete、session/snapshot、session/messages_page、session/status.get、session/title.set、content/list、turn/interrupt、system/status.get、/health、/api/version、/metrics、认证、Dashboard | WS JSON-RPC + REST |
 | **QQ Bot** | **0** | **完全无测试** | — |
@@ -63,7 +63,7 @@
 | # | 事项 | 黑盒验证方式 | 涉及 Channel | 预估工作量 |
 |---|------|-------------|-------------|:----------:|
 | 6 | **LINE 测试扩展** | 补齐标准命令集到 ~25 个用例 | LINE | 1–2 天 |
-| 7 | **WeCom / WeCom Bot 测试扩展** | 补齐标准命令集 | WeCom、WeCom Bot | 1–2 天 |
+| 7 | **WeCom / WeCom Bot 测试扩展** | 补齐标准命令集 | WeCom ✅, WeCom Bot ✅ | ✅ 完成 | 1–2 天 |
 | 8 | **Email Mock 化** | 构建 Mock IMAP/SMTP Server，替代真实邮箱测试 | Email | 2–3 天 |
 | 9 | **Telegram 按钮/键盘交互** | 发送 Inline Keyboard → 注入 Callback Query → 断言 bot 响应 | Telegram | 1 天 |
 | 10 | **Discord 反应/编辑** | 注入 Reaction 事件 → 断言 bot 响应编辑后的消息 | Discord | 1 天 |

@@ -19,10 +19,15 @@ def inject_and_get_reply(runner, text: str, timeout: int = 15, **inject_kwargs) 
     count_before = len(runner.get_sent_messages(timeout=5))
     runner.inject(text, **inject_kwargs)
 
+    # Determine filter_id for wait_for_reply.
+    # Priority: explicit routing keys > sender.
+    # chatid (WeCom Bot), chat_id (Telegram), channel_id (Discord), room_id (Matrix)
     filter_id = (
-        inject_kwargs.get("chat_id")
+        inject_kwargs.get("chatid")
+        or inject_kwargs.get("chat_id")
         or inject_kwargs.get("channel_id")
         or inject_kwargs.get("room_id")
+        or inject_kwargs.get("sender")
     )
     msg = runner.wait_for_reply(count_before=count_before, timeout=timeout, chat_id=filter_id)
     

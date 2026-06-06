@@ -51,15 +51,16 @@ class WeComBotTestRunner(BaseMockRunner):
         resp.raise_for_status()
         return resp.json()
 
-    def get_sent_messages(self) -> dict:
+    def get_sent_messages(self, timeout: int = 10) -> list:
         """获取 bot 发送的所有消息。
 
-        Returns:
-            {"send_messages": [...], "stream_chunks": [...], "total": int}
+        Returns send_messages list for BaseMockRunner compatibility.
+        Each message has a "text" field.
         """
-        resp = httpx.get(f"{self.base_url}/_sent_messages", timeout=10)
+        resp = httpx.get(f"{self.base_url}/_sent_messages", timeout=timeout)
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        return data.get("send_messages", [])
 
     def get_subscribe_state(self) -> dict:
         """获取订阅状态。"""
@@ -69,10 +70,11 @@ class WeComBotTestRunner(BaseMockRunner):
 
     def get_send_messages(self) -> list:
         """获取 bot 通过 aibot_send_msg 发送的回复消息。"""
-        data = self.get_sent_messages()
-        return data.get("send_messages", [])
+        return self.get_sent_messages()
 
     def get_stream_chunks(self) -> list:
         """获取 bot 通过 aibot_respond_msg 发送的流式回复片段。"""
-        data = self.get_sent_messages()
+        resp = httpx.get(f"{self.base_url}/_sent_messages", timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
         return data.get("stream_chunks", [])

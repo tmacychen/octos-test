@@ -98,14 +98,21 @@ class MockWeComServer:
         async def send_message(request: Request):
             try:
                 body = await request.json()
-                body_str = json.dumps(body, ensure_ascii=False)
+                # Extract text content for BaseMockRunner compatibility
+                text_content = ""
+                if "markdown" in body and isinstance(body["markdown"], dict):
+                    text_content = body["markdown"].get("content", "")
+                elif "text" in body and isinstance(body["text"], dict):
+                    text_content = body["text"].get("content", "")
                 self._sent_messages.append({
                     "body": body,
+                    "text": text_content,
+                    "to": body.get("touser", ""),
                     "timestamp": time.time(),
                 })
                 logger.info(
                     f"💬 Message captured: touser={body.get('touser', '')}, "
-                    f"content={str(body.get('markdown', body.get('text', {})))[:80]}"
+                    f"text={text_content[:80]}"
                 )
                 return JSONResponse({
                     "errcode": 0,

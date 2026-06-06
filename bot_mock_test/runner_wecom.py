@@ -43,16 +43,19 @@ class WeComTestRunner(BaseMockRunner):
         resp.raise_for_status()
         return resp.json()
 
-    def get_sent_messages(self) -> dict:
-        """获取 bot 通过 WeCom REST API 发送的消息。"""
-        resp = httpx.get(f"{self.base_url}/_sent_messages", timeout=10)
+    def get_sent_messages(self, timeout: int = 10) -> list:
+        """获取 bot 通过 WeCom REST API 发送的消息。
+
+        Returns list of dicts with "text" field for BaseMockRunner compatibility.
+        """
+        resp = httpx.get(f"{self.base_url}/_sent_messages", timeout=timeout)
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        return data.get("messages", [])
 
     def get_messages_list(self) -> list:
         """获取 bot 消息列表。"""
-        data = self.get_sent_messages()
-        return data.get("messages", [])
+        return self.get_sent_messages()
 
     def get_server_config(self) -> dict:
         """获取 Mock Server 的配置信息（crypto keys etc）。"""

@@ -25,8 +25,8 @@ octos-test 通过 **Mock Server + pytest + TestRunner** 对 octos gateway 进行
 | WeChat | `mock_wechat.py` | 5005 | WebSocket Bridge | 34 | 中等 |
 | WhatsApp | `mock_whatsapp.py` | 5006 | WebSocket Bridge | 23 | 基础 |
 | LINE | `mock_line.py` | 5007 | Webhook | 9 | 较少 |
-| WeCom | `mock_wecom.py` | 5008 | REST + Webhook | 7 | 较少 |
-| WeCom Bot | `mock_wecom_bot.py` | 5009 | WebSocket | 14 | 较少 |
+| WeCom | `mock_wecom.py` | 5009 | REST + Webhook | 14 | 较少 |
+| WeCom Bot | `mock_wecom_bot.py` | 5008 | WebSocket | 17 | 较少 |
 | Email | — | — | 真实 IMAP/SMTP | 3 | 仅手动 |
 
 ### 未实现 Channel（4 个）
