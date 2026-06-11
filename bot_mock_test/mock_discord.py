@@ -32,8 +32,11 @@ Architecture
 Control endpoints (not part of Discord API):
   POST /_inject          inject a user message → dispatches as MESSAGE_CREATE via WS
   POST /_inject_interaction  inject an interaction (slash command, component)
-  GET  /_sent_messages   return all messages sent by the bot
-  POST /_clear           clear stored messages & updates
+  POST /_inject_document     inject a document/file upload
+  POST /_inject_reaction     inject a REACTION_ADD event via WS
+  GET  /_sent_messages       return all messages sent by the bot
+  GET  /_function_calls      return tracked bot API call history (reactions, etc.)
+  POST /_clear               clear stored messages & updates
 """
 
 from __future__ import annotations
@@ -139,6 +142,8 @@ class MockDiscordServer:
         self._injected_messages: List[InjectedMessage] = []
         self._injected_interactions: List[InjectedInteraction] = []
         self._injected_documents: List[InjectedDocument] = []
+        self._injected_reactions: List[dict] = []
+        self._reaction_calls: List[dict] = []  # Track bot reaction API calls
         
         # Discord Snowflake ID generation
         self.DISCORD_EPOCH = 1420070400000  # 2015-01-01T00:00:00.000Z
@@ -408,29 +413,36 @@ class MockDiscordServer:
             }
             return JSONResponse(resp)
         
-        # Catch-all for unmatched routes - only log in debug mode
-        @app.api_route("/api/v10/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
-        async def catch_all(path: str, request: Request):
-            if self._enable_request_logging:
-                logger.warning(f"⚠️ UNMATCHED ROUTE: {request.method} /api/v10/{path}")
-            return JSONResponse({"error": "not found"}, status_code=404)
-
         @app.delete("/api/v10/channels/{channel_id}/messages/{message_id}")
         async def delete_message(channel_id: str, message_id: str):
             """Delete a message."""
             logger.info(f"🗑️ Bot deleted message {message_id} in {channel_id}")
             return JSONResponse({})
 
-        @app.put("/api/v10/channels/{channel_id}/messages/{message_id}/reactions/{emoji:path}/@me")
+        @app.put("/api/v10/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/@me")
         async def create_reaction(channel_id: str, message_id: str, emoji: str):
             """Add reaction to a message."""
             logger.info(f"👍 Bot reacted {emoji} to msg {message_id}")
+            self._reaction_calls.append({
+                "type": "add_reaction",
+                "channel_id": channel_id,
+                "message_id": message_id,
+                "emoji": emoji,
+                "timestamp": time.time(),
+            })
             return JSONResponse({})
 
-        @app.delete("/api/v10/channels/{channel_id}/messages/{message_id}/reactions/{emoji:path}/@me")
+        @app.delete("/api/v10/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/@me")
         async def delete_reaction(channel_id: str, message_id: str, emoji: str):
             """Remove bot's reaction from a message."""
             logger.info(f"👎 Bot removed reaction {emoji} from msg {message_id}")
+            self._reaction_calls.append({
+                "type": "remove_reaction",
+                "channel_id": channel_id,
+                "message_id": message_id,
+                "emoji": emoji,
+                "timestamp": time.time(),
+            })
             return JSONResponse({})
 
         @app.post("/api/v10/interactions/{interaction_id}/{token}/callback")
@@ -449,6 +461,13 @@ class MockDiscordServer:
         async def trigger_typing(channel_id: str):
             """Trigger typing indicator - just ack."""
             return JSONResponse({})
+
+        # Catch-all for unmatched routes (must be last among API routes)
+        @app.api_route("/api/v10/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+        async def catch_all(path: str, request: Request):
+            if self._enable_request_logging:
+                logger.warning(f"⚠️ UNMATCHED ROUTE: {request.method} /api/v10/{path}")
+            return JSONResponse({"error": "not found"}, status_code=404)
 
         # ====== Gateway WebSocket endpoint ======
 
@@ -566,9 +585,11 @@ class MockDiscordServer:
         app.add_api_route("/_inject", self._handle_inject, methods=["POST"])
         app.add_api_route("/_inject_interaction", self._handle_inject_interaction, methods=["POST"])
         app.add_api_route("/_inject_document", self._handle_inject_document, methods=["POST"])
+        app.add_api_route("/_inject_reaction", self._handle_inject_reaction, methods=["POST"])
         app.add_api_route("/_sent_messages", self._handle_sent_messages, methods=["GET"])
         app.add_api_route("/_clear", self._handle_clear, methods=["POST"])
         app.add_api_route("/_ws_disconnect", self._handle_ws_disconnect, methods=["POST"])
+        app.add_api_route("/_function_calls", self._handle_function_calls, methods=["GET"])
         app.add_api_route("/health", self._handle_health, methods=["GET"])
 
     # ------------------------------------------------------------------
@@ -957,12 +978,78 @@ class MockDiscordServer:
             for m in self._sent_messages
         ]
 
+    async def _handle_inject_reaction(self, request: Request):
+        """Inject a reaction event, dispatch as MESSAGE_REACTION_ADD to WS clients."""
+        data = await request.json()
+        reaction_data = {
+            "channel_id": str(data.get("channel_id", DEFAULT_CHANNEL_ID)),
+            "message_id": str(data.get("message_id", "")),
+            "user_id": str(data.get("user_id", DEFAULT_USER_ID)),
+            "emoji": data.get("emoji", {"name": "👍", "id": None}),
+            "guild_id": str(data.get("guild_id")) if data.get("guild_id") else DEFAULT_GUILD_ID,
+        }
+        self._injected_reactions.append(reaction_data)
+
+        # Build MESSAGE_REACTION_ADD event payload
+        event = {
+            "channel_id": reaction_data["channel_id"],
+            "guild_id": reaction_data["guild_id"],
+            "message_id": reaction_data["message_id"],
+            "user_id": reaction_data["user_id"],
+            "member": {
+                "user": {
+                    "id": reaction_data["user_id"],
+                    "username": "TestUser",
+                    "discriminator": "0001",
+                    "global_name": "TestUser",
+                    "avatar": None,
+                    "bot": False,
+                },
+                "roles": [],
+                "joined_at": "2024-01-01T00:00:00+00:00",
+                "deaf": False,
+                "mute": False,
+                "pending": False,
+            },
+            "emoji": reaction_data["emoji"],
+        }
+
+        payload = {
+            "op": 0,
+            "t": "MESSAGE_REACTION_ADD",
+            "s": self._next_seq(),
+            "d": event,
+        }
+
+        disconnected = []
+        for ws in list(self._ws_clients):
+            try:
+                await ws.send_json(payload)
+                logger.debug(f"🔄 Dispatched MESSAGE_REACTION_ADD: {reaction_data['emoji']}")
+            except Exception as e:
+                logger.warning(f"Failed to dispatch reaction: {e}")
+                disconnected.append(ws)
+
+        for ws in disconnected:
+            if ws in self._ws_clients:
+                self._ws_clients.remove(ws)
+
+        return {"ok": True}
+
+    async def _handle_function_calls(self):
+        """Return tracked bot API call history (reactions, etc.)."""
+        return {
+            "reactions": self._reaction_calls.copy(),
+        }
+
     async def _handle_clear(self):
         """Clear stored state."""
         self._sent_messages.clear()
         self._injected_messages.clear()
         self._injected_interactions.clear()
         self._injected_documents.clear()
+        self._injected_reactions.clear()
+        self._reaction_calls.clear()
         return {"ok": True}
 
     async def _handle_ws_disconnect(self):

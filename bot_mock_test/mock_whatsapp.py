@@ -45,6 +45,7 @@ class MockWhatsAppServer:
         self._sent_messages: list[dict] = []
         self._injected_events: list[dict] = []
         self._ws_connections: list[WebSocket] = []
+        self._typing_calls: list[dict] = []
 
         self.app = FastAPI(title="WhatsApp Mock Server")
         self._setup_routes()
@@ -149,11 +150,60 @@ class MockWhatsAppServer:
             """Get all messages sent by the bot (via WebSocket from octos)."""
             return JSONResponse(self._sent_messages)
 
+        @app.post("/_inject_media")
+        async def inject_media(request: Request):
+            """
+            Inject a media message (video/document/location) via WebSocket.
+
+            Body:
+            {
+                "text": "Caption text",
+                "sender": "1234567890@s.whatsapp.net",
+                "media_type": "video|document|location",
+                "media_url": "https://...",
+                "mimetype": "video/mp4|application/pdf"
+            }
+            """
+            raw = await request.body()
+            body = json.loads(raw)
+            text = body.get("text", "")
+            sender = body.get("sender", "test_user@s.whatsapp.net")
+            chat_id = body.get("chat_id") or sender.split("@")[0]
+            media_type = body.get("media_type", "document")
+            media_url = body.get("media_url", f"https://mock.example.com/test.{media_type}")
+            mimetype = body.get("mimetype", "application/octet-stream")
+            message_id = body.get("message_id") or self._generate_message_id()
+
+            event = {
+                "type": "message",
+                "sender": sender,
+                "chatId": chat_id,
+                "content": text,
+                "messageId": message_id,
+                "timestamp": int(time.time() * 1000),
+                "media": [{"url": media_url, "mimetype": mimetype}],
+                "mediaType": media_type,
+            }
+
+            self._injected_events.append(event)
+            logger.info(f"📥 Injected media event: type={media_type} sender={sender}")
+
+            await self._broadcast_to_websockets(event)
+            return JSONResponse({"status": "injected", "message_id": message_id})
+
+        @app.get("/_function_calls")
+        async def get_function_calls():
+            """Return tracked bot API call history (typing, etc.)."""
+            return JSONResponse({
+                "typing": self._typing_calls.copy(),
+            })
+
         @app.post("/_clear")
         async def clear_state():
             """Clear all stored state."""
             self._sent_messages.clear()
             self._injected_events.clear()
+            self._typing_calls.clear()
             return JSONResponse({"status": "cleared"})
 
         @app.post("/_ws_disconnect")
@@ -191,6 +241,10 @@ class MockWhatsAppServer:
                         self._sent_messages.append(msg)
                         logger.info(f"📩 Bot sent message to {msg.get('to')}: {msg.get('text', '')[:60]}")
                     elif msg_type == "typing":
+                        self._typing_calls.append({
+                            "to": msg.get("to", ""),
+                            "timestamp": time.time(),
+                        })
                         logger.info(f"✏️ Bot typing indicator to {msg.get('to')}")
                     else:
                         logger.info(f"❓ Unknown message type from bot: {msg_type}")

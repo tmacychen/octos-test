@@ -118,6 +118,7 @@ class MockMatrixServer:
         self._transactions: List[Dict[str, Any]] = []
         self._registered_users: Dict[str, RegisteredUser] = {}
         self._room_members: Dict[str, List[str]] = {}  # room_id -> [user_ids]
+        self._typing_calls: List[dict] = []  # Track typing API calls
 
         # Bot info - use env vars for tokens to match gateway config
         self._bot_user_id = os.environ.get("MOCK_BOT_USER_ID", "@bot:localhost")
@@ -206,6 +207,21 @@ class MockMatrixServer:
             body = await request.json()
             event_id = self._generate_event_id()
             return JSONResponse({"event_id": event_id})
+
+        @app.put("/_matrix/client/v3/rooms/{room_id}/typing/{user_id}")
+        async def set_typing(room_id: str, user_id: str, request: Request):
+            """Set typing indicator in a room."""
+            body = await request.json()
+            timeout_ms = body.get("timeout", 0)
+            self._typing_calls.append({
+                "room_id": room_id,
+                "user_id": user_id,
+                "typing": body.get("typing", False),
+                "timeout": timeout_ms,
+                "timestamp": time.time(),
+            })
+            logger.debug(f"⌨️ Typing indicator: user={user_id}, typing={body.get('typing', False)}")
+            return JSONResponse({})
 
         @app.post("/_matrix/client/v3/register")
         async def register_user(request: Request):
@@ -331,8 +347,16 @@ class MockMatrixServer:
             self._transactions.clear()
             self._registered_users.clear()
             self._room_members.clear()
+            self._typing_calls.clear()
             self._txn_counter = 0
             return JSONResponse({"success": True})
+
+        @app.get("/_function_calls")
+        async def get_function_calls():
+            """Return tracked bot API call history (typing, etc.)."""
+            return JSONResponse({
+                "typing": self._typing_calls.copy(),
+            })
 
         @app.get("/_transactions")
         async def get_transactions():

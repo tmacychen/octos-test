@@ -877,3 +877,130 @@ class TestDiscordWsReconnect:
         """断开 WS 连接后验证 bot 能自动重连并正常通信"""
         test_ws_reconnect_basic(runner, timeout_cmd=TIMEOUT_COMMAND,
                                 channel_id="1039178386623557754")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Embed 消息测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestDiscordEmbed:
+    """Discord Embed 消息测试"""
+
+    def test_embed_stored_in_sent_messages(self, runner):
+        """验证 Mock Server 能正确接收和存储 Embed 数据"""
+        import httpx
+        # 直接调用 Mock Server 的 REST API 模拟 bot 发送 embed
+        embed_data = {
+            "content": "",
+            "embeds": [{
+                "title": "Test Title",
+                "description": "Test Description",
+                "color": 0x00FF00,
+                "fields": [
+                    {"name": "Field 1", "value": "Value 1", "inline": True},
+                    {"name": "Field 2", "value": "Value 2", "inline": True},
+                ],
+            }],
+        }
+        resp = httpx.post(
+            "http://127.0.0.1:5001/api/v10/channels/1039178386623557754/messages",
+            json=embed_data,
+            timeout=10,
+        )
+        assert resp.status_code == 200
+
+        # 验证 _sent_messages 中包含了 embed 数据
+        msgs = runner.get_sent_messages()
+        embed_msgs = [m for m in msgs if m.get("embeds") and len(m.get("embeds", [])) > 0]
+        assert len(embed_msgs) > 0, "Embed data should be stored in sent_messages"
+        embed = embed_msgs[-1]["embeds"][0]
+        assert embed["title"] == "Test Title", f"Expected 'Test Title', got {embed.get('title')}"
+        assert embed["description"] == "Test Description"
+        assert len(embed.get("fields", [])) == 2
+
+    def test_embed_fallback_content(self, runner):
+        """空 content + embed 时应该自动生成 fallback 文本"""
+        import httpx
+        embed_data = {
+            "content": "",
+            "embeds": [{
+                "title": "Hello",
+                "description": "World",
+            }],
+        }
+        resp = httpx.post(
+            "http://127.0.0.1:5001/api/v10/channels/1039178386623557754/messages",
+            json=embed_data,
+            timeout=10,
+        )
+        resp_data = resp.json()
+        assert "**Hello**" in resp_data.get("content", ""), \
+            f"Fallback content should contain title: {resp_data.get('content')}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Reaction 事件测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestDiscordReaction:
+    """Discord Reaction 事件测试"""
+
+    def test_inject_reaction_event(self, runner):
+        """验证 Mock Server 能注入 REACTION_ADD 事件且 bot 不崩溃"""
+        import httpx
+        # 先发送一条消息让 bot 回复，获取 message_id
+        text = inject_and_get_reply(runner, "/new reaction-test", timeout=TIMEOUT_COMMAND)
+        assert len(text) > 0
+        
+        # 获取 bot 最后一条消息的 message_id
+        msgs = runner.get_sent_messages()
+        bot_msg_id = msgs[-1].get("message_id", "") if msgs else ""
+        
+        # 注入 reaction 事件
+        resp = httpx.post(
+            "http://127.0.0.1:5001/_inject_reaction",
+            json={
+                "channel_id": "1039178386623557754",
+                "message_id": bot_msg_id,
+                "user_id": "123456789012345678",
+                "emoji": {"name": "👍", "id": None},
+            },
+            timeout=10,
+        )
+        assert resp.status_code == 200
+        assert resp.json().get("ok") is True
+
+        # 等待确保 bot 处理完成，不会崩溃
+        time.sleep(5)
+        assert runner.health(), "Mock Server should still be healthy after reaction event"
+
+    def test_delete_message_tracking(self, runner):
+        """验证 bot 调用 delete_message API 时 Mock 正确响应"""
+        import httpx
+        resp = httpx.delete(
+            "http://127.0.0.1:5001/api/v10/channels/1039178386623557754/"
+            "messages/test_delete_msg_123",
+            timeout=10,
+        )
+        assert resp.status_code == 200
+        # Mock Server 应该返回空 JSON 表示删除成功
+        assert resp.json() == {}
+
+    def test_reaction_tracking_on_bot_api_call(self, runner):
+        """验证 bot 调用 reaction API 时被正确记录"""
+        import httpx
+        # 直接调用 reaction endpoint 模拟 bot 行为
+        resp = httpx.put(
+            "http://127.0.0.1:5001/api/v10/channels/1039178386623557754/"
+            "messages/test_msg_123/reactions/%F0%9F%91%8D/@me",
+            timeout=10,
+        )
+        assert resp.status_code == 200
+
+        # 验证 reaction call 被记录
+        func_resp = httpx.get("http://127.0.0.1:5001/_function_calls", timeout=10)
+        data = func_resp.json()
+        assert len(data.get("reactions", [])) >= 1
+        last_reaction = data["reactions"][-1]
+        assert last_reaction["type"] == "add_reaction"
+        assert last_reaction["emoji"] == "%F0%9F%91%8D"  # thumbs up emoji encoded

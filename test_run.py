@@ -1103,6 +1103,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
         "qq": {"port": 5010, "test_file": "test_qq.py", "mock_module": "mock_qq", "mock_class": "MockQqServer"},
         "twilio": {"port": 5011, "test_file": "test_twilio.py", "mock_module": "mock_twilio", "mock_class": "MockTwilioServer"},
         "tw": {"port": 5011, "test_file": "test_twilio.py", "mock_module": "mock_twilio", "mock_class": "MockTwilioServer"},
+        "cross": {"port": 5000, "test_file": "test_cross_channel.py", "mock_module": "", "mock_class": ""},
     }
     
     info = module_info.get(module)
@@ -2556,7 +2557,7 @@ def main() -> int:
                 return 0 if passed else 1
             
             # Check if it's a valid module
-            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa", "line", "ln", "wecom-bot", "wecom_bot", "wcb", "wecom", "we", "qq-bot", "qq_bot", "qq", "twilio", "tw"]
+            valid_modules = ["telegram", "tg", "discord", "dc", "matrix", "mx", "slack", "sl", "feishu", "fs", "wechat", "wx", "whatsapp", "wa", "line", "ln", "wecom-bot", "wecom_bot", "wcb", "wecom", "we", "qq-bot", "qq_bot", "qq", "twilio", "tw", "cross"]
             if action in valid_modules:
                 # Special case: check for 'list' subcommand
                 if len(remaining) > 1 and remaining[1] == "list":

@@ -329,7 +329,97 @@ class MockSlackServer:
                 self._injected_events.append(envelope)
                 
                 logger.info(f"🔔 Injected event: channel={channel}, text={text[:50]}")
-                
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"❌ Error injecting event: {e}")
+                raise HTTPException(status_code=400, detail=str(e))
+        
+        @app.post("/_inject_file")
+        async def inject_file_event(request: Request):
+            """
+            Inject a file_share event (simulates file upload/attachment).
+
+            Body:
+            {
+                "text": "Check this file",
+                "channel": "C012AB3CD",
+                "user": "U012AB3CD",
+                "file_name": "report.pdf",
+                "file_size": 1024,
+                "mimetype": "application/pdf",
+                "file_url": "https://mock.example.com/report.pdf"
+            }
+            """
+            try:
+                body = await request.json()
+                text = body.get("text", "")
+                channel = body.get("channel", "C012AB3CD")
+                user = body.get("user", "U012AB3CD")
+                file_name = body.get("file_name", "test_file.txt")
+                file_size = body.get("file_size", 1024)
+                mimetype = body.get("mimetype", "text/plain")
+                file_url = body.get("file_url", "https://mock.example.com/test.txt")
+                event_id = body.get("event_id") or self._generate_event_id()
+
+                envelope = {
+                    "envelope_id": event_id,
+                    "payload": {
+                        "token": "test_token",
+                        "team_id": "T012AB3CD",
+                        "api_app_id": "A012AB3CD",
+                        "event": {
+                            "type": "message",
+                            "text": text,
+                            "user": user,
+                            "channel": channel,
+                            "ts": str(time.time()),
+                            "event_ts": str(time.time()),
+                            "files": [{
+                                "id": f"F{event_id[:10]}",
+                                "name": file_name,
+                                "size": file_size,
+                                "mimetype": mimetype,
+                                "url_private": file_url,
+                                "url_private_download": file_url,
+                                "permalink": file_url,
+                                "title": file_name,
+                            }],
+                            "upload": True,
+                            "file": {
+                                "id": f"F{event_id[:10]}",
+                                "name": file_name,
+                                "size": file_size,
+                                "mimetype": mimetype,
+                                "url_private": file_url,
+                            },
+                        },
+                        "type": "event_callback",
+                        "event_id": event_id,
+                        "event_time": int(time.time()),
+                        "authorizations": [
+                            {
+                                "enterprise_id": None,
+                                "team_id": "T012AB3CD",
+                                "user_id": user,
+                                "is_bot": False,
+                                "is_enterprise_install": False,
+                            }
+                        ],
+                    },
+                    "type": "events_api",
+                    "accepts_response_payload": False,
+                }
+
+                self._injected_events.append(envelope)
+                logger.info(f"📎 Injected file event: channel={channel}, file={file_name}")
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"❌ Error injecting file event: {e}")
+                raise HTTPException(status_code=400, detail=str(e))
                 # Broadcast to all connected WebSocket clients
                 await self._broadcast_to_websockets(envelope)
                 

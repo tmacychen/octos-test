@@ -929,3 +929,60 @@ class TestMatrixAllowedSenders:
         assert new_replies == 0, \
             f"Blocked sender should get no reply, but got {new_replies} new replies"
         logger.info("  ✓ Blocked sender correctly ignored")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Matrix 特有功能 — 健康检查 + Typing Indicator
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestMatrixHealthAndTyping:
+    """Matrix 健康检查和 Typing Indicator
+
+    验证 octos 的 Matrix Channel 实现了 health_check() 和 send_typing()。
+    """
+
+    def test_mock_server_health(self, runner):
+        """验证 Mock Server 健康检查端点正常工作"""
+        import httpx
+        resp = httpx.get("http://127.0.0.1:5002/health", timeout=10)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data.get("status") == "ok"
+        assert runner.health(), "Test runner health check should pass"
+
+    def test_typing_tracking_on_bot_api_call(self, runner):
+        """验证 bot 调用 typing API 时被正确记录"""
+        import httpx
+        # 直接调用 typing endpoint 模拟 bot 行为
+        resp = httpx.put(
+            "http://127.0.0.1:5002/_matrix/client/v3/rooms/!typing_test:localhost/"
+            "typing/@bot:localhost",
+            json={"typing": True, "timeout": 30000},
+            timeout=10,
+        )
+        assert resp.status_code == 200
+
+        # 验证 typing call 被记录
+        func_resp = httpx.get("http://127.0.0.1:5002/_function_calls", timeout=10)
+        data = func_resp.json()
+        assert len(data.get("typing", [])) >= 1
+        last_typing = data["typing"][-1]
+        assert last_typing["room_id"] == "!typing_test:localhost"
+        assert last_typing["user_id"] == "@bot:localhost"
+        assert last_typing["typing"] is True
+
+    def test_typing_off_tracking(self, runner):
+        """验证 typing off 也能被正确记录"""
+        import httpx
+        resp = httpx.put(
+            "http://127.0.0.1:5002/_matrix/client/v3/rooms/!typing_off:localhost/"
+            "typing/@bot:localhost",
+            json={"typing": False, "timeout": 0},
+            timeout=10,
+        )
+        assert resp.status_code == 200
+
+        func_resp = httpx.get("http://127.0.0.1:5002/_function_calls", timeout=10)
+        data = func_resp.json()
+        last_typing = data["typing"][-1]
+        assert last_typing["typing"] is False

@@ -824,5 +824,46 @@ class TestSlackAllowedSenders:
         logger.info("  ✓ Blocked sender correctly ignored")
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+# ══════════════════════════════════════════════════════════════════════════════
+# 媒体/文件附件测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestSlackMediaHandling:
+    """Slack 媒体/文件附件测试"""
+
+    def test_file_share_event_injection(self, runner):
+        """验证 Mock Server 能正确注入 file_share 事件"""
+        import httpx
+        resp = httpx.post(
+            "http://127.0.0.1:5003/_inject_file",
+            json={
+                "text": "Check out this report",
+                "channel": "CMED01",
+                "user": "U012AB3CD",
+                "file_name": "report.pdf",
+                "file_size": 1024,
+                "mimetype": "application/pdf",
+            },
+            timeout=10,
+        )
+        assert resp.status_code == 200
+        logger.info("  ✓ File share event injected successfully")
+
+    def test_image_attachment(self, runner):
+        """验证图片附件事件注入"""
+        import httpx
+        resp = httpx.post(
+            "http://127.0.0.1:5003/_inject_file",
+            json={
+                "text": "Look at this image",
+                "channel": "CMED02",
+                "user": "U012AB3CD",
+                "file_name": "screenshot.png",
+                "file_size": 204800,
+                "mimetype": "image/png",
+                "file_url": "https://mock.example.com/screenshot.png",
+            },
+            timeout=10,
+        )
+        assert resp.status_code == 200
+        logger.info("  ✓ Image attachment event injected successfully")

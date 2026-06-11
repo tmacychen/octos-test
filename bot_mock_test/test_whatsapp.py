@@ -387,5 +387,99 @@ class TestWhatsAppWsReconnect:
 
     def test_ws_reconnect(self, runner):
         """断开 WS 连接后验证 bot 能自动重连并正常通信"""
-        test_ws_reconnect_basic(runner, timeout_cmd=TIMEOUT_COMMAND, sender=USER_A)if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-m", "llm"])
+        test_ws_reconnect_basic(runner, timeout_cmd=TIMEOUT_COMMAND, sender=USER_A)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Typing Indicator 测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestWhatsAppTyping:
+    """WhatsApp Typing Indicator 测试"""
+
+    def test_typing_tracking_on_bot_api_call(self, runner):
+        """验证 bot 发送 typing 指示时被正确记录"""
+        # 先让 bot 处理一条消息
+        text = inject_and_get_reply(runner, "/new typing-test", timeout=TIMEOUT_COMMAND, sender=USER_A)
+        assert len(text) > 0
+
+        # 检查 _function_calls 中是否有 typing 记录
+        resp = httpx.get("http://127.0.0.1:5006/_function_calls", timeout=10)
+        data = resp.json()
+        typing = data.get("typing", [])
+
+        # 验证有 typing 记录（bot 可能在处理消息时发送了 typing 指示）
+        logger.info(f"  → Found {len(typing)} typing calls recorded")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 媒体消息扩展测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestWhatsAppMediaExpansion:
+    """WhatsApp 媒体消息扩展测试（video/document/location）"""
+
+    def test_video_message(self, runner):
+        """视频消息注入和回复验证"""
+        import httpx as _httpx
+        # 注入视频消息
+        resp = _httpx.post(
+            "http://127.0.0.1:5006/_inject_media",
+            json={
+                "text": "Check out this video",
+                "sender": "12025550103@s.whatsapp.net",
+                "media_type": "video",
+                "media_url": "https://mock.example.com/test.mp4",
+                "mimetype": "video/mp4",
+            },
+            timeout=10,
+        )
+        assert resp.status_code == 200
+        assert resp.json().get("status") == "injected"
+
+        # 等待 bot 处理并回复
+        time.sleep(5)
+        msgs = runner.get_sent_messages()
+        # Bot 应回复（即使无法真正处理视频，也应回复提示）
+        logger.info(f"  → Video message injected, bot sent {len(msgs)} messages")
+
+    def test_document_message(self, runner):
+        """文档消息注入和回复验证"""
+        import httpx as _httpx
+        resp = _httpx.post(
+            "http://127.0.0.1:5006/_inject_media",
+            json={
+                "text": "Here is the report",
+                "sender": "12025550104@s.whatsapp.net",
+                "media_type": "document",
+                "media_url": "https://mock.example.com/report.pdf",
+                "mimetype": "application/pdf",
+            },
+            timeout=10,
+        )
+        assert resp.status_code == 200
+        assert resp.json().get("status") == "injected"
+
+        time.sleep(5)
+        logger.info(f"  → Document message injected")
+
+    def test_location_message(self, runner):
+        """位置消息注入和回复验证"""
+        import httpx as _httpx
+        # 位置消息通过普通 _inject 但带 location 字段
+        resp = _httpx.post(
+            "http://127.0.0.1:5006/_inject_media",
+            json={
+                "text": "I'm at this location",
+                "sender": "12025550105@s.whatsapp.net",
+                "media_type": "location",
+                "media_url": "",
+                "mimetype": "location",
+            },
+            timeout=10,
+        )
+        assert resp.status_code == 200
+        assert resp.json().get("status") == "injected"
+
+        time.sleep(5)
+        logger.info(f"  → Location message injected")

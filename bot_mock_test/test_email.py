@@ -359,6 +359,26 @@ class TestEmailSendReceive:
             min_reply_len=5,
         )
 
+    @pytest.mark.slow
+    def test_new_command(self):
+        """/new 命令测试 — 验证 bot 能处理会话管理命令"""
+        _send_and_verify("""/new email-test
+Please confirm session created with 'Session cleared'""", "NewCmd", min_reply_len=5)
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    @pytest.mark.slow
+    def test_help_command(self):
+        """/help 命令测试 — 验证 bot 返回帮助信息"""
+        _send_and_verify("""/help
+Please list available commands""", "HelpCmd", min_reply_len=10)
+
+    @pytest.mark.slow
+    def test_clear_command(self):
+        """/clear 命令测试 — 验证 bot 清空会话"""
+        _send_and_verify("""/clear
+Please confirm session cleared""", "ClearCmd", min_reply_len=5)
+
+    @pytest.mark.slow
+    def test_switch_session_command(self):
+        """/s 命令测试 — 验证 bot 切换会话"""
+        _send_and_verify("""/s default
+Please confirm switched to default session""", "SwitchCmd", min_reply_len=5)
