@@ -794,7 +794,7 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -816,8 +816,9 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
                     "max_body_chars": 50000,
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1141,7 +1142,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1155,8 +1156,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "allowed_senders": "testuser,user_a,user_b"
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1178,7 +1180,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1191,8 +1193,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "token_env": "DISCORD_BOT_TOKEN"
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1212,7 +1215,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1257,7 +1260,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1273,8 +1276,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     }
                 ],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1299,7 +1303,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1314,8 +1318,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "webhook_port": 9321,
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1337,7 +1342,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1350,8 +1355,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "bridge_url": f"ws://127.0.0.1:{port}/ws",
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1374,7 +1380,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1387,8 +1393,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "bridge_url": f"ws://127.0.0.1:{port}/ws",
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1412,7 +1419,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1428,8 +1435,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "allowed_senders": "U_test_user,U_line_test_1,U_line_test_2,U_line_test_3,U_line_dedup,U_line_media,U_line_mention",
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1453,7 +1461,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1468,8 +1476,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "allowed_senders": "wcb_user1,wcb_user2,wcb_allowed,wcb_dedup_user",
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1493,7 +1502,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1512,8 +1521,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "allowed_senders": "wecom_session_user,wecom_config_user,wecom_allowed,wecom_dedup_user",
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1540,7 +1550,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1550,13 +1560,14 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 },
                 "channels": [{
                     "type": "qq-bot",
-                    "app_id_env": "QQ_BOT_APP_ID",
+                    "app_id": os.environ.get("QQ_BOT_APP_ID", "test_app_id"),
                     "client_secret_env": "QQ_BOT_CLIENT_SECRET",
                     "allowed_senders": "member_test_001,member_test_002,member_test_003,user_c2c_session,user_c2c_config,user_c2c_dedup",
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }
@@ -1587,7 +1598,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.3-70b-instruct",
+                        "model_id": "meta/llama-3.1-8b-instruct",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1604,8 +1615,9 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "allowed_senders": "+15550000001,+15550001001,+15550001002,+15550001003,+15550001004,+15550001005",
                 }],
                 "gateway": {
-                    "max_history": 50,
-                    "max_concurrent_sessions": 10
+                    "max_history": 5,
+                    "max_concurrent_sessions": 10,
+                    "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }
         }

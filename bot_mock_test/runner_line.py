@@ -36,7 +36,7 @@ class LineTestRunner(BaseMockRunner):
         }
         return self._post_event(event)
 
-    def inject_event(self, event_data: dict, chat_id: str = "U_test_user",
+    def inject_event(self, event_data: dict = None, chat_id: str = "U_test_user",
                      source_type: str = "user", group_id: str = None,
                      message_type: str = "text", message_body: dict = None,
                      reply_token: str = None):

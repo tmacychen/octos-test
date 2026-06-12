@@ -327,15 +327,18 @@ class MockSlackServer:
                 
                 # Store the injected event
                 self._injected_events.append(envelope)
-                
+
                 logger.info(f"🔔 Injected event: channel={channel}, text={text[:50]}")
+
+                # Push envelope to all connected WebSocket clients (octos Slack channel)
+                await self._broadcast_to_websockets(envelope)
 
             except HTTPException:
                 raise
             except Exception as e:
                 logger.error(f"❌ Error injecting event: {e}")
                 raise HTTPException(status_code=400, detail=str(e))
-        
+
         @app.post("/_inject_file")
         async def inject_file_event(request: Request):
             """
