@@ -1770,119 +1770,117 @@ class OctosServeTester:
         return asyncio.run(_test())
 
     # ── 18.x Approval / Permission / Diff ─────────────────────────────
+    # 注: approval/scopes.list / approval/respond / user_question/respond
+    # 当前 server 不支持 ("method not supported"), 保留 error-path 验证
 
     def test_18_1_approval_scopes_list(self) -> bool:
-        """18.1: approval/scopes.list — 需要 session 上下文"""
+        """18.1: approval/scopes.list — 当前 server 不支持"""
         if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("approval/scopes/list", {})
-        if "error" in resp:
-            self.logger.info(f"  scopes/list error (expected): {resp['error'].get('message','')}")
+        resp = self._ws_call("approval/scopes/list", {}, timeout=5)
+        if "result" in resp:
+            scopes = resp["result"].get("scopes", [])
+            self.logger.info(f"  Scopes: {len(scopes)}")
             return True
-        scopes = resp.get("result", {}).get("scopes", [])
-        self.logger.info(f"  Scopes: {len(scopes)}")
+        self.logger.info(f"  scopes/list: {resp.get('error',{}).get('message','')[:80]} (acceptable)")
         return True
 
     def test_18_2_permission_profile_list(self) -> bool:
-        """18.2: permission/profile.list — 需要 profile 上下文"""
+        """18.2: permission/profile.list — 升级到真实调用（带 session_id）"""
         if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("permission/profile/list", {})
-        if "error" in resp:
-            self.logger.info(f"  perm/list error (expected): {resp['error'].get('message','')}")
-            return True
-        self.logger.info(f"  perm/list: {json.dumps(resp.get('result',{}))[:200]}")
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
+        resp = self._ws_call("permission/profile/list", {"session_id": sid})
+        assert "result" in resp, f"Expected result with session_id: {resp.get('error',resp)}"
+        self.logger.info(f"  perm/list: {json.dumps(resp['result'])[:200]}")
         return True
 
     def test_18_3_permission_profile_set(self) -> bool:
-        """18.3: permission/profile.set — 需要 profile + params"""
+        """18.3: permission/profile.set — 需要 update 对象"""
         if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("permission/profile/set", {"profile_id": "test", "mode": "restricted"})
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
+        resp = self._ws_call("permission/profile/set", {
+            "session_id": sid,
+            "update": {"mode": "restricted"},
+        })
         if "error" in resp:
-            self.logger.info(f"  perm/set error (expected): {resp['error'].get('message','')}")
+            err_msg = resp["error"].get("message", "")
+            # 可能权限不足, 也可能是合法错误 — 但不再说 "missing field"
+            assert "missing field" not in err_msg, f"Still missing required field: {err_msg}"
+            self.logger.info(f"  perm/set error (acceptable): {err_msg[:80]}")
             return True
+        self.logger.info("  perm/set succeeded")
         return True
 
     def test_18_4_diff_preview_get(self) -> bool:
-        """18.4: diff/preview.get — 需要 active turn 有 diff"""
+        """18.4: diff/preview.get — 需 UUID 格式 + active session"""
         if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
         resp = self._ws_call("diff/preview/get",
-                             {"preview_id": "nonexistent", "session_id": "fake"})
+                             {"session_id": sid,
+                              "preview_id": "00000000-0000-0000-0000-000000000001"})
         if "error" in resp:
-            self.logger.info(f"  diff/preview error (expected): {resp['error'].get('message','')}")
+            err_msg = resp["error"].get("message", "")
+            # "not found" = 正确错误 (无 diff), 而非 UUID 解析失败
+            self.logger.info(f"  diff/preview error: {err_msg[:80]} (correct shape)")
             return True
         return True
 
     def test_18_5_user_question_respond(self) -> bool:
-        """18.5: user_question/respond — 需要活跃的 question"""
+        """18.5: user_question/respond — 当前 server 不支持"""
         if not HAS_WEBSOCKETS: return "SKIP"
         resp = self._ws_call("user_question/respond",
-                             {"question_id": "nonexistent", "answer": "yes"})
-        if "error" in resp:
-            self.logger.info(f"  question/respond error (expected): {resp['error'].get('message','')}")
+                             {"question_id": "00000000-0000-0000-0000-000000000001",
+                              "answer": "yes"}, timeout=5)
+        if "result" in resp:
             return True
+        self.logger.info(f"  question/respond: {resp.get('error',{}).get('message','')[:80]} (acceptable)")
         return True
 
     # ── 19.x Task ─────────────────────────────────────────────────────
+    # 当前 server 不支持 task/* method（需 LLM 启动 turn 后才有 active task）
+    # 所有测试验证正确的 "method not supported" 错误形状
+
+    _TASK_UNSUPPORTED = ("task/list", "task/cancel", "task/restart_from_node",
+                         "task/output/read", "task/artifact/list", "task/artifact/read")
+
+    def _check_task_unsupported(self, method: str, params: dict) -> bool:
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call(method, params, timeout=5)
+        assert "error" in resp, f"Expected error for {method}: {resp}"
+        code = resp["error"].get("code", 0)
+        assert code == -32004, f"Expected -32004 (unsupported), got {code}: {resp['error']}"
+        return True
 
     def test_19_1_task_list(self) -> bool:
-        """19.1: task/list — 需要 session 上下文"""
-        if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("task/list", {"session_id": "fake-session"})
-        if "error" in resp:
-            self.logger.info(f"  task/list error (expected): {resp['error'].get('message','')}")
-            return True
-        tasks = resp.get("result", {}).get("tasks", [])
-        self.logger.info(f"  Tasks: {len(tasks)}")
-        return True
+        """19.1: task/list — server 不支持（需 LLM turn）"""
+        return self._check_task_unsupported("task/list", {"session_id": "00000000-0000-0000-0000-000000000001"})
 
     def test_19_2_task_cancel(self) -> bool:
-        """19.2: task/cancel — 需要活跃的任务"""
-        if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("task/cancel",
-                             {"session_id": "fake", "task_id": "nonexistent"})
-        if "error" in resp:
-            self.logger.info(f"  task/cancel error (expected): {resp['error'].get('message','')}")
-            return True
-        return True
+        """19.2: task/cancel — server 不支持"""
+        return self._check_task_unsupported("task/cancel",
+            {"session_id": "00000000-0000-0000-0000-000000000001", "task_id": "00000000-0000-0000-0000-000000000001"})
 
     def test_19_3_task_restart_from_node(self) -> bool:
-        """19.3: task/restart_from_node — 需要活跃任务"""
-        if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("task/restart_from_node",
-                             {"session_id": "fake", "task_id": "nonexistent", "node_id": 0})
-        if "error" in resp:
-            self.logger.info(f"  task/restart error (expected): {resp['error'].get('message','')}")
-            return True
-        return True
+        """19.3: task/restart_from_node — server 不支持"""
+        return self._check_task_unsupported("task/restart_from_node",
+            {"session_id": "00000000-0000-0000-0000-000000000001", "task_id": "00000000-0000-0000-0000-000000000001", "node_id": 0})
 
     def test_19_4_task_output_read(self) -> bool:
-        """19.4: task/output/read — 需要活跃任务"""
-        if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("task/output/read",
-                             {"session_id": "fake", "task_id": "nonexistent"})
-        if "error" in resp:
-            self.logger.info(f"  task/output error (expected): {resp['error'].get('message','')}")
-            return True
-        return True
+        """19.4: task/output/read — server 不支持"""
+        return self._check_task_unsupported("task/output/read",
+            {"session_id": "00000000-0000-0000-0000-000000000001", "task_id": "00000000-0000-0000-0000-000000000001"})
 
     def test_19_5_task_artifact_list(self) -> bool:
-        """19.5: task/artifact/list — 需要活跃任务"""
-        if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("task/artifact/list",
-                             {"session_id": "fake", "task_id": "nonexistent"})
-        if "error" in resp:
-            self.logger.info(f"  task/artifact/list error (expected): {resp['error'].get('message','')}")
-            return True
-        return True
+        """19.5: task/artifact/list — server 不支持"""
+        return self._check_task_unsupported("task/artifact/list",
+            {"session_id": "00000000-0000-0000-0000-000000000001", "task_id": "00000000-0000-0000-0000-000000000001"})
 
     def test_19_6_task_artifact_read(self) -> bool:
-        """19.6: task/artifact/read — 需要活跃任务 + artifact"""
-        if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("task/artifact/read",
-                             {"session_id": "fake", "task_id": "nonexistent", "artifact_id": "fake"})
-        if "error" in resp:
-            self.logger.info(f"  task/artifact/read error (expected): {resp['error'].get('message','')}")
-            return True
-        return True
+        """19.6: task/artifact/read — server 不支持"""
+        return self._check_task_unsupported("task/artifact/read",
+            {"session_id": "00000000-0000-0000-0000-000000000001", "task_id": "00000000-0000-0000-0000-000000000001", "artifact_id": "00000000-0000-0000-0000-000000000001"})
 
     # ── 20.x Agent ───────────────────────────────────────────────────
 
@@ -1977,13 +1975,15 @@ class OctosServeTester:
         return True
 
     def test_21_3_session_status_read(self) -> bool:
-        """21.3: session/status/read — 需要 profile 上下文"""
+        """21.3: session/status/read — 需要 session_id"""
         if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("session/status/read", {})
-        if "error" in resp:
-            self.logger.info(f"  status/read error: {resp['error'].get('message','')}")
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
+        resp = self._ws_call("session/status/read", {"session_id": sid})
+        if "result" in resp:
+            self.logger.info(f"  status/read: {json.dumps(resp['result'])[:150]}")
             return True
-        self.logger.info(f"  status/read: {json.dumps(resp.get('result',{}))[:150]}")
+        self.logger.info(f"  status/read error: {resp.get('error',{}).get('message','')[:80]}")
         return True
 
     def test_21_4_loop_list(self) -> bool:
@@ -2024,41 +2024,49 @@ class OctosServeTester:
     # ── 22.x Router / Content ─────────────────────────────────────────
 
     def test_22_1_router_get_metrics(self) -> bool:
-        """22.1: router/get_metrics — 独立 method"""
+        """22.1: router/get_metrics — 带 session_id"""
         if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("router/get_metrics", {})
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
+        resp = self._ws_call("router/get_metrics", {"session_id": sid})
         if "error" in resp:
-            self.logger.info(f"  router/metrics error: {resp['error'].get('message','')}")
+            err_msg = resp["error"].get("message", "")
+            # "no adaptive router" = 该 session 无 adaptive mode, 正确
+            assert "missing field" not in err_msg, f"Missing required param: {err_msg}"
+            self.logger.info(f"  router/metrics: {err_msg[:80]} (acceptable)")
             return True
         self.logger.info(f"  router metrics: {json.dumps(resp.get('result',{}))[:150]}")
         return True
 
     def test_22_2_router_set_mode(self) -> bool:
-        """22.2: router/set_mode — 需要 mode 参数"""
+        """22.2: router/set_mode — 带 session_id + 正确 mode"""
         if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("router/set_mode", {"mode": "adaptive"})
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
+        resp = self._ws_call("router/set_mode", {"session_id": sid, "mode": "hedge"})
         if "error" in resp:
-            self.logger.info(f"  router/set_mode error: {resp['error'].get('message','')}")
+            err_msg = resp["error"].get("message", "")
+            assert "missing field" not in err_msg, f"Missing required param: {err_msg}"
+            self.logger.info(f"  router/set_mode: {err_msg[:80]} (acceptable)")
             return True
         return True
 
     def test_22_3_content_delete(self) -> bool:
-        """22.3: content/delete — 需要 session_id + content_id"""
+        """22.3: content/delete — 升级到真实调用（已确认返回 result）"""
         if not HAS_WEBSOCKETS: return "SKIP"
-        resp = self._ws_call("content/delete", {"session_id": "fake", "content_id": "fake"})
-        if "error" in resp:
-            self.logger.info(f"  content/delete error: {resp['error'].get('message','')}")
-            return True
+        resp = self._ws_call("content/delete",
+                             {"id": "00000000-0000-0000-0000-000000000001"})
+        assert "result" in resp, f"Expected result: {resp.get('error',resp)}"
+        self.logger.info("  content/delete returned result")
         return True
 
     def test_22_4_content_bulk_delete(self) -> bool:
-        """22.4: content/bulk_delete — 需要 session_id + content_ids"""
+        """22.4: content/bulk_delete — 升级到真实调用（已确认返回 result）"""
         if not HAS_WEBSOCKETS: return "SKIP"
         resp = self._ws_call("content/bulk_delete",
-                             {"session_id": "fake", "content_ids": ["fake"]})
-        if "error" in resp:
-            self.logger.info(f"  content/bulk_delete error: {resp['error'].get('message','')}")
-            return True
+                             {"ids": ["00000000-0000-0000-0000-000000000001"]})
+        assert "result" in resp, f"Expected result: {resp.get('error',resp)}"
+        self.logger.info("  content/bulk_delete returned result")
         return True
 
     # ── 23.x Remaining Profile LLM / Skills ──────────────────────────
@@ -2075,18 +2083,23 @@ class OctosServeTester:
         return True
 
     def test_23_2_profile_llm_upsert(self) -> bool:
-        """23.2: profile/llm/upsert — 需要 profile + LLM 配置"""
+        """23.2: profile/llm/upsert — 需要 profile + selection"""
         if not HAS_WEBSOCKETS: return "SKIP"
         pid = self._ensure_solo_profile()
         resp = self._ws_call("profile/llm/upsert", {
             "profile_id": pid,
-            "family_id": "openai",
-            "model_id": "gpt-4o",
-            "route": {"api_key_env": "OPENAI_API_KEY", "base_url": "https://api.openai.com/v1"},
+            "selection": {
+                "family_id": "openai",
+                "model_id": "gpt-4o",
+                "route": {"route_id": "test-route",
+                          "api_key_env": "OPENAI_API_KEY",
+                          "base_url": "https://api.openai.com/v1"},
+            },
         })
         if "error" in resp:
-            self.logger.info(f"  llm/upsert error (expected): {resp['error'].get('message','')}")
+            self.logger.info(f"  llm/upsert error: {resp['error'].get('message','')[:80]}")
             return True
+        self.logger.info("  llm/upsert succeeded")
         return True
 
     def test_23_3_profile_llm_delete(self) -> bool:
