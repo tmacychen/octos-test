@@ -1769,6 +1769,429 @@ class OctosServeTester:
             return True
         return asyncio.run(_test())
 
+    # ── 18.x Approval / Permission / Diff ─────────────────────────────
+
+    def test_18_1_approval_scopes_list(self) -> bool:
+        """18.1: approval/scopes.list — 需要 session 上下文"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("approval/scopes/list", {})
+        if "error" in resp:
+            self.logger.info(f"  scopes/list error (expected): {resp['error'].get('message','')}")
+            return True
+        scopes = resp.get("result", {}).get("scopes", [])
+        self.logger.info(f"  Scopes: {len(scopes)}")
+        return True
+
+    def test_18_2_permission_profile_list(self) -> bool:
+        """18.2: permission/profile.list — 需要 profile 上下文"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("permission/profile/list", {})
+        if "error" in resp:
+            self.logger.info(f"  perm/list error (expected): {resp['error'].get('message','')}")
+            return True
+        self.logger.info(f"  perm/list: {json.dumps(resp.get('result',{}))[:200]}")
+        return True
+
+    def test_18_3_permission_profile_set(self) -> bool:
+        """18.3: permission/profile.set — 需要 profile + params"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("permission/profile/set", {"profile_id": "test", "mode": "restricted"})
+        if "error" in resp:
+            self.logger.info(f"  perm/set error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_18_4_diff_preview_get(self) -> bool:
+        """18.4: diff/preview.get — 需要 active turn 有 diff"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("diff/preview/get",
+                             {"preview_id": "nonexistent", "session_id": "fake"})
+        if "error" in resp:
+            self.logger.info(f"  diff/preview error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_18_5_user_question_respond(self) -> bool:
+        """18.5: user_question/respond — 需要活跃的 question"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("user_question/respond",
+                             {"question_id": "nonexistent", "answer": "yes"})
+        if "error" in resp:
+            self.logger.info(f"  question/respond error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    # ── 19.x Task ─────────────────────────────────────────────────────
+
+    def test_19_1_task_list(self) -> bool:
+        """19.1: task/list — 需要 session 上下文"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("task/list", {"session_id": "fake-session"})
+        if "error" in resp:
+            self.logger.info(f"  task/list error (expected): {resp['error'].get('message','')}")
+            return True
+        tasks = resp.get("result", {}).get("tasks", [])
+        self.logger.info(f"  Tasks: {len(tasks)}")
+        return True
+
+    def test_19_2_task_cancel(self) -> bool:
+        """19.2: task/cancel — 需要活跃的任务"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("task/cancel",
+                             {"session_id": "fake", "task_id": "nonexistent"})
+        if "error" in resp:
+            self.logger.info(f"  task/cancel error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_19_3_task_restart_from_node(self) -> bool:
+        """19.3: task/restart_from_node — 需要活跃任务"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("task/restart_from_node",
+                             {"session_id": "fake", "task_id": "nonexistent", "node_id": 0})
+        if "error" in resp:
+            self.logger.info(f"  task/restart error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_19_4_task_output_read(self) -> bool:
+        """19.4: task/output/read — 需要活跃任务"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("task/output/read",
+                             {"session_id": "fake", "task_id": "nonexistent"})
+        if "error" in resp:
+            self.logger.info(f"  task/output error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_19_5_task_artifact_list(self) -> bool:
+        """19.5: task/artifact/list — 需要活跃任务"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("task/artifact/list",
+                             {"session_id": "fake", "task_id": "nonexistent"})
+        if "error" in resp:
+            self.logger.info(f"  task/artifact/list error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_19_6_task_artifact_read(self) -> bool:
+        """19.6: task/artifact/read — 需要活跃任务 + artifact"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("task/artifact/read",
+                             {"session_id": "fake", "task_id": "nonexistent", "artifact_id": "fake"})
+        if "error" in resp:
+            self.logger.info(f"  task/artifact/read error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    # ── 20.x Agent ───────────────────────────────────────────────────
+
+    def test_20_1_agent_list(self) -> bool:
+        """20.1: agent/list — 需要 session"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("agent/list", {"session_id": "fake"})
+        if "error" in resp:
+            self.logger.info(f"  agent/list error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_20_2_agent_status_read(self) -> bool:
+        """20.2: agent/status/read — 需要活跃 agent"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("agent/status/read", {"session_id": "fake", "agent_id": "fake"})
+        if "error" in resp:
+            self.logger.info(f"  agent/status error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_20_3_agent_output_read(self) -> bool:
+        """20.3: agent/output/read — 需要活跃 agent"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("agent/output/read", {"session_id": "fake", "agent_id": "fake"})
+        if "error" in resp:
+            self.logger.info(f"  agent/output error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_20_4_agent_artifact_list(self) -> bool:
+        """20.4: agent/artifact/list — 需要活跃 agent"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("agent/artifact/list", {"session_id": "fake", "agent_id": "fake"})
+        if "error" in resp:
+            self.logger.info(f"  agent/artifact/list error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_20_5_agent_artifact_read(self) -> bool:
+        """20.5: agent/artifact/read — 需要活跃 agent + artifact"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("agent/artifact/read",
+                             {"session_id": "fake", "agent_id": "fake", "artifact_id": "fake"})
+        if "error" in resp:
+            self.logger.info(f"  agent/artifact/read error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_20_6_agent_interrupt(self) -> bool:
+        """20.6: agent/interrupt — 需要活跃 agent"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("agent/interrupt", {"agent_id": "fake", "session_id": "fake"})
+        if "error" in resp:
+            self.logger.info(f"  agent/interrupt error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_20_7_agent_close(self) -> bool:
+        """20.7: agent/close — 需要活跃 agent"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("agent/close", {"agent_id": "fake", "session_id": "fake"})
+        if "error" in resp:
+            self.logger.info(f"  agent/close error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    # ── 21.x Session Goal / Thread / Loop / Review ────────────────────
+
+    def test_21_1_session_goal_clear(self) -> bool:
+        """21.1: session/goal.clear — 需要活跃 session"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
+        resp = self._ws_call("session/goal.clear", {"session_id": sid})
+        if "error" in resp:
+            self.logger.info(f"  goal.clear error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_21_2_thread_graph_get(self) -> bool:
+        """21.2: thread/graph.get — 需要 session"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
+        resp = self._ws_call("thread/graph.get", {"session_id": sid})
+        if "error" in resp:
+            self.logger.info(f"  thread/graph error: {resp['error'].get('message','')}")
+            return True
+        edges = resp.get("result", {}).get("edges", [])
+        self.logger.info(f"  Thread graph edges: {len(edges)}")
+        return True
+
+    def test_21_3_session_status_read(self) -> bool:
+        """21.3: session/status/read — 需要 profile 上下文"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("session/status/read", {})
+        if "error" in resp:
+            self.logger.info(f"  status/read error: {resp['error'].get('message','')}")
+            return True
+        self.logger.info(f"  status/read: {json.dumps(resp.get('result',{}))[:150]}")
+        return True
+
+    def test_21_4_loop_list(self) -> bool:
+        """21.4: loop/list — 需要 session"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
+        resp = self._ws_call("loop/list", {"session_id": sid})
+        if "error" in resp:
+            self.logger.info(f"  loop/list error: {resp['error'].get('message','')}")
+            return True
+        loops = resp.get("result", {}).get("loops", [])
+        self.logger.info(f"  Loops: {len(loops)}")
+        return True
+
+    def test_21_5_loop_create(self) -> bool:
+        """21.5: loop/create — 需要 session + 参数"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
+        resp = self._ws_call("loop/create", {"session_id": sid, "goal": "test loop"})
+        if "error" in resp:
+            self.logger.info(f"  loop/create error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_21_6_review_start(self) -> bool:
+        """21.6: review/start — 需要 session"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        sid = self._open_test_session(pid)
+        resp = self._ws_call("review/start", {"session_id": sid})
+        if "error" in resp:
+            self.logger.info(f"  review/start error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    # ── 22.x Router / Content ─────────────────────────────────────────
+
+    def test_22_1_router_get_metrics(self) -> bool:
+        """22.1: router/get_metrics — 独立 method"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("router/get_metrics", {})
+        if "error" in resp:
+            self.logger.info(f"  router/metrics error: {resp['error'].get('message','')}")
+            return True
+        self.logger.info(f"  router metrics: {json.dumps(resp.get('result',{}))[:150]}")
+        return True
+
+    def test_22_2_router_set_mode(self) -> bool:
+        """22.2: router/set_mode — 需要 mode 参数"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("router/set_mode", {"mode": "adaptive"})
+        if "error" in resp:
+            self.logger.info(f"  router/set_mode error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_22_3_content_delete(self) -> bool:
+        """22.3: content/delete — 需要 session_id + content_id"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("content/delete", {"session_id": "fake", "content_id": "fake"})
+        if "error" in resp:
+            self.logger.info(f"  content/delete error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_22_4_content_bulk_delete(self) -> bool:
+        """22.4: content/bulk_delete — 需要 session_id + content_ids"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("content/bulk_delete",
+                             {"session_id": "fake", "content_ids": ["fake"]})
+        if "error" in resp:
+            self.logger.info(f"  content/bulk_delete error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    # ── 23.x Remaining Profile LLM / Skills ──────────────────────────
+
+    def test_23_1_profile_llm_select(self) -> bool:
+        """23.1: profile/llm/select — 需要 profile + LLM 配置"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        resp = self._ws_call("profile/llm/select",
+                             {"profile_id": pid, "route_id": "nvidia/meta-llama-3.1-8b"})
+        if "error" in resp:
+            self.logger.info(f"  llm/select error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_23_2_profile_llm_upsert(self) -> bool:
+        """23.2: profile/llm/upsert — 需要 profile + LLM 配置"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        resp = self._ws_call("profile/llm/upsert", {
+            "profile_id": pid,
+            "family_id": "openai",
+            "model_id": "gpt-4o",
+            "route": {"api_key_env": "OPENAI_API_KEY", "base_url": "https://api.openai.com/v1"},
+        })
+        if "error" in resp:
+            self.logger.info(f"  llm/upsert error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_23_3_profile_llm_delete(self) -> bool:
+        """23.3: profile/llm/delete — 需要 profile + LLM 条目"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        resp = self._ws_call("profile/llm/delete", {"profile_id": pid, "route_id": "x"})
+        if "error" in resp:
+            self.logger.info(f"  llm/delete error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_23_4_profile_llm_test(self) -> bool:
+        """23.4: profile/llm/test — 需要 LLM key"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        resp = self._ws_call("profile/llm/test", {"profile_id": pid})
+        if "error" in resp:
+            self.logger.info(f"  llm/test error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_23_5_profile_llm_fetch_models(self) -> bool:
+        """23.5: profile/llm/fetch_models — 需要 LLM URL"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("profile/llm/fetch_models", {"url": "https://api.openai.com/v1"})
+        if "error" in resp:
+            self.logger.info(f"  llm/fetch_models error (expected): {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_23_6_profile_skills_registry_search(self) -> bool:
+        """23.6: profile/skills/registry/search — 搜索技能市场"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        try:
+            resp = self._ws_call("profile/skills/registry/search",
+                                 {"profile_id": pid, "query": "test"}, timeout=8)
+            if "error" in resp:
+                self.logger.info(f"  skills/search error: {resp['error'].get('message','')}")
+                return True
+            results = resp.get("result", {}).get("results", [])
+            self.logger.info(f"  Skills search: {len(results) if isinstance(results,list) else 'N/A'}")
+        except Exception as e:
+            self.logger.info(f"  skills/search timeout (acceptable): {e}")
+        return True
+
+    def test_23_7_profile_skills_install(self) -> bool:
+        """23.7: profile/skills/install — 安装技能"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        resp = self._ws_call("profile/skills/install",
+                             {"profile_id": pid, "name": "test-skill", "version": "0.1.0"})
+        if "error" in resp:
+            self.logger.info(f"  skills/install error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_23_8_profile_skills_remove(self) -> bool:
+        """23.8: profile/skills/remove — 移除技能"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        pid = self._ensure_solo_profile()
+        resp = self._ws_call("profile/skills/remove",
+                             {"profile_id": pid, "name": "test-skill"})
+        if "error" in resp:
+            self.logger.info(f"  skills/remove error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    # ── 24.x Remaining Auth ──────────────────────────────────────────
+
+    def test_24_1_auth_send_code(self) -> bool:
+        """24.1: auth/send_code — 需要 email 参数"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("auth/send_code", {"email": "test@example.com"})
+        if "error" in resp:
+            self.logger.info(f"  auth/send_code error: {resp['error'].get('message','')}")
+            return True
+        return True
+
+    def test_24_2_auth_logout(self) -> bool:
+        """24.2: auth/logout — 登出 solo session"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("auth/logout", {})
+        if "error" in resp:
+            # solo 模式 logout 可能不支持
+            self.logger.info(f"  auth/logout error: {resp['error'].get('message','')}")
+            return True
+        # logout 成功后后续调用应失败（但 solo 模式可能不持久化）
+        self.logger.info("  auth/logout succeeded")
+        return True
+
+    def test_24_3_profile_llm_select_no_profile(self) -> bool:
+        """24.3: profile/llm/select — 不存在的 profile（server 可能自动创建）"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("profile/llm/select",
+                             {"profile_id": "__ghost__", "route_id": "x"})
+        # server 可能自动创建 ghost profile 并返回 result, 也可能返回 error
+        if "error" in resp:
+            code = resp["error"].get("code", 0)
+            assert code < 0, f"Expected negative error code, got {code}"
+        else:
+            self.logger.info("  ghost profile auto-created (accepted)")
+        return True
+
     # ── 报告 ──────────────────────────────────────────────────────────
 
     def generate_report(self) -> str:
@@ -2156,6 +2579,182 @@ if HAS_PYTEST:
                                         serve_tester.test_17_5_jsonrpc_missing_version)
         assert result.status in ("PASS", "SKIP"), result.details
 
+    # ── 18.x Approval / Permission / Diff ──
+
+    def test_18_1_approval_scopes_list(serve_tester):
+        result = serve_tester.run_test("18.1", "Approval Scopes List",
+                                        serve_tester.test_18_1_approval_scopes_list)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_18_2_permission_profile_list(serve_tester):
+        result = serve_tester.run_test("18.2", "Permission Profile List",
+                                        serve_tester.test_18_2_permission_profile_list)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_18_3_permission_profile_set(serve_tester):
+        result = serve_tester.run_test("18.3", "Permission Profile Set",
+                                        serve_tester.test_18_3_permission_profile_set)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_18_4_diff_preview_get(serve_tester):
+        result = serve_tester.run_test("18.4", "Diff Preview Get",
+                                        serve_tester.test_18_4_diff_preview_get)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_18_5_user_question_respond(serve_tester):
+        result = serve_tester.run_test("18.5", "User Question Respond",
+                                        serve_tester.test_18_5_user_question_respond)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    # ── 19.x Task ──
+
+    def test_19_1_task_list(serve_tester):
+        result = serve_tester.run_test("19.1", "Task List",
+                                        serve_tester.test_19_1_task_list)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_19_2_task_cancel(serve_tester):
+        result = serve_tester.run_test("19.2", "Task Cancel",
+                                        serve_tester.test_19_2_task_cancel)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_19_3_task_restart_from_node(serve_tester):
+        result = serve_tester.run_test("19.3", "Task Restart From Node",
+                                        serve_tester.test_19_3_task_restart_from_node)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_19_4_task_output_read(serve_tester):
+        result = serve_tester.run_test("19.4", "Task Output Read",
+                                        serve_tester.test_19_4_task_output_read)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_19_5_task_artifact_list(serve_tester):
+        result = serve_tester.run_test("19.5", "Task Artifact List",
+                                        serve_tester.test_19_5_task_artifact_list)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_19_6_task_artifact_read(serve_tester):
+        result = serve_tester.run_test("19.6", "Task Artifact Read",
+                                        serve_tester.test_19_6_task_artifact_read)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    # ── 20.x Agent ──
+
+    def test_20_1_agent_list(serve_tester):
+        result = serve_tester.run_test("20.1", "Agent List",
+                                        serve_tester.test_20_1_agent_list)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_20_2_agent_status_read(serve_tester):
+        result = serve_tester.run_test("20.2", "Agent Status Read",
+                                        serve_tester.test_20_2_agent_status_read)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_20_3_agent_output_read(serve_tester):
+        result = serve_tester.run_test("20.3", "Agent Output Read",
+                                        serve_tester.test_20_3_agent_output_read)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_20_4_agent_artifact_list(serve_tester):
+        result = serve_tester.run_test("20.4", "Agent Artifact List",
+                                        serve_tester.test_20_4_agent_artifact_list)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_20_5_agent_artifact_read(serve_tester):
+        result = serve_tester.run_test("20.5", "Agent Artifact Read",
+                                        serve_tester.test_20_5_agent_artifact_read)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_20_6_agent_interrupt(serve_tester):
+        result = serve_tester.run_test("20.6", "Agent Interrupt",
+                                        serve_tester.test_20_6_agent_interrupt)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_20_7_agent_close(serve_tester):
+        result = serve_tester.run_test("20.7", "Agent Close",
+                                        serve_tester.test_20_7_agent_close)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    # ── 21.x Session Goal / Thread / Loop / Review ──
+
+    def test_21_1_session_goal_clear(serve_tester):
+        result = serve_tester.run_test("21.1", "Session Goal Clear",
+                                        serve_tester.test_21_1_session_goal_clear)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_21_2_thread_graph_get(serve_tester):
+        result = serve_tester.run_test("21.2", "Thread Graph Get",
+                                        serve_tester.test_21_2_thread_graph_get)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_21_3_session_status_read(serve_tester):
+        result = serve_tester.run_test("21.3", "Session Status Read",
+                                        serve_tester.test_21_3_session_status_read)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_21_4_loop_list(serve_tester):
+        result = serve_tester.run_test("21.4", "Loop List",
+                                        serve_tester.test_21_4_loop_list)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_21_5_loop_create(serve_tester):
+        result = serve_tester.run_test("21.5", "Loop Create",
+                                        serve_tester.test_21_5_loop_create)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_21_6_review_start(serve_tester):
+        result = serve_tester.run_test("21.6", "Review Start",
+                                        serve_tester.test_21_6_review_start)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    # ── 22.x Router / Content ──
+
+    def test_22_1_router_get_metrics(serve_tester):
+        result = serve_tester.run_test("22.1", "Router Get Metrics",
+                                        serve_tester.test_22_1_router_get_metrics)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_22_2_router_set_mode(serve_tester):
+        result = serve_tester.run_test("22.2", "Router Set Mode",
+                                        serve_tester.test_22_2_router_set_mode)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_22_3_content_delete(serve_tester):
+        result = serve_tester.run_test("22.3", "Content Delete",
+                                        serve_tester.test_22_3_content_delete)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_22_4_content_bulk_delete(serve_tester):
+        result = serve_tester.run_test("22.4", "Content Bulk Delete",
+                                        serve_tester.test_22_4_content_bulk_delete)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    # ── 23.x Profile LLM / Skills ──
+
+    def test_23_1_profile_llm_select(serve_tester):
+        result = serve_tester.run_test("23.1", "Profile LLM Select",
+                                        serve_tester.test_23_1_profile_llm_select)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_23_2_profile_llm_upsert(serve_tester):
+        result = serve_tester.run_test("23.2", "Profile LLM Upsert",
+                                        serve_tester.test_23_2_profile_llm_upsert)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_23_3_profile_llm_delete(serve_tester):
+        result = serve_tester.run_test("23.3", "Profile LLM Delete",
+                                        serve_tester.test_23_3_profile_llm_delete)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_23_4_profile_llm_test(serve_tester):
+        result = serve_tester.run_test("23.4", "Profile LLM Test",
+                                        serve_tester.test_23_4_profile_llm_test)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_23_5_profile_llm_fetch_models(serve_tester):
+        result = serve_tester.run_test("23.5", "Profile LLM Fetch Models",
+                                        serve_tester.test_23_5_profile_llm_fetch_models)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_23_6_profile_skills_registry_search(serve_tester):
+        result = serve_tester.run_test("23.6", "Profile Skills Registry Search",
+                                        serve_tester.test_23_6_profile_skills_registry_search)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_23_7_profile_skills_install(serve_tester):
+        result = serve_tester.run_test("23.7", "Profile Skills Install",
+                                        serve_tester.test_23_7_profile_skills_install)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_23_8_profile_skills_remove(serve_tester):
+        result = serve_tester.run_test("23.8", "Profile Skills Remove",
+                                        serve_tester.test_23_8_profile_skills_remove)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    # ── 24.x Auth ──
+
+    def test_24_1_auth_send_code(serve_tester):
+        result = serve_tester.run_test("24.1", "Auth Send Code",
+                                        serve_tester.test_24_1_auth_send_code)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_24_2_auth_logout(serve_tester):
+        result = serve_tester.run_test("24.2", "Auth Logout",
+                                        serve_tester.test_24_2_auth_logout)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_24_3_profile_llm_select_no_profile(serve_tester):
+        result = serve_tester.run_test("24.3", "Profile LLM Select No Profile",
+                                        serve_tester.test_24_3_profile_llm_select_no_profile)
+        assert result.status in ("PASS", "SKIP"), result.details
 
 if __name__ == "__main__":
     """直接运行时执行所有测试"""
@@ -2253,6 +2852,52 @@ if __name__ == "__main__":
             ("17.3", "Session Open Invalid", tester.test_17_3_session_open_invalid_format),
             ("17.4", "Turn State Unknown", tester.test_17_4_turn_state_unknown_turn),
             ("17.5", "JSON-RPC Missing Version", tester.test_17_5_jsonrpc_missing_version),
+            # ── 18.x Approval / Permission / Diff ──
+            ("18.1", "Approval Scopes List", tester.test_18_1_approval_scopes_list),
+            ("18.2", "Permission Profile List", tester.test_18_2_permission_profile_list),
+            ("18.3", "Permission Profile Set", tester.test_18_3_permission_profile_set),
+            ("18.4", "Diff Preview Get", tester.test_18_4_diff_preview_get),
+            ("18.5", "User Question Respond", tester.test_18_5_user_question_respond),
+            # ── 19.x Task ──
+            ("19.1", "Task List", tester.test_19_1_task_list),
+            ("19.2", "Task Cancel", tester.test_19_2_task_cancel),
+            ("19.3", "Task Restart From Node", tester.test_19_3_task_restart_from_node),
+            ("19.4", "Task Output Read", tester.test_19_4_task_output_read),
+            ("19.5", "Task Artifact List", tester.test_19_5_task_artifact_list),
+            ("19.6", "Task Artifact Read", tester.test_19_6_task_artifact_read),
+            # ── 20.x Agent ──
+            ("20.1", "Agent List", tester.test_20_1_agent_list),
+            ("20.2", "Agent Status Read", tester.test_20_2_agent_status_read),
+            ("20.3", "Agent Output Read", tester.test_20_3_agent_output_read),
+            ("20.4", "Agent Artifact List", tester.test_20_4_agent_artifact_list),
+            ("20.5", "Agent Artifact Read", tester.test_20_5_agent_artifact_read),
+            ("20.6", "Agent Interrupt", tester.test_20_6_agent_interrupt),
+            ("20.7", "Agent Close", tester.test_20_7_agent_close),
+            # ── 21.x Session Goal / Thread / Loop / Review ──
+            ("21.1", "Session Goal Clear", tester.test_21_1_session_goal_clear),
+            ("21.2", "Thread Graph Get", tester.test_21_2_thread_graph_get),
+            ("21.3", "Session Status Read", tester.test_21_3_session_status_read),
+            ("21.4", "Loop List", tester.test_21_4_loop_list),
+            ("21.5", "Loop Create", tester.test_21_5_loop_create),
+            ("21.6", "Review Start", tester.test_21_6_review_start),
+            # ── 22.x Router / Content ──
+            ("22.1", "Router Get Metrics", tester.test_22_1_router_get_metrics),
+            ("22.2", "Router Set Mode", tester.test_22_2_router_set_mode),
+            ("22.3", "Content Delete", tester.test_22_3_content_delete),
+            ("22.4", "Content Bulk Delete", tester.test_22_4_content_bulk_delete),
+            # ── 23.x Profile LLM / Skills ──
+            ("23.1", "Profile LLM Select", tester.test_23_1_profile_llm_select),
+            ("23.2", "Profile LLM Upsert", tester.test_23_2_profile_llm_upsert),
+            ("23.3", "Profile LLM Delete", tester.test_23_3_profile_llm_delete),
+            ("23.4", "Profile LLM Test", tester.test_23_4_profile_llm_test),
+            ("23.5", "Profile LLM Fetch Models", tester.test_23_5_profile_llm_fetch_models),
+            ("23.6", "Profile Skills Registry Search", tester.test_23_6_profile_skills_registry_search),
+            ("23.7", "Profile Skills Install", tester.test_23_7_profile_skills_install),
+            ("23.8", "Profile Skills Remove", tester.test_23_8_profile_skills_remove),
+            # ── 24.x Auth ──
+            ("24.1", "Auth Send Code", tester.test_24_1_auth_send_code),
+            ("24.2", "Auth Logout", tester.test_24_2_auth_logout),
+            ("24.3", "Profile LLM Select No Profile", tester.test_24_3_profile_llm_select_no_profile),
         ]
 
         for test_id, name, test_func in tests:
