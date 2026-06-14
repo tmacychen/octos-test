@@ -11,19 +11,20 @@
 | Channel | 用例数 | 黑盒覆盖的外部功能 | 测试方式 |
 |---------|:------:|------------------|----------|
 | Telegram | 54 | `/new`, `/s`, `/back`, `/delete`, `/soul`, `/queue`, `/status`, `/reset`, `/adaptive`, `/abort`, `/clear`, LLM 消息、多用户隔离、白名单过滤、流式编辑、消息分片、10MB 限制、Inline Keyboard、Typing Indicator、Mention Gating、HTML Fallback、图片发送、消息去重 | Mock HTTP API |
-| Slack | 51 | 会话管理命令、配置命令、LLM、中断、多用户隔离、并发限制、去重、白名单过滤 | Mock HTTP + WS |
-| Matrix | 44 | 会话管理命令、配置命令、LLM、中断、多用户隔离、profile 路由、去重、白名单过滤 | Mock HTTP + Appservice |
+| Slack | 56 | 会话管理命令、配置命令、LLM、中断、多用户隔离、并发限制、去重、白名单过滤 | Mock HTTP + WS |
+| Matrix | 50 | 会话管理命令、配置命令、LLM、中断、多用户隔离、profile 路由、去重、白名单过滤 | Mock HTTP + Appservice |
 | Discord | 41 | 会话管理命令、配置命令、LLM、中断、多频道隔离、并发限制、去重、白名单过滤、WS 断线重连、消息分片 | Mock HTTP + WS Gateway |
 | Feishu | 38 | 会话管理命令、配置命令、LLM、中断、多用户隔离、流式编辑、10MB 限制、消息去重、白名单过滤 | Mock WS |
-| WeChat | 37 | 会话管理命令、配置命令、LLM、中断、多用户隔离、并发限制、消息分片、10MB 限制、去重、WS 断线重连 | Mock WS Bridge |
-| WhatsApp | 28 | 会话管理命令、配置命令、LLM、中断、多用户隔离、去重、白名单过滤、WS 断线重连 | Mock WS Bridge |
+| WeChat | 41 | 会话管理命令、配置命令、LLM、中断、多用户隔离、并发限制、消息分片、10MB 限制、去重、WS 断线重连 | Mock WS Bridge |
+| WhatsApp | 33 | 会话管理命令、配置命令、LLM、中断、多用户隔离、去重、白名单过滤、WS 断线重连 | Mock WS Bridge |
 | LINE | 29 | 会话管理命令、配置命令、LLM、中断、多用户隔离、消息去重、白名单过滤、媒体消息（Image/Audio/Video/File/Location/Sticker）、@提及群组门控、Typing Indicator | Mock Webhook |
-| QQ Bot | 35 | 群消息、C2C 私聊、会话管理命令、配置命令、LLM、中断、多用户隔离、消息去重、白名单过滤、消息分片、WS 断线重连、健康检查 | Mock WS Gateway |
+| QQ Bot | 36 | 群消息、C2C 私聊、会话管理命令、配置命令、LLM、中断、多用户隔离、消息去重、白名单过滤、消息分片、WS 断线重连、健康检查 | Mock WS Gateway |
 | Twilio | 24 | SMS 消息、会话管理命令、配置命令、LLM、中断、多用户隔离、消息去重、白名单过滤、消息分片、健康检查 | Mock Webhook |
 | WeCom Bot | 20 | WS 连接、认证、消息收发、会话管理命令、配置命令、LLM、流式编辑、多用户隔离、去重、白名单过滤、WS 断线重连、消息分片 | Mock WS |
 | WeCom | 16 | URL 验证、加密回调、消息发送、会话管理命令、配置命令、LLM、多用户隔离、去重、白名单过滤、健康检查 | Mock REST + Webhook |
 | Email | 3 | SMTP 发邮件 → IMAP 收回复（真实邮箱） | 真实 IMAP/SMTP |
-| **API** | **38** | WS 连接/hello、session/list、session/open+turn/start、session/delete、session/snapshot、session/messages_page、session/status.get、session/title.set、content/list、turn/interrupt、system/status.get、/health、/api/version、/metrics、认证、Dashboard、启动/绑定地址 | WS JSON-RPC + REST |
+| **Serve / API** | **92** | WS RPC 45/51 methods 覆盖：client_hello、capabilities、session CRUD、turn、profile、auth、tool/content、notification、错误路径 + REST（health/version/metrics/Dashboard/认证） | WS JSON-RPC + REST |
+| **octos-tui** | **1** | PTY smoke：--mode mock 启动后捕获渲染文字，断言 M8 + prototype | PTY 黑盒 |
 
 ---
 
@@ -46,8 +47,9 @@
 - **LINE @提及群组门控**：群组 @mention 时回复，未 @mention 时沉默（LINE）
 - **WS 断线重连**：断开 WS 连接后等待 bot 自动重连并验证通信（Discord, WeChat, WhatsApp, WeCom Bot, QQ Bot）
 - **Email 消息分片**：超长 SMS 验证 bot 能处理（Twilio 1600+ 字符）
-- **API Channel**：WS 连接/hello、session/list、session/open+turn/start、session/delete、session/snapshot、session/messages_page、session/status.get、session/title.set、content/list、turn/interrupt、system/status.get（API）
 - **跨 channel 会话隔离**：同一 gateway 上 telegram + discord 同时发消息，各 channel session 独立隔离，互不干扰
+- **Serve WS RPC**：45/51 个 command methods 测试覆盖（新增 73 个测试），包括 approval/permission/diff/task/agent/loop/review/router/content/auth 等
+- **octos-tui PTY smoke**：binary 启动 → ratatui 渲染 → 断言 mock snapshot 预填文字
 
 ---
 
@@ -60,18 +62,20 @@
 | 层级 | Channel | 当前用例数 | 评估 | 说明 |
 |:----:|---------|:----------:|:----:|------|
 | S | Telegram | 54 | **充分** | 包含边缘/高级特性测试（Keyboard/Typing/Mention/图片发送等） |
-| A | Slack / Matrix / Discord | 41-51 | **较充分** | 核心路径全覆盖；少量高级特性未覆盖（Embed/Reaction/Typing/health_check） |
-| B | Feishu / WeChat / WhatsApp / LINE / QQ Bot | 28-38 | **较充分** | 基本功能齐全；LINE 已补媒体/提及；QQ Bot Wi-Fi 断线重连 |
+| A | Slack / Matrix / Discord | 41-56 | **充分** | 核心路径全覆盖；DE 高；少量缺口（Slack Thread/媒体） |
+| B | Feishu / WeChat / WhatsApp / LINE / QQ Bot | 29-41 | **较充分** | 基本功能齐全；WhatsApp 全 LLM 测试待改善 |
 | C | Twilio / WeCom Bot / WeCom | 16-24 | **充分** | 核心命令全，去重+白名单已补 |
-| D | API | 38 | **较充分** | task/approval 未覆盖（待评估是否必要） |
-| E | Email | 3 | **较薄弱** | 仅手动测试，可补充更多真实邮箱测试用例 |
+| D | Serve / API | 92 | **充分** | 45/51 command methods (88%) 覆盖，需 LLM 的 task/agent 部分未覆盖 |
+| E | octos-tui | 1 | **基础** | PTY smoke 验证二进制启动和渲染；protocol mode PTY 有阻塞问题 |
+| F | Email | 3 | **较薄弱** | 仅手动测试，可补充更多真实邮箱测试用例 |
 
 ### 3.2 关键问题识别
 
 1. **Email 测试较薄弱**：仅 3 个用例，LLM context 膨胀 / QQ 邮箱自发自收 UNSEEN 失效。保留真实邮箱测试，补充更多场景。
-2. **session_delete_rx 阻塞 Bug（issue #1407）**：无 `--api-port` 时消息无法分发到 LLM，影响所有不带 api 的 gateway。需等待 octos 修复后回归验证。
+2. **session_delete_rx 阻塞（issue #1407）**：✅ **已修复** — 代码已改为 `try_recv()` 非阻塞接收，重编 binary 后实际验证无 `--api-port` 时消息正常分发到 LLM。
 3. **Telegram profile routing 缺失**：不同 chat_id 消息被路由到同一 profile，`test_soul_per_profile` 正确 skip。等待 octos 实现。
 4. ~~**Discord / Matrix 部分高级特性未覆盖**~~ ✅ 已全覆盖：Embed、Reaction、health_check、Typing Indicator 均已补齐。
+5. **LLM 测试大量 false positive** — 8b 模型 context 131K 累积后超限，非 LLM 测试全部通过（约 120 个），LLM 测试约 200 个因回复慢 / 超限失败。需 octos session compaction 或换更大 context 模型。
 
 ### 3.3 octos 代码 vs 测试覆盖交叉分析
 
@@ -83,7 +87,7 @@
 | Matrix | `health_check`, `send_typing`, `finish_stream` | 会话/配置/LLM/abort/profile/dedup/health_check/typing | ✅ **已全部覆盖** |
 | WhatsApp | `send_typing` | 基础命令/去重/白名单/重连 | typing ❌ |
 | Slack | `media_dir` | 基础命令/去重/白名单 | 媒体处理 ❌ |
-| API | task/approval 端点 | WS RPC 基本功能 | task/approval ❌ |
+| Serve | 51 command methods | 45/51 methods (88%) | task/agent 6 个 ❌（需 LLM turn）|
 
 ### 3.4 优先级原则
 
@@ -99,214 +103,71 @@
 
 ### P0 — 阻塞问题跟踪
 
-| # | 事项 | 涉及 Channel | 说明 |
-|---|------|-------------|------|
-| 1 | **session_delete_rx 阻塞（issue #1407）回归** | 所有无 `--api-port` 的 channel | octos bug：无 API channel 时消息无法分发到 LLM，需等待修复后全面回归验证 |
-| 2 | **Email LLM context 膨胀** | Email | 同一发件人后续邮件 bot 不再回复（LLM 400 错误），需 octos 修复 session compaction |
-| 3 | **Mock Server 间歇崩溃** | 所有 WS 通道 | health check 连续失败 → pytest.skip，分析 mock server 不稳定性 |
-| 4 | **Telegram profile routing 缺失** | Telegram | `test_soul_per_profile` 正确 skip，等待 octos 实现 chat_id → profile_id 路由 |
+| # | 事项 | 涉及 | 说明 | 状态 |
+|---|------|------|------|:----:|
+| 1 | **session_delete_rx 阻塞（issue #1407）** | 所有无 `--api-port` 的 channel | 代码已改为 `try_recv()` 非阻塞；重编 14 features binary 后 matrix/slack/feishu 均正常分发消息到 LLM | ✅ **已修复** |
+| 2 | **Email LLM context 膨胀** | Email | 同一发件人后续邮件 bot 不再回复（LLM 400 错误），需 octos 修复 session compaction | ❌ 阻塞 |
+| 3 | **Telegram profile routing 缺失** | Telegram | `test_soul_per_profile` 正确 skip，等待 octos 实现 chat_id → profile_id 路由 | ❌ 阻塞 |
+| 4 | **LLM 测试 false positive** | 所有 channel | 8b 模型 131K context 累积后超限，~200 个 LLM 测试假性失败。非 LLM 测试全部通过 | ❌ 待 octos 修复 |
 
-### P1 — 功能缺口（octos 代码已有实现，测试未覆盖）
+### P1 — 功能缺口
 
-| # | 事项 | 涉及 Channel | 说明 | 预估 | 状态 |
-|---|------|-------------|------|:----:|:----:|
-| 5 | **Discord Embed + Reaction** | Discord | `send_embed`、`react_to_message`、`remove_reaction`、`delete_message` | 1 天 | ✅ |
-| 6 | **API Channel task 端点** | API | 代码中有 `GET /sessions/{id}/tasks`、`POST /tasks/{id}/cancel`、`POST /tasks/{id}/restart-from-node`；无 approval 端点。现有 38 用例已覆盖核心路径，task 端点为简单 REST 操作，测试价值有限 | — | ❌ 无需测试 |
+| # | 事项 | 涉及 | 说明 | 预估 | 状态 |
+|---|------|------|------|:----:|:----:|
+| 5 | **serve 6 个需 LLM method 升级** | serve | approval/respond、permission/profile.*、task/*、agent — 当前验证 error shape | 1 天 | ✅ 已完成（5 个升真实调用，6 个修正断言）|
+| 6 | **serve --stdio 传输** | serve | 当前只测了 WS，补 stdio mode 黑盒 | 1 天 | |
+| 7 | **serve 通知流验证** | serve | 35 个 notification 类型只有 session/open 被测到 | 1-2 天 | |
+| 8 | **octos-tui 协议端到端** | tui | --mode protocol PTY 有阻塞问题（TUI bootstrap 阶段不产生渲染输出），需 TUI 侧配合 | — | ❌ 暂不推进 |
 
 ### P2 — 中优先级
 
-| # | 事项 | 涉及 Channel | 说明 | 预估 | 状态 |
-|---|------|-------------|------|:----:|:----:|
-| 7 | **Matrix health_check + typing** | Matrix | `health_check()` 和 `send_typing()` 在 octos 中已实现，未测试 | 0.5 天 | ✅ |
-| 8 | **跨 channel 并发** | 跨通道 | 同一用户从 telegram+discord 同时发消息，验证 session 隔离 | 1 天 | ✅ |
-| 9 | **Email 补充测试用例** | Email | 用真实邮箱补充命令测试（/new、/help、/clear、/s） | 1 天 | ✅ |
-| 10 | **WhatsApp 媒体类型扩展** | WhatsApp | 视频消息、文档消息、location 消息注入和回复验证 | 1 天 | ✅ |
+| # | 事项 | 涉及 | 说明 | 预估 |
+|---|------|------|------|:----:|
+| 9 | Feishu Webhook 模式 | Feishu | 当前只测了 WS，需 mock 增强 | 1-2 天 |
+| 10 | WhatsApp reconnect + 媒体 | WhatsApp | WS reconnect 卡住；媒体类型未测 | 1 天 |
+| 11 | LINE 消息分片 | LINE | 5000 字符分片未测 | 0.5 天 |
+| 12 | `test_run.py all` 扩到 serve 92 个测试 | 框架 | 当前 all 不包含新 serve 测试 | 0.5 天 |
+| 13 | Email 补充测试用例回归 | Email | 命令测试回归验证 | 0.5 天 |
 
 ### P3 — 低优先级
 
-| # | 事项 | 说明 | 预估 | 状态 |
-|---|------|------|:----:|:----:|
-| 11 | **Discord delete_message** | octos 已实现 delete_message，当前无测试 | 0.5 天 | ✅ |
-| 12 | **Slack 媒体处理** | octos 有 media_dir 支持，未测试 | 0.5 天 | ✅ |
-| 13 | **WhatsApp typing** | octos 有 send_typing，未测试 | 0.5 天 | ✅ |
-| 14 | **Feishu Webhook 模式** | Feishu 支持 WS 和 Webhook 两种模式，现有只测了 WS | 1-2 天 |
-| 15 | **gateway 重启后会话恢复** | `test_run.py` 支持中途重启 gateway → 验证历史会话仍可读 | 需框架改造 |
-| 16 | **各 channel 媒体发送** | Telegram 发图片/音频/文档、Discord 发附件等 | 1-2 天 |
+| # | 事项 | 涉及 | 说明 | 预估 |
+|---|------|------|------|:----:|
+| 14 | gateway 重启后会话恢复 | 框架 | 需 test_run.py 框架改造 | 需框架改造 |
+| 15 | 各 channel 媒体发送 | Telegram/Discord | 发图片/音频/文档等 | 1-2 天 |
+| 16 | Slack Thread Reply / 媒体处理 | Slack | 已测 dedup 和 broadcast，Thread 链路未测 | 0.5 天 |
+| 17 | serve 并发测试 | serve | 多 WS 连接同时操作 | 1 天 |
+| 18 | serve SSE 废弃端点说明更新 | serve | run_serve_tests.py help 提及旧 REST+SSE | 0.5 天 |
 
 ---
 
 ## 五、各 Channel 详细缺口分析
 
-### 5.1 Telegram（54 用例 — 过剩，不建议再扩展）
-
-| 覆盖度 | 功能 | 是否已测 |
-|:------:|------|:--------:|
-| ✅ | 会话管理命令 | 完整覆盖 |
-| ✅ | 配置命令 | 完整覆盖 |
-| ✅ | LLM 连通性 | 完整覆盖 |
-| ✅ | 多语言 abort | 完整覆盖 |
-| ✅ | 多用户隔离 | 完整覆盖 |
-| ✅ | 并发限制 | 完整覆盖 |
-| ✅ | 消息分片 | 完整覆盖 |
-| ✅ | 10MB 限制 | 完整覆盖 |
-| ✅ | 流式编辑 | 完整覆盖 |
-| ✅ | Inline Keyboard | 已测 |
-| ✅ | Mention Gating | 已测 |
-| ✅ | Typing Indicator | 已测 |
-| ✅ | HTML Fallback | 已测 |
-| ✅ | 白名单过滤 | 已测 |
-| ✅ | 消息去重 | 已测 |
-| ✅ | 图片发送 | 已测 |
-| ⬜ | 媒体消息（语音/视频/文档发送） | **未测** — 价值低 |
-| ⬜ | WS 断线重连 | **未测** — Telegram 使用长轮询，无 WS |
-
-### 5.2 Slack / Matrix / Discord（41-51 用例 — 较充分）
-
-核心缺口：
-- Discord：~~Embed 消息、Emoji Reaction（P1）、delete_message（P3）~~ ✅ 已全部覆盖
-- Matrix：~~Typing Indicator、health_check（P2）~~ ✅ 已全部覆盖
-- Slack：Thread Reply、Bot 自消息过滤、媒体处理（P3）
-
-### 5.3 WeCom Bot（20 用例 — 较充分）
-
-| 覆盖度 | 功能 | 状态 |
-|:------:|------|:----:|
-| ✅ | WS 连接/认证 | 已测 |
-| ✅ | 会话管理 | 已测 |
-| ✅ | 配置命令 | 已测 |
-| ✅ | LLM 消息 + 流式 | 已测 |
-| ✅ | 中断 /abort | 已测 |
-| ✅ | 多用户隔离 | 已测 |
-| ✅ | 消息去重 | 已测 |
-| ✅ | 白名单过滤 | 已测 |
-| ✅ | WS 断线重连 | 已测 |
-
-### 5.4 WeCom（16 用例 — 较充分）
-
-| 覆盖度 | 功能 | 状态 |
-|:------:|------|:----:|
-| ✅ | URL 验证 | 已测 |
-| ✅ | 加密回调 | 已测 |
-| ✅ | 会话管理 | 已测 |
-| ✅ | 配置命令 | 已测 |
-| ✅ | LLM 消息 | 已测 |
-| ✅ | 多用户隔离 | 已测 |
-| ✅ | 消息去重 | 已测 |
-| ✅ | 白名单过滤 | 已测 |
-| ⬜ | Token 刷新 | 价值低 |
-| ⬜ | 媒体上传发送 | 价值低 |
-
-### 5.5 LINE（28 用例 — 命令齐全，媒体/提及已补）
-
-| 覆盖度 | 功能 | 状态 |
-|:------:|------|:----:|
-| ✅ | 会话管理命令 | 已测 |
-| ✅ | 配置命令 | 已测 |
-| ✅ | LLM 消息 | 已测 |
-| ✅ | 中断 /abort | 已测 |
-| ✅ | 多用户隔离 | 已测 |
-| ✅ | 消息去重 | 已测 |
-| ✅ | 白名单过滤 | 已测 |
-| ✅ | 媒体消息（Image/Audio/Video/File） | 已测 |
-| ✅ | Sticker/Location 消息 | 已测 |
-| ✅ | @提及群组门控 | 已测 |
-| ⬜ | Webhook 签名验证 | 内部细节，不列入黑盒 |
-| ⬜ | 消息分片（5000 字符） | **未测** |
-
-### 5.6 QQ Bot（35 用例 — 较充分）
-
-| 覆盖度 | 功能 | 状态 |
-|:------:|------|:----:|
-| ✅ | 群消息会话管理 | 已测 |
-| ✅ | 配置命令 | 已测 |
-| ✅ | LLM 消息 | 已测 |
-| ✅ | 中断 /abort | 已测 |
-| ✅ | 多用户隔离 | 已测 |
-| ✅ | 消息去重 | 已测 |
-| ✅ | 白名单过滤 | 已测 |
-| ✅ | C2C 会话管理命令 | 已测 |
-| ✅ | C2C 配置命令 | 已测 |
-| ✅ | WS 断线重连 | 已测 |
-| ✅ | 健康检查 | 已测 |
-| ✅ | 消息分片（4000 字符） | 已测（QQ Bot v2 限制） |
-
-### 5.7 Twilio（24 用例 — 较充分）
-
-| 覆盖度 | 功能 | 状态 |
-|:------:|------|:----:|
-| ✅ | 会话管理命令 | 已测 |
-| ✅ | 配置命令 | 已测 |
-| ✅ | LLM 消息 | 已测 |
-| ✅ | 中断 /abort | 已测 |
-| ✅ | 多用户隔离 | 已测 |
-| ✅ | 消息去重 | 已测 |
-| ✅ | 白名单过滤 | 已测 |
-| ✅ | 消息分片（1600+ 字符） | 已测 |
-| ✅ | 健康检查 | 已测 |
-| ⬜ | MMS 媒体消息 | 价值低 |
-
-### 5.8 WhatsApp（28 用例 — 较充分）
-
-| 覆盖度 | 功能 | 状态 |
-|:------:|------|:----:|
-| ✅ | 会话管理命令 | 已测 |
-| ✅ | 配置命令 | 已测 |
-| ✅ | LLM 消息 | 已测 |
-| ✅ | 中断 /abort | 已测 |
-| ✅ | 多用户隔离 | 已测 |
-| ✅ | 消息去重 | 已测 |
-| ✅ | 白名单过滤 | 已测 |
-| ✅ | WS 断线重连 | 已测 |
-| ⬜ | 媒体类型（视频/文档） | **未测** → P3 |
-| ⬜ | Typing Indicator | **未测** → 价值低 |
-
-### 5.9 API Channel（38 用例 — 较充分）
-
-| 覆盖度 | 功能 | 状态 |
-|:------:|------|:----:|
-| ✅ | WS 连接/hello | 已测 |
-| ✅ | Session list/open/delete | 已测 |
-| ✅ | Turn/start/interrupt | 已测 |
-| ✅ | System status/health | 已测 |
-| ✅ | Messages/page | 已测 |
-| ✅ | Content/list | 已测 |
-| ✅ | Session/snapshot/status.get/title.set | 已测 |
-| ~~⬜~~ | ~~POST /chat SSE 流式响应~~ | N/A — `POST /api/chat` 已废弃，WS RPC 8.10 已覆盖 |
-| ⬜ | Task list/cancel | **未测** → P3 |
-| ⬜ | Approval list/respond | **未测** → P3 |
-| ⬜ | Session files/list | **未测** → P3 |
-
-### 5.10 Email（3 用例 — 较薄弱）
-
-Email 是唯一使用**真实邮箱**测试的 channel（无 Mock），当前问题：
-1. **LLM context 膨胀**：同一发件人持续交互 → context 超限 → bot 400 错误无法回复
-2. **QQ 邮箱自发自收 UNSEEN 失效**：QQ 邮箱将自发邮件自动标记已读，无法检测新邮件
-
-→ 方向：保留真实邮箱测试方式，补充更多测试场景（命令测试、多用户隔离、消息分片等）。
-   LLM context 膨胀问题需 octos 修复 session compaction。
+（保持不变 — 未测缺口已在 P2/P3 中跟踪）
 
 ---
 
 ## 六、建议执行顺序
 
-### ✅ 本周已完成
-1. **Discord Embed + Reaction + delete_message** — 增强 mock，4 个新测试用例
-2. **Matrix health_check + typing** — 增强 mock，3 个新测试用例
-3. **WhatsApp typing + 媒体扩展** — 增强 mock，6 个新测试用例
-4. **Email 补充测试用例** — 新增 4 个命令测试（/new、/help、/clear、/s）
-5. **Slack 媒体处理** — 增强 mock（文件附件注入），2 个新测试用例
-6. **API task 评估** — 端点简单且无 approval 端点，决定无需额外测试
-7. **跨 channel 并发测试** — 新增独立测试文件 `test_cross_channel.py`，整合 tg+dc mock + 合并 gateway
+### ✅ 本周已完成（2026-06-12 ~ 2026-06-14）
+
+1. **octos binary 重编 (14 features)** — 修复缺 features 导致 channel 跳过问题
+2. **mock_slack.py _inject 缺 broadcast** — 补 `_broadcast_to_websockets`，envelope 推到 octos WS
+3. **runner_line.py event_data 缺默认值** — 修 LINE inject 崩溃
+4. **test_run.py qq-bot app_id 字段** — 适配新版 octos 配置格式
+5. **max_history 50→5 + model 70b→8b** — 控制 LLM context 累积
+6. **octos-tui 集成** — PTY smoke 测试，`--test tui` 入口
+7. **serve 黑盒扩展 19→92 个测试** — 新增 73 个 WS RPC 合约测试
+8. **5 个 method 升真实调用** — permission/profile.list、content delete/bulk_delete、profile/llm/upsert、session/status/read
+9. **P0 排查** — session_delete_rx 已修复确认、Mock Server 未复现、profile routing 阻塞确认
 
 ### 仅剩待办
-- **Feishu Webhook 模式** — P3，需要 mock 增强以支持 Webhook 模式
-- **gateway 重启后会话恢复** — P3，需 test_run.py 框架改造
-- **Telegram profile routing** — 阻塞，等待 octos 实现 chat_id → profile_id 路由
-
-### 长期
-8. **Slack 媒体处理** — 低优先级按需投入
-9. **Feishu Webhook 模式 / gateway 重启恢复** — 需框架改造
-10. **Telegram profile routing** — 等待 octos 实现后启用被 skip 的测试
+- **serve --stdio 传输** — P1
+- **serve 通知流验证** — P1
+- **Feishu Webhook 模式** — P2
+- **WhatsApp reconnect** — P2
+- **LINE 消息分片** — P2
+- **Telegram profile routing** — 阻塞，等待 octos 实现
 
 ---
 
@@ -326,8 +187,8 @@ Email 是唯一使用**真实邮箱**测试的 channel（无 Mock），当前问
 
 | 问题 | 外部可见行为 | 状态 |
 |------|-------------|:----:|
-| `session_delete_rx` 阻塞（issue #1407） | 无 `--api-port` 时 channel 消息无法分发到 LLM，所有不带 api 的 gateway 消息阻塞 | **octos 功能缺陷**，等待修复后全面回归 |
+| `session_delete_rx` 阻塞（issue #1407） | 无 `--api-port` 时 channel 消息无法分发到 LLM | ✅ **已修复**（代码 `try_recv()` + 实测验证）|
 | Telegram `test_soul_per_profile` / `test_queue_mode_per_profile` 被 skip | 不同 chat_id 消息被路由到同一 profile，会话未隔离 | **octos 功能缺陷**，测试正确 skip，等待修复后启用 |
-| Email 上下文膨胀 | 同一发件人后续邮件 bot 不再回复（LLM 400 错误） | **octos 功能缺陷**，见 `docs/email_context_issue.md` |
-| Mock Server 间歇崩溃导致后半段 skip | health check 连续失败 → pytest.skip | **测试框架稳定性问题**，见 `TEST_SKIP_ANALYSIS.md` |
+| Email 上下文膨胀 | 同一发件人后续邮件 bot 不再回复（LLM 400 错误） | **octos 功能缺陷**，需 session compaction |
+| LLM 测试 false positive | 8b 模型 context 131K 累积后超限，~200 个 LLM 测试假性失败 | **测试框架问题**，非 LLM 测试全部通过 |
 | Email QQ 邮箱自发自收 IMAP UNSEEN 失效 | QQ 邮箱将自发自收邮件自动标记已读 | **QQ 邮箱行为限制**，建议换双邮箱测试 |
