@@ -1,31 +1,21 @@
 #!/usr/bin/env python3
-"""Octos TUI test runner.
+"""octos-tui PTY smoke test.
 
-Wraps `cargo test` and an optional `--mode mock` PTY smoke for the sibling
-`octos-tui` Rust crate. The TUI is a standalone repo that depends on
-`octos-core` (pinned rev 2afff187) and ships its own test surface:
+Spawns `octos-tui --mode mock` in a real PTY, captures rendered output,
+and asserts the mock-snapshot's seeded text appears in the stream.
 
-  * 754 lib unit tests (mock-backed, no server needed)
-  * 47 integration tests under tests/*.rs (mock-backed, no server needed)
-  * `appui_ux_fixture` (PTY + fixture, no server needed)
-  * `--mode mock` PTY smoke (spawns the binary, asserts UI text rendered)
+This is octos-test's own black-box test, NOT a wrapper for the TUI's
+`cargo test` suite (which lives in the TUI repo itself).
 
 Subcommands
 -----------
-  smoke         build + spawn --mode mock in a PTY, check welcome markers
-  unit          run cargo test --lib (754 unit tests)
-  integration   run cargo test --tests (10 tests/*.rs files)
-  pty           run cargo test --test appui_ux_fixture
-  all           run unit + integration + pty + smoke (default)
-  list          list available subcommands
-  --help        show help
+  smoke         build + spawn --mode mock in a PTY, check UI text rendered
+  list | --help show help
 
 Environment
 -----------
-  OCTOS_TUI_DIR       path to sibling octos-tui checkout
-                      (default: ../octos-tui relative to this repo)
-  OCTOS_TUI_BIN       path to a prebuilt octos-tui binary
-                      (skips cargo build for smoke/pty checks)
+  OCTOS_TUI_DIR       path to sibling octos-tui checkout (default: ../octos-tui)
+  OCTOS_TUI_BIN       path to a prebuilt octos-tui binary (skips cargo build)
   CARGO_TARGET_DIR    cargo build target dir (default: /tmp/octos-tui-target)
 """
 
@@ -33,7 +23,6 @@ import argparse
 import os
 import re
 import select
-import shutil
 import signal
 import subprocess
 import sys
@@ -57,7 +46,6 @@ def show_help() -> None:
 
 
 def _ensure_tui() -> Path:
-    """Verify the TUI checkout is present. Returns its path."""
     if not (TUI_DIR / "Cargo.toml").exists():
         raise SystemExit(
             f"octos-tui checkout not found at {TUI_DIR}\n"
@@ -68,7 +56,6 @@ def _ensure_tui() -> Path:
 
 def _run(cmd: List[str], cwd: Path, log_path: Optional[Path] = None,
          timeout: Optional[int] = None) -> Tuple[int, str]:
-    """Run a subprocess, stream stdout to log_path (if given), return (rc, text)."""
     print(f"[tui] $ {' '.join(cmd)}  (cwd={cwd})")
     fh = open(log_path, "wb") if log_path else None
     try:
@@ -93,81 +80,25 @@ def _run(cmd: List[str], cwd: Path, log_path: Optional[Path] = None,
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait()
-        text = "".join(chunks)
-        return proc.returncode, text
+        return proc.returncode, "".join(chunks)
     finally:
         if fh:
             fh.close()
 
 
 def cmd_build(release: bool = True) -> bool:
-    """Build octos-tui via cargo."""
     _ensure_tui()
-    profile = "--release" if release else ""
     cmd = ["cargo", "build"]
-    if profile:
-        cmd.append(profile)
-    log_path = Path("/tmp/octos_test/logs/tui_build.log")
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    rc, _ = _run(cmd, cwd=TUI_DIR, log_path=log_path, timeout=600)
+    if release:
+        cmd.append("--release")
+    rc, _ = _run(cmd, cwd=TUI_DIR,
+                 log_path=Path("/tmp/octos_test/logs/tui_build.log"),
+                 timeout=600)
     return rc == 0
 
 
-def cmd_unit() -> Tuple[bool, int, int]:
-    """Run cargo test --lib. Returns (passed, num_passed, num_failed)."""
-    _ensure_tui()
-    cmd = ["cargo", "test", "--lib", "--no-fail-fast"]
-    log_path = Path("/tmp/octos_test/logs/tui_unit.log")
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    rc, text = _run(cmd, cwd=TUI_DIR, log_path=log_path, timeout=600)
-    # parse: "test result: ok. 754 passed; 0 failed; 1 ignored"
-    passed = 0
-    failed = 0
-    for line in text.splitlines():
-        m = re.search(r"(\d+)\s+passed;\s+(\d+)\s+failed", line)
-        if m:
-            passed += int(m.group(1))
-            failed += int(m.group(2))
-    return rc == 0 and failed == 0, passed, failed
-
-
-def cmd_integration() -> Tuple[bool, int, int]:
-    """Run cargo test --tests. Returns (ok, passed, failed)."""
-    _ensure_tui()
-    cmd = ["cargo", "test", "--tests", "--no-fail-fast"]
-    log_path = Path("/tmp/octos_test/logs/tui_integration.log")
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    rc, text = _run(cmd, cwd=TUI_DIR, log_path=log_path, timeout=600)
-    passed = 0
-    failed = 0
-    for line in text.splitlines():
-        m = re.search(r"(\d+)\s+passed;\s+(\d+)\s+failed", line)
-        if m:
-            passed += int(m.group(1))
-            failed += int(m.group(2))
-    return rc == 0 and failed == 0, passed, failed
-
-
-def cmd_pty() -> Tuple[bool, str, str]:
-    """Run cargo test --test appui_ux_fixture (PTY + fixture).
-
-    Returns (ok, log_path, text).
-    """
-    _ensure_tui()
-    cmd = ["cargo", "test", "--test", "appui_ux_fixture", "--", "--nocapture"]
-    log_path = "/tmp/octos_test/logs/tui_pty.log"
-    log_p = Path(log_path)
-    log_p.parent.mkdir(parents=True, exist_ok=True)
-    rc, text = _run(cmd, cwd=TUI_DIR, log_path=log_p, timeout=300)
-    return rc == 0, log_path, text
-
-
 def cmd_smoke() -> Tuple[bool, int, int]:
-    """PTY smoke: spawn --mode mock, assert the rendered text mentions the
-    mock-snapshot's seeded markers. Returns (ok, bytes, sec).
-
-    No required environment. The mock backend is self-contained.
-    """
+    """PTY smoke: spawn --mode mock, assert rendered text contains markers."""
     if not BIN.exists():
         print(f"[tui] smoke: building octos-tui (no binary at {BIN})")
         if not cmd_build():
@@ -216,17 +147,8 @@ def cmd_smoke() -> Tuple[bool, int, int]:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_bytes(bytes(captured))
     raw = ANSI_OSC.sub(b"", ANSI_CSI.sub(b"", bytes(captured))).decode("utf-8", errors="replace")
-    # ratatui writes each cell (character) to its own PTY line, so the final
-    # text is split across lines: "M\n8\nr\nu\nn\nt\ni\nm\ne...".  We strip
-    # all whitespace/control-chars and search for the markers as substrings
-    # of the collapsed form.
     text = "".join(c for c in raw if c.isprintable() or c in " \t")
-    # Mock snapshot seeds a system message and one assistant message; see
-    # MockAppUiBackend::bootstrap in transport.rs.
-    markers = [
-        "M8",
-        "prototype",
-    ]
+    markers = ["M8", "prototype"]
     missing = [m for m in markers if m not in text]
     ok = not missing
     if ok:
@@ -236,9 +158,6 @@ def cmd_smoke() -> Tuple[bool, int, int]:
     return ok, len(captured), int(time.time() - (deadline - 5.0))
 
 
-SUBCOMMANDS = ("smoke", "unit", "integration", "pty", "all", "list")
-
-
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="run_tui_tests",
@@ -246,69 +165,34 @@ def main(argv: Optional[List[str]] = None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="cmd")
-    sub.add_parser("smoke", help="build + spawn --mode mock PTY, check markers")
-    sub.add_parser("unit", help="cargo test --lib (754 unit tests)")
-    sub.add_parser("integration", help="cargo test --tests (10 tests/*.rs files)")
-    sub.add_parser("pty", help="cargo test --test appui_ux_fixture")
-    sub.add_parser("all", help="unit + integration + pty + smoke (default)")
-    sub.add_parser("list", help="list available subcommands")
+    sub.add_parser("smoke", help="build + spawn --mode mock PTY, check UI text")
+    sub.add_parser("list", help="show help")
     parser.add_argument("--no-build", action="store_true",
                         help="skip cargo build (assume binary is up to date)")
     parser.add_argument("--build-only", action="store_true",
-                        help="only build, do not run any test")
+                        help="only build, do not run smoke")
     args, extra = parser.parse_known_args(argv)
+
+    no_build = args.no_build or "--no-build" in extra
+    build_only = args.build_only or "--build-only" in extra
 
     if args.cmd is None or args.cmd == "list":
         show_help()
         return 0
 
-    if not args.no_build and not args.build_only:
+    if not no_build and not build_only:
         if not cmd_build():
             print("[tui] build FAILED")
             return 1
-    if args.build_only:
+    if build_only:
         return 0 if BIN.exists() else 1
 
-    overall_ok = True
     if args.cmd == "smoke":
-        overall_ok, _, _ = cmd_smoke()
-    elif args.cmd == "unit":
-        ok, p, f = cmd_unit()
-        print(f"[tui] unit: passed={p} failed={f}")
-        overall_ok = ok
-    elif args.cmd == "integration":
-        ok, p, f = cmd_integration()
-        print(f"[tui] integration: passed={p} failed={f}")
-        overall_ok = ok
-    elif args.cmd == "pty":
-        ok, log_path, _ = cmd_pty()
-        print(f"[tui] pty: {'PASS' if ok else 'FAIL'} (log: {log_path})")
-        overall_ok = ok
-    elif args.cmd == "all":
-        results = []
-        for name, fn in [
-            ("unit", cmd_unit),
-            ("integration", cmd_integration),
-            ("pty", lambda: cmd_pty()[0:1][0] if isinstance(cmd_pty(), tuple) else cmd_pty()),
-            ("smoke", cmd_smoke),
-        ]:
-            try:
-                if name == "pty":
-                    ok, _, _ = cmd_pty()
-                else:
-                    ok = fn()
-                results.append((name, ok))
-            except Exception as e:  # pragma: no cover
-                print(f"[tui] {name} error: {e}")
-                results.append((name, False))
-        overall_ok = all(ok for _, ok in results)
-        print("[tui] all summary:")
-        for name, ok in results:
-            print(f"  - {name}: {'PASS' if ok else 'FAIL'}")
-    else:
-        parser.print_help()
-        return 2
-    return 0 if overall_ok else 1
+        ok, _, _ = cmd_smoke()
+        return 0 if ok else 1
+
+    parser.print_help()
+    return 2
 
 
 if __name__ == "__main__":

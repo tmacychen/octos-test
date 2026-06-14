@@ -275,8 +275,8 @@ def print_help():
     test_run.py --test email -v         # Email tests, verbose
     test_run.py --test tui              # octos-tui tests (lib + integration + pty + smoke)
     test_run.py --test tui smoke        # octos-tui --mode mock PTY smoke only
-    test_run.py --test tui unit         # octos-tui cargo test --lib only
-    test_run.py --test tui pty          # octos-tui PTY + fixture test only
+    test_run.py --test tui build       # cargo build only (prepare binary)
+    test_run.py --test tui smoke       # PTY smoke (octos-test black-box)
 
   Environment:
     OCTOS_BINARY       Path to octos binary (optional, auto-detected if not set)
