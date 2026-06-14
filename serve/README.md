@@ -12,7 +12,7 @@
 
 唯一 chat 传输路径：`/api/ui-protocol/ws` (JSON-RPC over WebSocket)
 
-## 测试用例列表（19 个）
+## 测试用例列表（53 个）
 
 | 编号 | 功能 | 测试内容 |
 |------|------|----------|
@@ -35,6 +35,40 @@
 | 8.19 | WS turn/interrupt | 中断正在进行的 turn (需 API Key) |
 | 8.12 | Bind Address External | `--host 0.0.0.0` 可从本地访问 ⚠️ |
 | 8.13 | Bind Address Local | 默认绑定 127.0.0.1 ⚠️ |
+| 10.1 | WS Hello Capabilities | client/hello 返回 capabilities（methods + features） |
+| 10.2 | Config Capabilities List | config/capabilities/list 完整能力列表 |
+| 10.3 | WS System Status | system/status.get（无需 profile） |
+| 10.4 | WS Auth Me | auth/me 返回当前身份 |
+| 11.1 | Session List Empty | session/list 无 profile 时的行为 |
+| 11.2 | Profile Local Create | 创建本地 solo profile（onboarding 核心）|
+| 11.3 | Session Open After Profile | profile 创建后 session/open |
+| 11.4 | Session List After Open | 列出已打开的 session |
+| 11.5 | Session Title Set | session/title.set 重命名 + snapshot 验证 |
+| 11.6 | Session Messages Page | 分页消息历史 |
+| 11.7 | Session Status Get | 单会话状态轮询 |
+| 11.8 | Session Files List | 文件列表 |
+| 11.9 | Session Tasks List | 任务列表 |
+| 11.10 | Session Workspace Get | 工作区信息 |
+| 11.11 | Session Delete | 删除 session |
+| 11.12 | Session Hydrate | 会话回填 |
+| 11.13 | Session Goal Get | 目标查询 |
+| 11.14 | Session Goal Set | 目标设置 |
+| 12.1 | Turn State Get (no turn) | 无活跃 turn 时 turn/state.get |
+| 12.2 | Turn Start Error (no LLM) | 无 LLM 时 turn/start 错误形状验证 |
+| 13.1 | Profile LLM List | LLM 配置列表 |
+| 13.2 | Profile Skills List | 已安装技能列表 |
+| 13.3 | Profile LLM Catalog | LLM 目录查询 |
+| 13.4 | Onboarding Workspace Probe | 工作区探测 |
+| 14.1 | Auth Status | 认证状态 |
+| 14.2 | MCP Status List | MCP 工具状态 |
+| 15.1 | Tool Status List | 工具状态列表 |
+| 15.2 | Content List | 内容目录 |
+| 16.1 | Notification Session Opened | session/open 后收到 session/opened 通知 |
+| 17.1 | Unknown Method | 非法 method 返回 -32601 |
+| 17.2 | Missing Session ID | 缺 session_id 返回 INVALID_PARAMS |
+| 17.3 | Session Open Invalid | 空 session_id 返回错误 |
+| 17.4 | Turn State Unknown | 陌生的 turn_id 返回 UNKNOWN_TURN |
+| 17.5 | JSON-RPC Missing Version | 缺 jsonrpc 字段被拒绝 |
 
 ## 运行测试
 

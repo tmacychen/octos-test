@@ -15,6 +15,7 @@ Commands:
     --test cli [cli-args...]     Run CLI tests
     --test serve [serve-args...] Run serve tests
     --test email [email-args...] Run Email tests (real mailbox)
+    --test tui [tui-args...]     Run octos-tui tests (sibling Rust crate)
     -h, --help                   Show this help message
 
 Bot test arguments (after --test bot):
@@ -225,6 +226,7 @@ def print_help():
     --test cli [cli-args...]     Run CLI tests
     --test serve [serve-args...] Run serve tests
     --test email [email-args...] Run Email tests (real mailbox)
+    --test tui [tui-args...]     Run octos-tui tests (sibling Rust crate)
     -h, --help                   Show this help message
 
   Bot test arguments (after --test bot):
@@ -271,12 +273,19 @@ def print_help():
     test_run.py --test serve list       # List serve tests
     test_run.py --test email            # Email tests (real mailbox)
     test_run.py --test email -v         # Email tests, verbose
+    test_run.py --test tui              # octos-tui tests (lib + integration + pty + smoke)
+    test_run.py --test tui smoke        # octos-tui --mode mock PTY smoke only
+    test_run.py --test tui unit         # octos-tui cargo test --lib only
+    test_run.py --test tui pty          # octos-tui PTY + fixture test only
 
   Environment:
     OCTOS_BINARY       Path to octos binary (optional, auto-detected if not set)
     ANTHROPIC_API_KEY  Required for bot LLM tests
     TELEGRAM_BOT_TOKEN Required for Telegram bot tests
     DISCORD_BOT_TOKEN  Optional (auto-set for mock mode)
+    OCTOS_TUI_DIR      Path to octos-tui checkout (default: ../octos-tui)
+    OCTOS_TUI_BIN      Prebuilt octos-tui binary (skips cargo build)
+    CARGO_TARGET_DIR   cargo target dir (default: /tmp/octos-tui-target)
 
   Test directory: /tmp/octos_test
   Logs: /tmp/octos_test/logs
@@ -2514,11 +2523,11 @@ def main() -> int:
         test_target = args.test_target
         
         if not test_target:
-            log.error("Missing test target. Use: --test bot or --test cli")
+            log.error("Missing test target. Use: --test bot/cli/serve/email/tui")
             print_help()
             return 1
         
-        if test_target not in ["bot", "cli", "serve", "email"]:
+        if test_target not in ["bot", "cli", "serve", "email", "tui"]:
             log.error(f"Unknown test target: {test_target}")
             print_help()
             return 1
@@ -2707,7 +2716,19 @@ def main() -> int:
             prepare_test_environment()
             passed, _ = run_serve_tests(verbose, test_ids if test_ids else None)
             return 0 if passed else 1
-    
+
+        # Handle TUI tests (sibling Rust crate `octos-tui`).
+        elif test_target == "tui":
+            # Lazy import to keep startup cheap when TUI tests aren't used.
+            try:
+                from tui_test.run_tui_tests import main as run_tui_main
+            except ImportError as e:
+                log.error(f"Cannot import tui_test module: {e}")
+                log.error("Make sure tui_test/run_tui_tests.py exists.")
+                return 1
+            # Pass remaining args to tui subcommand.
+            return run_tui_main(remaining)
+
     # Handle 'all' command
     if args.command == "all":
         # Check for invalid extra arguments
