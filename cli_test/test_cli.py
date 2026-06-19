@@ -20,15 +20,27 @@ from typing import List, Optional, Set, Tuple
 class CLITestResult:
     """Represents a single CLI test result."""
 
-    def __init__(self, test_id: str, category: str, name: str, status: str):
+    def __init__(self, test_id: str, category: str, name: str, status: str, duration_sec: float = 0.0):
         self.test_id = test_id
         self.category = category
         self.name = name
         self.status = status  # "PASS" or "FAIL"
+        self.duration_sec = duration_sec
 
     def to_markdown_row(self) -> str:
         """Convert to markdown table row."""
-        return f"| {self.test_id} | {self.category} | {self.name} | {self.status} |"
+        duration_str = f"{self.duration_sec:.2f}s" if self.duration_sec > 0 else "-"
+        return f"| {self.test_id} | {self.category} | {self.name} | {self.status} | {duration_str} |"
+
+    def to_dict(self) -> dict:
+        """Convert to dict for JSON serialization."""
+        return {
+            "test_id": self.test_id,
+            "category": self.category,
+            "name": self.name,
+            "status": self.status,
+            "duration_sec": self.duration_sec,
+        }
 
 
 class CLITestRunner:
@@ -258,6 +270,7 @@ class CLITestRunner:
     ) -> CLITestResult:
         """Run a single CLI test case."""
         self.total += 1
+        start_time = time.time()
 
         category_logger = self._get_logger_for_category(category)
         category_logger.info(f"[EXEC] octos {cmd_args}")
@@ -278,8 +291,10 @@ class CLITestRunner:
             self.failed += 1
             status = "FAIL"
 
+        elapsed = time.time() - start_time
+
         # Store result
-        result = CLITestResult(test_id, category, name, status)
+        result = CLITestResult(test_id, category, name, status, duration_sec=elapsed)
         self.results.append(result)
 
         # Log details
@@ -316,6 +331,7 @@ class CLITestRunner:
     ) -> CLITestResult:
         """Check if a file/directory exists."""
         self.total += 1
+        start_time = time.time()
 
         category_logger = self._get_logger_for_category(category)
         category_logger.info(f"[FILE CHECK] Test directory: {self.category_test_dir}")
@@ -369,8 +385,10 @@ class CLITestRunner:
             self.failed += 1
             status = "FAIL"
 
+        elapsed = time.time() - start_time
+
         # Store result
-        result = CLITestResult(test_id, category, name, status)
+        result = CLITestResult(test_id, category, name, status, duration_sec=elapsed)
         self.results.append(result)
 
         # Log
@@ -508,7 +526,13 @@ class CLITestRunner:
             f.write(f"- **Failed**: {self.failed}\n")
             f.write(f"- **Pass Rate**: {pass_rate}%\n\n")
 
-            f.write("## Failed Tests\n\n")
+            f.write("## Test Results\n\n")
+            f.write("| ID | Category | Test Name | Status | Duration |\n")
+            f.write("|----|----------|-----------|--------|----------|\n")
+            for result in self.results:
+                f.write(result.to_markdown_row() + "\n")
+
+            f.write("\n## Failed Tests\n\n")
             if self.failed == 0:
                 f.write("✅ All tests passed!\n")
             else:
@@ -524,6 +548,27 @@ class CLITestRunner:
             f.write(f"*Generated at {self.test_date}*\n")
 
         self.logger.info(f"Report saved to: {report_path}")
+
+        # 同时保存 JSON 报告
+        json_path = self.output_dir / f"CLI_TEST_REPORT_{self.report_date}.json"
+        json_data = {
+            "report_type": "octos_cli_test_report",
+            "module": "cli",
+            "test_date": self.test_date,
+            "scope": self.scope,
+            "binary_path": str(self.binary_path),
+            "summary": {
+                "total": self.total,
+                "passed": self.passed,
+                "failed": self.failed,
+                "passed_pct": pass_rate,
+            },
+            "results": [r.to_dict() for r in self.results],
+        }
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2)
+        self.logger.info(f"JSON report saved to: {json_path}")
+
         return report_path
 
     def print_summary(self, report_path: Path):
@@ -565,6 +610,7 @@ def run_cli_tests(
     ids_filter: Optional[str] = None,
     batch_size: Optional[int] = None,
     batch_index: Optional[int] = None,
+    return_details: bool = False,
 ) -> Tuple[bool, List[str]]:
     """
     Main entry point for CLI tests.
@@ -579,9 +625,10 @@ def run_cli_tests(
         ids_filter: Test ID filter (e.g. '20.*,21.1-21.3', or None)
         batch_size: Number of tests per batch
         batch_index: Zero-based index of the batch to run
+        return_details: If True, also return detailed results list
 
     Returns:
-        Tuple of (all_passed, error_messages)
+        Tuple of (all_passed, error_messages) or (all_passed, error_messages, detailed_results)
     """
     runner = CLITestRunner(
         binary_path=binary_path,
@@ -611,6 +658,19 @@ def run_cli_tests(
             errors.append(
                 f"CLI test {result.test_id} ({result.category}): {result.name}"
             )
+
+    if return_details:
+        detailed = [
+            {
+                "test_id": r.test_id,
+                "category": r.category,
+                "name": r.name,
+                "status": r.status,
+                "duration_sec": r.duration_sec,
+            }
+            for r in runner.results
+        ]
+        return all_passed, errors, detailed
 
     return all_passed, errors
 

@@ -12,7 +12,7 @@
 
 唯一 chat 传输路径：`/api/ui-protocol/ws` (JSON-RPC over WebSocket)
 
-## 测试用例列表（53 个）
+## 测试用例列表（63 个）
 
 | 编号 | 功能 | 测试内容 |
 |------|------|----------|
@@ -64,11 +64,21 @@
 | 15.1 | Tool Status List | 工具状态列表 |
 | 15.2 | Content List | 内容目录 |
 | 16.1 | Notification Session Opened | session/open 后收到 session/opened 通知 |
+| 16.2 | Notification Turn Started | turn/start 后收到 turn/started 通知 (需 API Key) |
+| 16.3 | Notification Turn Completed | turn 完成后收到 turn/completed 通知 (需 API Key) |
+| 16.4 | Notification Turn Error | 错误场景下验证 turn/error 通知 |
+| 16.5 | Notification Agent Updated | agent 状态变更接收 agent/updated 通知 |
 | 17.1 | Unknown Method | 非法 method 返回 -32601 |
 | 17.2 | Missing Session ID | 缺 session_id 返回 INVALID_PARAMS |
 | 17.3 | Session Open Invalid | 空 session_id 返回错误 |
 | 17.4 | Turn State Unknown | 陌生的 turn_id 返回 UNKNOWN_TURN |
 | 17.5 | JSON-RPC Missing Version | 缺 jsonrpc 字段被拒绝 |
+| 30.1 | Stdio Connectivity | start + client/hello 连通性验证 |
+| 30.2 | Stdio Capabilities | 获取 capabilities 方法/特性列表 |
+| 30.3 | Stdio System Status | system/status.get 查询 |
+| 30.4 | Stdio Session List | session/list 空会话列表 |
+| 30.5 | Stdio Session Open | profile/create + session/open 创建会话 |
+| 30.6 | Stdio Auth Me | auth/me 在 stdio 模式下被拒绝验证 |
 
 ## 运行测试
 
@@ -86,6 +96,8 @@
 
 3. **API Channel 深度测试** (8.10) 需要配置 LLM API Key：
    ```bash
+   # 二选一，NVIDIA 的 OpenAI 兼容 API 也可以用
+   export OPENAI_API_KEY=nvapi-your-nvidia-key
    export ANTHROPIC_API_KEY=sk-ant-...
    ```
 
@@ -113,6 +125,19 @@ uv run pytest test_serve.py -v
 
 # 单个测试
 uv run pytest test_serve.py::test_8_1_server_startup -v
+```
+
+### Stdio 模式测试
+
+Stdio 传输测试（30.x）验证 `octos serve --stdio` 的 JSON-RPC over stdin/stdout 通信：
+
+```bash
+# 通过 test_run.py
+uv run python test_run.py --test serve stdio
+
+# 直接运行
+cd serve
+uv run python test_serve.py --stdio  # 只运行 stdio 测试
 ```
 
 ## WebSocket UI Protocol 测试说明

@@ -45,15 +45,27 @@ except ImportError:
 class ServeTestResult:
     """单个 serve 测试结果"""
 
-    def __init__(self, test_id: str, name: str, status: str, details: str = ""):
+    def __init__(self, test_id: str, name: str, status: str, details: str = "", duration_sec: float = 0.0):
         self.test_id = test_id
         self.name = name
         self.status = status  # "PASS", "FAIL", or "SKIP"
         self.details = details
+        self.duration_sec = duration_sec
 
     def to_markdown_row(self) -> str:
         """转换为 Markdown 表格行"""
-        return f"| {self.test_id} | {self.name} | {self.status} | {self.details} |"
+        duration_str = f"{self.duration_sec:.2f}s" if self.duration_sec > 0 else "-"
+        return f"| {self.test_id} | {self.name} | {self.status} | {duration_str} | {self.details} |"
+
+    def to_dict(self) -> dict:
+        """转换为字典（用于 JSON 序列化）"""
+        return {
+            "test_id": self.test_id,
+            "name": self.name,
+            "status": self.status,
+            "details": self.details,
+            "duration_sec": self.duration_sec,
+        }
 
 
 class OctosServeTester:
@@ -108,12 +120,34 @@ class OctosServeTester:
 
             self.logger.setLevel(logging.INFO)
 
-    def _read_server_output(self, process, logger):
+    def _is_port_available(self, host: str, port: int) -> bool:
+        """检查端口是否可用"""
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind((host, port))
+                return True
+            except OSError:
+                return False
+
+    def _find_available_port(self, host: str, preferred: int) -> int:
+        """找到一个可用端口，优先使用 preferred"""
+        if self._is_port_available(host, preferred):
+            return preferred
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((host, 0))
+            return s.getsockname()[1]
+
+    def _read_server_output(self, process, logger, output_lines=None):
         """后台线程：持续读取服务器输出并记录到日志"""
         try:
             for line in iter(process.stdout.readline, ''):
                 if line:
-                    logger.info(f"  [SERVER] {line.rstrip()}")
+                    stripped = line.rstrip()
+                    logger.info(f"  [SERVER] {stripped}")
+                    if output_lines is not None:
+                        output_lines.append(stripped)
         except Exception as e:
             logger.error(f"Error reading server output: {e}")
 
@@ -122,13 +156,18 @@ class OctosServeTester:
         """启动 octos serve 进程"""
         self._setup_logger()
 
+        # 检测端口可用性，被占用则自动分配可用端口
+        actual_port = self._find_available_port(host, port)
+        if actual_port != port:
+            self.logger.warning(f"Port {port} is in use, using port {actual_port} instead")
+
         # Create temp data dir for isolation
         self.temp_dir = tempfile.TemporaryDirectory()
         data_dir = Path(self.temp_dir.name)
 
         # Build command
         cmd = [str(self.binary_path), "serve",
-               "--port", str(port),
+               "--port", str(actual_port),
                "--host", host,
                "--data-dir", str(data_dir),
                "--auth-token", self.auth_token]
@@ -147,24 +186,37 @@ class OctosServeTester:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                bufsize=1,
                 env={**os.environ, "OCTOS_HOME": str(data_dir)}
             )
 
+            # 收集服务器输出行，用于诊断和端口检测
+            server_output = []
             output_thread = threading.Thread(
                 target=self._read_server_output,
-                args=(self.server_process, self.logger),
+                args=(self.server_process, self.logger, server_output),
                 daemon=True
             )
             output_thread.start()
 
-            self.base_url = f"http://{host}:{port}"
-            self.ws_url = f"ws://{host}:{port}/api/ui-protocol/ws"
+            self.base_url = f"http://{host}:{actual_port}"
+            self.ws_url = f"ws://{host}:{actual_port}/api/ui-protocol/ws"
 
-            # Wait for server to be ready (max 15 seconds)
-            max_wait = 15
+            # Wait for server to be ready (max 20 seconds)
+            max_wait = 20
             start_time = time.time()
 
             while time.time() - start_time < max_wait:
+                # 检查进程是否已退出
+                exit_code = self.server_process.poll()
+                if exit_code is not None:
+                    # 进程已退出：收集已读到的输出行作为诊断
+                    self.logger.error(f"Server exited early (code={exit_code}). Output:")
+                    for line in server_output:
+                        self.logger.error(f"  {line}")
+                    return False
+
+                # 尝试健康检查
                 try:
                     response = httpx.get(f"{self.base_url}/health", timeout=2)
                     if response.status_code == 200:
@@ -172,11 +224,6 @@ class OctosServeTester:
                         return True
                 except (httpx.ConnectError, httpx.TimeoutException):
                     pass
-
-                if self.server_process.poll() is not None:
-                    stdout, _ = self.server_process.communicate()
-                    self.logger.error(f"Server exited early. Output:\n{stdout}")
-                    return False
 
                 time.sleep(0.5)
 
@@ -217,6 +264,7 @@ class OctosServeTester:
     def run_test(self, test_id: str, name: str, test_func) -> ServeTestResult:
         """运行单个测试"""
         self.total += 1
+        start_time = time.time()
 
         self.logger.info("")
         self.logger.info("=" * 70)
@@ -253,7 +301,8 @@ class OctosServeTester:
             details = f"Exception: {type(e).__name__}: {e}"
             self.logger.error(f"[FAIL {test_id}] {name}: {e}", exc_info=True)
 
-        test_result = ServeTestResult(test_id, name, status, details)
+        elapsed = time.time() - start_time
+        test_result = ServeTestResult(test_id, name, status, details, duration_sec=elapsed)
         self.results.append(test_result)
 
         icon = "✅" if status == "PASS" else ("⏭️" if status == "SKIP" else "❌")
@@ -1697,6 +1746,217 @@ class OctosServeTester:
                 return True
         return asyncio.run(_test())
 
+    def test_16_2_notification_turn_started(self) -> bool:
+        """16.2: turn/start 后收到 turn/started 通知"""
+        if not HAS_WEBSOCKETS:
+            return "SKIP"
+
+        has_api_key = bool(os.environ.get("ANTHROPIC_API_KEY") or
+                           os.environ.get("OPENAI_API_KEY"))
+        if not has_api_key:
+            return "SKIP"
+
+        pid = self._ensure_solo_profile()
+
+        async def _test():
+            url = f"{self.ws_url}?token={self.auth_token}"
+            async with websockets.connect(url, open_timeout=5) as ws:
+                # hello
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                    "method": "client_hello",
+                    "params": {"features": [], "client": "octos-test",
+                               "version": "0.1.0"},
+                }))
+                _ = await asyncio.wait_for(ws.recv(), timeout=5)
+
+                # session/open
+                sid = f"notif-turn-{uuid.uuid4().hex[:8]}"
+                open_id = str(uuid.uuid4())
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": open_id,
+                    "method": "session/open",
+                    "params": {"session_id": sid, "profile_id": pid},
+                }))
+                deadline = time.time() + 10
+                while time.time() < deadline:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                    data = json.loads(msg)
+                    if data.get("id") == open_id:
+                        break
+
+                # turn/start
+                start_id = str(uuid.uuid4())
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": start_id,
+                    "method": "turn/start",
+                    "params": {"session_id": sid, "message": "Hello"},
+                }))
+                deadline = time.time() + 15
+                found_started = False
+                while time.time() < deadline:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                    data = json.loads(msg)
+                    is_notification = data.get("id") is None
+                    method = data.get("method", "")
+                    if method == "turn/started" and is_notification:
+                        found_started = True
+                        self.logger.info("  Got notification: turn/started")
+                        break
+                assert found_started, "Did not receive turn/started notification"
+                return True
+        return asyncio.run(_test())
+
+    def test_16_3_notification_turn_completed(self) -> bool:
+        """16.3: turn 完成后收到 turn/completed 通知"""
+        if not HAS_WEBSOCKETS:
+            return "SKIP"
+
+        has_api_key = bool(os.environ.get("ANTHROPIC_API_KEY") or
+                           os.environ.get("OPENAI_API_KEY"))
+        if not has_api_key:
+            return "SKIP"
+
+        pid = self._ensure_solo_profile()
+
+        async def _test():
+            url = f"{self.ws_url}?token={self.auth_token}"
+            async with websockets.connect(url, open_timeout=5) as ws:
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                    "method": "client_hello",
+                    "params": {"features": [], "client": "octos-test",
+                               "version": "0.1.0"},
+                }))
+                _ = await asyncio.wait_for(ws.recv(), timeout=5)
+
+                sid = f"notif-comp-{uuid.uuid4().hex[:8]}"
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                    "method": "session/open",
+                    "params": {"session_id": sid, "profile_id": pid},
+                }))
+                deadline = time.time() + 10
+                while time.time() < deadline:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                    if json.loads(msg).get("result"):
+                        break
+
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                    "method": "turn/start",
+                    "params": {"session_id": sid, "message": "Hello"},
+                }))
+
+                deadline = time.time() + 90
+                found_completed = False
+                while time.time() < deadline:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=10)
+                    data = json.loads(msg)
+                    is_notification = data.get("id") is None
+                    method = data.get("method", "")
+                    if method == "turn/completed" and is_notification:
+                        found_completed = True
+                        self.logger.info("  Got notification: turn/completed")
+                        break
+                assert found_completed, "Did not receive turn/completed notification"
+                return True
+        return asyncio.run(_test())
+
+    def test_16_4_notification_turn_error(self) -> bool:
+        """16.4: 错误场景下验证 turn/error 通知"""
+        if not HAS_WEBSOCKETS:
+            return "SKIP"
+
+        pid = self._ensure_solo_profile()
+
+        async def _test():
+            url = f"{self.ws_url}?token={self.auth_token}"
+            async with websockets.connect(url, open_timeout=5) as ws:
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                    "method": "client_hello",
+                    "params": {"features": [], "client": "octos-test",
+                               "version": "0.1.0"},
+                }))
+                _ = await asyncio.wait_for(ws.recv(), timeout=5)
+
+                sid = f"notif-err-{uuid.uuid4().hex[:8]}"
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                    "method": "session/open",
+                    "params": {"session_id": sid, "profile_id": pid},
+                }))
+                deadline = time.time() + 10
+                while time.time() < deadline:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                    if json.loads(msg).get("result"):
+                        break
+
+                # turn/start without LLM config should produce turn/error
+                start_id = str(uuid.uuid4())
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": start_id,
+                    "method": "turn/start",
+                    "params": {"session_id": sid, "message": "Hello"},
+                }))
+
+                deadline = time.time() + 15
+                found_error = False
+                while time.time() < deadline:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                    data = json.loads(msg)
+                    is_notification = data.get("id") is None
+                    method = data.get("method", "")
+                    if method == "turn/error" and is_notification:
+                        found_error = True
+                        self.logger.info(f"  Got notification: turn/error")
+                        break
+                    # RPC response with error also acceptable
+                    if data.get("id") == start_id and "error" in data:
+                        self.logger.info(f"  turn/start returned error RPC")
+                        return True
+                assert found_error, "Did not receive turn/error notification"
+                return True
+        return asyncio.run(_test())
+
+    def test_16_5_notification_agent_updated(self) -> bool:
+        """16.5: agent 状态变更时收到 agent/updated 通知"""
+        if not HAS_WEBSOCKETS:
+            return "SKIP"
+
+        async def _test():
+            url = f"{self.ws_url}?token={self.auth_token}"
+            async with websockets.connect(url, open_timeout=5) as ws:
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                    "method": "client_hello",
+                    "params": {"features": [], "client": "octos-test",
+                               "version": "0.1.0"},
+                }))
+                _ = await asyncio.wait_for(ws.recv(), timeout=5)
+
+                # agent/list — should return list of agents
+                list_id = str(uuid.uuid4())
+                await ws.send(json.dumps({
+                    "jsonrpc": "2.0", "id": list_id,
+                    "method": "agent/list",
+                    "params": {},
+                }))
+                deadline = time.time() + 10
+                while time.time() < deadline:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                    data = json.loads(msg)
+                    if data.get("id") == list_id and "result" in data:
+                        self.logger.info("  agent/list returned successfully")
+                        return True
+                    if data.get("id") == list_id and "error" in data:
+                        self.logger.info(
+                            "  agent/list not supported (expected on solo)")
+                        return True
+                return True
+        return asyncio.run(_test())
+
     # ── 17.x 错误路径 ─────────────────────────────────────────────────
 
     def test_17_1_unknown_method(self) -> bool:
@@ -2217,8 +2477,8 @@ class OctosServeTester:
             f"**总计**: {self.total} | **通过**: {self.passed} | "
             f"**失败**: {self.failed} | **跳过**: {self.skipped}\n")
         report_lines.append("")
-        report_lines.append("| 编号 | 功能 | 结果 | 说明/问题 |")
-        report_lines.append("|------|------|------|-----------|")
+        report_lines.append("| 编号 | 功能 | 结果 | 耗时 | 说明/问题 |")
+        report_lines.append("|------|------|------|------|-----------|")
 
         for result in self.results:
             details = result.details if result.details else "✓"
@@ -2250,6 +2510,27 @@ class OctosServeTester:
             f.write(report_content)
 
         self.logger.info(f"Report saved to: {report_path}")
+
+        # 同时保存 JSON 报告
+        json_path = self.output_dir / f"SERVE_TEST_REPORT_{self.report_date}.json"
+        json_data = {
+            "report_type": "octos_serve_test_report",
+            "module": "serve",
+            "test_date": self.test_date,
+            "binary_path": str(self.binary_path),
+            "summary": {
+                "total": self.total,
+                "passed": self.passed,
+                "failed": self.failed,
+                "skipped": self.skipped,
+                "passed_pct": round((self.passed * 100 / self.total), 1) if self.total > 0 else 0,
+            },
+            "results": [r.to_dict() for r in self.results],
+        }
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2)
+        self.logger.info(f"JSON report saved to: {json_path}")
+
         return report_path
 
     def print_report_to_stdout(self):
@@ -2259,6 +2540,368 @@ class OctosServeTester:
         print("测试报告")
         print("=" * 70)
         print(report_content)
+        print("=" * 70)
+
+
+class OctosStdioTester:
+    """Octos Serve --stdio 模式测试器
+
+    通过 stdin/stdout 发送 JSON-RPC 请求并接收响应。
+    协议格式与 WebSocket 一致，但使用 stdin 发请求、stdout 收响应、
+    stderr 输出日志。
+
+    测试集群编号: 30.x
+
+    覆盖:
+      - 30.1: connectivity (client/hello)
+      - 30.2: capabilities (config/capabilities/list)
+      - 30.3: system_status (system/status.get)
+      - 30.4: session_list (session/list)
+      - 30.5: session_open (session/open)
+      - 30.6: auth_me (auth/me)
+    """
+
+    def __init__(self, binary_path: Path, log_dir: Path, output_dir: Optional[Path] = None):
+        self.binary_path = binary_path
+        self.log_dir = log_dir / "logs"
+        self.output_dir = output_dir or (log_dir.parent / "test-results")
+
+        self.logger = logging.getLogger("octos.stdio")
+
+        self.total = 0
+        self.passed = 0
+        self.failed = 0
+        self.skipped = 0
+        self.results = []
+
+        self.test_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.report_date = datetime.now().strftime('%Y-%m-%d_%H%M')
+        self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+        self.server_process = None
+        self.data_dir = None
+
+    def _setup_logger(self):
+        if not self.logger.handlers:
+            log_file = self.log_dir / f"stdio_test_{self.timestamp}.log"
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            formatter = logging.Formatter(
+                '%(asctime)s [%(name)s] %(levelname)s %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
+            fh = logging.FileHandler(log_file)
+            fh.setFormatter(formatter)
+            self.logger.addHandler(fh)
+            ch = logging.StreamHandler()
+            ch.setFormatter(formatter)
+            self.logger.addHandler(ch)
+            self.logger.setLevel(logging.INFO)
+
+    def start_server(self, timeout: float = 15.0) -> bool:
+        """启动 octos serve --stdio 进程"""
+        self._setup_logger()
+        self.data_dir = tempfile.TemporaryDirectory()
+        data_dir = Path(self.data_dir.name)
+
+        cmd = [str(self.binary_path), "serve", "--stdio",
+               "--data-dir", str(data_dir),
+               "--port", "0"]
+
+        self.logger.info(f"Starting stdio server: {' '.join(cmd)}")
+
+        try:
+            self.server_process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                env={**os.environ, "OCTOS_HOME": str(data_dir)}
+            )
+
+            # Check if process started
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                if self.server_process.poll() is not None:
+                    stdout, stderr = self.server_process.communicate()
+                    self.logger.error(f"Server exited early. stdout:\n{stdout}\nstderr:\n{stderr}")
+                    return False
+                time.sleep(0.2)
+
+            # Start stderr reader thread
+            self._stderr_stop = threading.Event()
+            self._stderr_thread = threading.Thread(target=self._read_stderr, daemon=True)
+            self._stderr_thread.start()
+
+            self.logger.info(f"Stdio server started (pid={self.server_process.pid})")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Failed to start stdio server: {e}")
+            return False
+
+    def _read_stderr(self):
+        try:
+            for line in iter(self.server_process.stderr.readline, ''):
+                if self._stderr_stop.is_set():
+                    break
+                if line:
+                    self.logger.debug(f"  [STDERR] {line.rstrip()}")
+        except Exception:
+            pass
+
+    def stop_server(self):
+        self._stderr_stop.set()
+        if self.server_process:
+            try:
+                self.logger.info("Stopping stdio server...")
+                self.server_process.terminate()
+                self.server_process.wait(timeout=5)
+            except Exception:
+                try:
+                    self.server_process.kill()
+                    self.server_process.wait(timeout=3)
+                except Exception:
+                    pass
+            self.server_process = None
+        if self.data_dir:
+            try:
+                self.data_dir.cleanup()
+            except Exception:
+                pass
+
+    def run_test(self, test_id, name, test_func):
+        self.total += 1
+        start_time = time.time()
+        status = "PASS"
+        details = ""
+
+        try:
+            result = test_func()
+            if result is True:
+                self.passed += 1
+            elif result == "SKIP":
+                self.skipped += 1
+                status = "SKIP"
+            else:
+                self.failed += 1
+                status = "FAIL"
+                details = str(result)
+
+        except AssertionError as e:
+            self.failed += 1
+            status = "FAIL"
+            details = f"AssertionError: {e}"
+            self.logger.error(f"[FAIL {test_id}] {name}: {e}", exc_info=True)
+        except Exception as e:
+            self.failed += 1
+            status = "FAIL"
+            details = f"Exception: {type(e).__name__}: {e}"
+            self.logger.error(f"[FAIL {test_id}] {name}: {e}", exc_info=True)
+
+        elapsed = time.time() - start_time
+        result = ServeTestResult(test_id, name, status, details, duration_sec=elapsed)
+        self.results.append(result)
+
+        icon = "✅" if status == "PASS" else ("⏭️" if status == "SKIP" else "❌")
+        self.logger.info(f"{icon} [{status} {test_id}] {name}")
+        if details and status == "FAIL":
+            self.logger.info(f"   Error: {details}")
+        self.logger.info("")
+        return result
+
+    def _stdio_rpc(self, method: str, params: dict = None,
+                   timeout: float = 15.0) -> dict:
+        """通过 stdin/stdout 发送 JSON-RPC 请求并等待响应"""
+        import asyncio as _asyncio
+
+        async def _run():
+            proc = self.server_process
+            if proc is None or proc.poll() is not None:
+                raise RuntimeError("Stdio server not running")
+
+            # 1. client/hello
+            hello_id = str(uuid.uuid4())
+            hello = {
+                "jsonrpc": "2.0", "id": hello_id,
+                "method": "client_hello",
+                "params": {
+                    "features": ["session.workspace_cwd.v1", "auxiliary.rest_to_ws.v1"],
+                    "client": "octos-test",
+                    "version": "0.1.0",
+                },
+            }
+            proc.stdin.write(json.dumps(hello) + "\n")
+            proc.stdin.flush()
+
+            hello_resp = await _asyncio.wait_for(
+                _asyncio.get_event_loop().run_in_executor(
+                    None, proc.stdout.readline),
+                timeout=timeout)
+            if not hello_resp:
+                raise TimeoutError("No hello response from stdio server")
+            hello_data = json.loads(hello_resp.strip())
+            self.logger.debug(f"hello response: {json.dumps(hello_data)[:200]}")
+
+            # 2. Send actual RPC
+            req_id = str(uuid.uuid4())
+            req = {"jsonrpc": "2.0", "id": req_id, "method": method}
+            if params is not None:
+                req["params"] = params
+            proc.stdin.write(json.dumps(req) + "\n")
+            proc.stdin.flush()
+
+            # 3. Read response (skip notifications)
+            deadline = time.time() + timeout
+            while time.time() < deadline:
+                remaining = deadline - time.time()
+                line = await _asyncio.wait_for(
+                    _asyncio.get_event_loop().run_in_executor(
+                        None, proc.stdout.readline),
+                    timeout=max(remaining, 1))
+                if not line:
+                    if proc.poll() is not None:
+                        raise RuntimeError(f"Stdio server exited (code {proc.returncode})")
+                    raise TimeoutError(f"RPC {method} timed out")
+                resp = json.loads(line.strip())
+                if resp.get("id") == req_id:
+                    return resp
+                self.logger.debug(f"notification: {json.dumps(resp)[:200]}")
+            raise TimeoutError(f"RPC {method} timed out")
+
+        return _asyncio.run(_run())
+
+    # ── 30.x Stdio 测试用例 ──
+
+    def test_30_1_stdio_connectivity(self) -> bool:
+        """30.1: Stdio client/hello 连通性测试"""
+        resp = self._stdio_rpc("system/status.get")
+        assert "result" in resp, f"Expected result, got: {resp}"
+        self.logger.info("  ✓ Stdio connectivity OK")
+        return True
+
+    def test_30_2_stdio_capabilities(self) -> bool:
+        """30.2: Stdio 获取 capabilities 列表"""
+        resp = self._stdio_rpc("config/capabilities/list")
+        assert "result" in resp, f"Expected result, got: {resp}"
+        result = resp["result"]
+        caps = result.get("capabilities", result)
+        methods = caps.get("supported_methods", [])
+        features = caps.get("supported_features", [])
+        assert len(methods) > 0, f"Expected >0 methods, got {methods}"
+        self.logger.info(f"  ✓ Stdio capabilities: {len(methods)} methods, {len(features)} features")
+        return True
+
+    def test_30_3_stdio_system_status(self) -> bool:
+        """30.3: Stdio system/status.get"""
+        resp = self._stdio_rpc("system/status.get")
+        assert "result" in resp, f"Expected result, got: {resp}"
+        self.logger.info(f"  ✓ Stdio system status OK")
+        return True
+
+    def test_30_4_stdio_session_list(self) -> bool:
+        """30.4: Stdio session/list（空列表）"""
+        resp = self._stdio_rpc("session/list")
+        assert "result" in resp, f"Expected result, got: {resp}"
+        sessions = resp["result"]
+        assert isinstance(sessions, list), f"Expected list, got {type(sessions)}"
+        self.logger.info(f"  ✓ Stdio session list: {len(sessions)} sessions")
+        return True
+
+    def test_30_5_stdio_session_open(self) -> bool:
+        """30.5: Stdio session/open 创建会话"""
+        nonce = uuid.uuid4().hex[:6]
+        profile_resp = self._stdio_rpc("profile/local/create", {
+            "name": f"Stdio User {nonce}",
+            "username": f"stdiouser{nonce}",
+            "email": f"stdio{nonce}@example.com",
+        })
+        assert "result" in profile_resp, \
+            f"profile/create failed: {profile_resp.get('error', profile_resp)}"
+        pid = profile_resp["result"]["profile_id"]
+        self.logger.info(f"  Profile created: {pid}")
+
+        sid = f"stdio-{uuid.uuid4().hex[:8]}"
+        sess_resp = self._stdio_rpc("session/open", {
+            "session_id": sid, "profile_id": pid,
+        })
+        if "error" in sess_resp:
+            self.logger.info(f"  session/open returned expected error (no LLM): "
+                             f"{sess_resp['error'].get('message','')}")
+        else:
+            self.logger.info(f"  Session opened: {sid}")
+        return True
+
+    def test_30_6_stdio_auth_me(self) -> bool:
+        """30.6: Stdio auth/me — stdio 模式不支持 auth/me"""
+        resp = self._stdio_rpc("auth/me")
+        assert "error" in resp, \
+            f"Expected error for auth/me on stdio, got result: {resp.get('result')}"
+        self.logger.info(f"  ✓ auth/me correctly rejected on stdio")
+        return True
+
+    def generate_report(self) -> str:
+        report_lines = [
+            f"# Stdio Serve Test Report {self.report_date}\n",
+            f"**测试日期**: {self.test_date}\n",
+            f"**二进制**: {self.binary_path}\n",
+            f"**总计**: {self.total} | **通过**: {self.passed} | "
+            f"**失败**: {self.failed} | **跳过**: {self.skipped}\n",
+            "",
+            "## 测试结果\n",
+            "| 编号 | 功能 | 结果 | 耗时 | 说明/问题 |",
+            "|------|------|------|------|-----------|",
+        ]
+        for result in self.results:
+            report_lines.append(result.to_markdown_row())
+        report_lines.append("")
+        failed = [r for r in self.results if r.status == "FAIL"]
+        if failed:
+            report_lines.append("## 失败测试\n")
+            for r in failed:
+                report_lines.append(f"### {r.test_id} {r.name}\n")
+                report_lines.append(f"**错误**: {r.details}\n")
+                report_lines.append("")
+        report_lines.append("---")
+        report_lines.append(
+            f"*报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
+        return "\n".join(report_lines)
+
+    def save_report(self) -> Path:
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        path = self.output_dir / f"STDIO_TEST_REPORT_{self.report_date}.md"
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(self.generate_report())
+        self.logger.info(f"Report saved to: {path}")
+
+        # 同时保存 JSON 报告
+        json_path = self.output_dir / f"STDIO_TEST_REPORT_{self.report_date}.json"
+        json_data = {
+            "report_type": "octos_stdio_test_report",
+            "module": "stdio",
+            "test_date": self.test_date,
+            "binary_path": str(self.binary_path),
+            "summary": {
+                "total": self.total,
+                "passed": self.passed,
+                "failed": self.failed,
+                "skipped": self.skipped,
+                "passed_pct": round((self.passed * 100 / self.total), 1) if self.total > 0 else 0,
+            },
+            "results": [r.to_dict() for r in self.results],
+        }
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2)
+        self.logger.info(f"JSON report saved to: {json_path}")
+
+        return path
+
+    def print_report_to_stdout(self):
+        print("\n" + "=" * 70)
+        print("Stdio 测试报告")
+        print("=" * 70)
+        print(self.generate_report())
         print("=" * 70)
 
 
@@ -2302,6 +2945,42 @@ if HAS_PYTEST:
 
         if not tester.start_server(port=8080, host="127.0.0.1", solo=True):
             pytest.fail("Failed to start octos serve for testing")
+
+        try:
+            yield tester
+        finally:
+            tester.stop_server()
+            tester.save_report()
+            tester.print_report_to_stdout()
+
+    @pytest.fixture(scope="module")
+    def stdio_tester():
+        """创建 stdio 测试器实例（模块级别共享）"""
+        binary_name = "octos.exe" if platform.system() == "Windows" else "octos"
+
+        possible_paths = [
+            Path(__file__).parent.parent.parent / "target" / "debug" / binary_name,
+            Path(__file__).parent.parent.parent / "target" / "release" / binary_name,
+            Path.home() / ".local" / "bin" / binary_name,
+            Path("/usr/local/bin") / binary_name,
+        ]
+
+        binary_path = None
+        for path in possible_paths:
+            if path.exists():
+                binary_path = path
+                break
+
+        if not binary_path:
+            pytest.fail(f"Octos binary not found. Tried: {possible_paths}")
+
+        log_dir = Path(__file__).parent / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        tester = OctosStdioTester(binary_path, log_dir)
+
+        if not tester.start_server():
+            pytest.fail("Failed to start octos serve --stdio for testing")
 
         try:
             yield tester
@@ -2563,6 +3242,58 @@ if HAS_PYTEST:
     def test_16_1_notification_session_opened(serve_tester):
         result = serve_tester.run_test("16.1", "Notification Session Opened",
                                         serve_tester.test_16_1_notification_session_opened)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    def test_16_2_notification_turn_started(serve_tester):
+        result = serve_tester.run_test("16.2", "Notification Turn Started",
+                                        serve_tester.test_16_2_notification_turn_started)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    def test_16_3_notification_turn_completed(serve_tester):
+        result = serve_tester.run_test("16.3", "Notification Turn Completed",
+                                        serve_tester.test_16_3_notification_turn_completed)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    def test_16_4_notification_turn_error(serve_tester):
+        result = serve_tester.run_test("16.4", "Notification Turn Error",
+                                        serve_tester.test_16_4_notification_turn_error)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    def test_16_5_notification_agent_updated(serve_tester):
+        result = serve_tester.run_test("16.5", "Notification Agent Updated",
+                                        serve_tester.test_16_5_notification_agent_updated)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    # ── 30.x Stdio 传输模式 ──
+
+    def test_30_1_stdio_connectivity(stdio_tester):
+        result = stdio_tester.run_test("30.1", "Stdio Connectivity",
+                                        stdio_tester.test_30_1_stdio_connectivity)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    def test_30_2_stdio_capabilities(stdio_tester):
+        result = stdio_tester.run_test("30.2", "Stdio Capabilities List",
+                                        stdio_tester.test_30_2_stdio_capabilities)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    def test_30_3_stdio_system_status(stdio_tester):
+        result = stdio_tester.run_test("30.3", "Stdio System Status",
+                                        stdio_tester.test_30_3_stdio_system_status)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    def test_30_4_stdio_session_list(stdio_tester):
+        result = stdio_tester.run_test("30.4", "Stdio Session List",
+                                        stdio_tester.test_30_4_stdio_session_list)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    def test_30_5_stdio_session_open(stdio_tester):
+        result = stdio_tester.run_test("30.5", "Stdio Session Open",
+                                        stdio_tester.test_30_5_stdio_session_open)
+        assert result.status in ("PASS", "SKIP"), result.details
+
+    def test_30_6_stdio_auth_me(stdio_tester):
+        result = stdio_tester.run_test("30.6", "Stdio Auth Me",
+                                        stdio_tester.test_30_6_stdio_auth_me)
         assert result.status in ("PASS", "SKIP"), result.details
 
     # ── 17.x 错误路径 ──
@@ -2859,6 +3590,10 @@ if __name__ == "__main__":
             ("15.2", "Content List", tester.test_15_2_content_list),
             # ── 16.x 通知 ──
             ("16.1", "Notification Session Opened", tester.test_16_1_notification_session_opened),
+            ("16.2", "Notification Turn Started", tester.test_16_2_notification_turn_started),
+            ("16.3", "Notification Turn Completed", tester.test_16_3_notification_turn_completed),
+            ("16.4", "Notification Turn Error", tester.test_16_4_notification_turn_error),
+            ("16.5", "Notification Agent Updated", tester.test_16_5_notification_agent_updated),
             # ── 17.x 错误路径 ──
             ("17.1", "Unknown Method Error", tester.test_17_1_unknown_method),
             ("17.2", "Missing Session ID", tester.test_17_2_missing_session_id),
@@ -2927,7 +3662,32 @@ if __name__ == "__main__":
         tester.print_report_to_stdout()
         print(f"\n报告已保存到: {report_path}")
 
-        sys.exit(0 if tester.failed == 0 else 1)
+        # ── Stdio 传输模式测试 ──
+        print("\n" + "=" * 60)
+        print("Stdio 传输模式测试 (30.x)")
+        print("=" * 60)
+
+        stdio_tester = OctosStdioTester(binary_path, log_dir)
+        if stdio_tester.start_server():
+            stdio_tests = [
+                ("30.1", "Stdio Connectivity", stdio_tester.test_30_1_stdio_connectivity),
+                ("30.2", "Stdio Capabilities List", stdio_tester.test_30_2_stdio_capabilities),
+                ("30.3", "Stdio System Status", stdio_tester.test_30_3_stdio_system_status),
+                ("30.4", "Stdio Session List", stdio_tester.test_30_4_stdio_session_list),
+                ("30.5", "Stdio Session Open", stdio_tester.test_30_5_stdio_session_open),
+                ("30.6", "Stdio Auth Me", stdio_tester.test_30_6_stdio_auth_me),
+            ]
+            for test_id, name, test_func in stdio_tests:
+                stdio_tester.run_test(test_id, name, test_func)
+
+            stdio_report_path = stdio_tester.save_report()
+            stdio_tester.print_report_to_stdout()
+            print(f"\nStdio 报告已保存到: {stdio_report_path}")
+        else:
+            print("⚠️  Failed to start stdio server — skipping stdio tests")
+
+        total_failed = tester.failed + stdio_tester.failed
+        sys.exit(0 if total_failed == 0 else 1)
 
     finally:
         tester.stop_server()

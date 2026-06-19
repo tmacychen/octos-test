@@ -34,7 +34,8 @@
 
 3. **环境变量**
    ```bash
-   # Bot 测试必需
+   # Bot 测试必需（二选一，都指向 NVIDIA OpenAI 兼容 API）
+   export OPENAI_API_KEY=nvapi-your-nvidia-key    # 推荐
    export ANTHROPIC_API_KEY=your_api_key
    export TELEGRAM_BOT_TOKEN=your_bot_token  # Mock 模式下任意非空值
    ```

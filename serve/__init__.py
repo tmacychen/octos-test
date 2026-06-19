@@ -11,9 +11,12 @@ def __getattr__(name):
     if name == "OctosServeTester":
         from .test_serve import OctosServeTester as _OctosServeTester
         return _OctosServeTester
+    elif name == "OctosStdioTester":
+        from .test_serve import OctosStdioTester as _OctosStdioTester
+        return _OctosStdioTester
     elif name == "TestResult":
         from .test_serve import ServeTestResult as _TestResult
         return _TestResult
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
-__all__ = ["OctosServeTester", "TestResult"]
+__all__ = ["OctosServeTester", "OctosStdioTester", "TestResult"]

@@ -132,6 +132,260 @@ except (ImportError, ModuleNotFoundError) as e:
     # Don't log here, will be logged when actually used
 
 
+class UnifiedTestReporter:
+    """统一测试报告器 —— 收集所有模块结果并生成合并报告。"""
+
+    def __init__(self, binary_path: str, test_date: str, output_dir: Path):
+        self.modules: Dict[str, dict] = {}
+        self.binary_path = str(binary_path)
+        self.test_date = test_date
+        self.output_dir = output_dir
+
+    def add_module(
+        self,
+        name: str,
+        results: List[dict],
+        passed: int = 0,
+        failed: int = 0,
+        total: int = 0,
+        skipped: int = 0,
+        error: str = "",
+    ):
+        """添加一个模块的测试结果。"""
+        pass_rate = round((passed * 100 / total), 1) if total > 0 else 0
+        self.modules[name] = {
+            "results": results,
+            "passed": passed,
+            "failed": failed,
+            "total": total,
+            "skipped": skipped,
+            "passed_pct": pass_rate,
+            "error": error,
+        }
+
+    def _get_overall_summary(self) -> dict:
+        """计算总体统计。"""
+        total_t = sum(m["total"] for m in self.modules.values())
+        total_p = sum(m["passed"] for m in self.modules.values())
+        total_f = sum(m["failed"] for m in self.modules.values())
+        total_s = sum(m["skipped"] for m in self.modules.values())
+        pct = round((total_p * 100 / total_t), 1) if total_t > 0 else 0
+        return {
+            "total": total_t,
+            "passed": total_p,
+            "failed": total_f,
+            "skipped": total_s,
+            "passed_pct": pct,
+        }
+
+    def generate_markdown(self) -> str:
+        """生成完整 Markdown 报告。"""
+        summary = self._get_overall_summary()
+        lines = []
+        lines.append("# Octos 统一测试报告\n")
+        lines.append(f"**测试日期**: {self.test_date}\n")
+        lines.append(f"**二进制**: {self.binary_path}\n")
+
+        # 1. 总体结果
+        lines.append("---\n")
+        lines.append("## 1. 总体结果\n")
+        lines.append("")
+        lines.append("| 模块 | 总计 | 通过 | 失败 | 跳过 | 通过率 | 状态 |")
+        lines.append("|------|------|------|------|------|--------|------|")
+        for name, mod in sorted(self.modules.items()):
+            status_icon = "✅" if mod["failed"] == 0 else "❌"
+            lines.append(
+                f"| {name} | {mod['total']} | {mod['passed']} | "
+                f"{mod['failed']} | {mod['skipped']} | {mod['passed_pct']}% | "
+                f"{status_icon}{' ' + mod['error'] if mod['error'] else ''} |"
+            )
+        overall_ok = summary["failed"] == 0
+        overall_icon = "✅" if overall_ok else "❌"
+        lines.append(
+            f"| **总计** | **{summary['total']}** | **{summary['passed']}** | "
+            f"**{summary['failed']}** | **{summary['skipped']}** | "
+            f"**{summary['passed_pct']}%** | **{overall_icon}** |"
+        )
+        lines.append("")
+
+        # 2. 各模块详细结果
+        lines.append("---\n")
+        lines.append("## 2. 各模块详细结果\n")
+
+        module_display_names = {
+            "cli": "2.1 CLI 测试",
+            "serve": "2.2 Serve 测试",
+            "stdio": "2.3 Stdio 测试",
+            "bot": "2.4 Bot 测试",
+        }
+
+        for name, mod in sorted(self.modules.items()):
+            display = module_display_names.get(name, name)
+            lines.append(f"### {display}\n")
+            lines.append(
+                f"**总计**: {mod['total']} | **通过**: {mod['passed']} | "
+                f"**失败**: {mod['failed']} | **跳过**: {mod['skipped']} | "
+                f"**通过率**: {mod['passed_pct']}%\n"
+            )
+
+            if mod["results"]:
+                # Determine columns based on first result
+                sample = mod["results"][0]
+                has_category = "category" in sample
+                has_duration = sample.get("duration_sec", 0) > 0
+
+                if name == "bot":
+                    # Bot 结果按通道分组
+                    channels = {}
+                    for r in mod["results"]:
+                        ch = r.get("channel", "unknown")
+                        channels.setdefault(ch, []).append(r)
+                    lines.append("| 通道 | 通过 | 失败 | 总计 | 状态 |")
+                    lines.append("|------|------|------|------|------|")
+                    for ch, res_list in sorted(channels.items()):
+                        ch_pass = sum(1 for r in res_list if r["status"] == "PASS")
+                        ch_fail = sum(1 for r in res_list if r["status"] == "FAIL")
+                        ch_total = len(res_list)
+                        ch_icon = "✅" if ch_fail == 0 else "❌"
+                        lines.append(
+                            f"| {ch} | {ch_pass} | {ch_fail} | "
+                            f"{ch_total} | {ch_icon} |"
+                        )
+                    lines.append("")
+                else:
+                    # 普通模块展示表格
+                    if has_category:
+                        lines.append("| 编号 | 分类 | 名称 | 状态 | 耗时 |")
+                        lines.append("|------|------|------|------|------|")
+                        for r in mod["results"]:
+                            dur = f"{r.get('duration_sec', 0):.2f}s" if r.get("duration_sec", 0) > 0 else "-"
+                            lines.append(
+                                f"| {r['test_id']} | {r.get('category', '-')} | "
+                                f"{r['name']} | {r['status']} | {dur} |"
+                            )
+                    else:
+                        lines.append("| 编号 | 名称 | 状态 | 耗时 |")
+                        lines.append("|------|------|------|------|")
+                        for r in mod["results"]:
+                            dur = f"{r.get('duration_sec', 0):.2f}s" if r.get("duration_sec", 0) > 0 else "-"
+                            lines.append(
+                                f"| {r['test_id']} | {r['name']} | "
+                                f"{r['status']} | {dur} |"
+                            )
+                    lines.append("")
+            else:
+                lines.append("*无测试用例数据*\n")
+
+        # 3. 失败测试详情
+        lines.append("---\n")
+        lines.append("## 3. 失败测试详情\n")
+        any_failures = any(mod["failed"] > 0 for mod in self.modules.values())
+        if any_failures:
+            for name, mod in sorted(self.modules.items()):
+                if mod["error"]:
+                    lines.append(f"### {name} 模块错误\n")
+                    lines.append(f"```\n{mod['error']}\n```\n")
+                    lines.append("")
+                failed_results = [r for r in mod["results"] if r.get("status") == "FAIL"]
+                if failed_results:
+                    lines.append(f"### {name} 测试失败\n")
+                    lines.append("")
+                    for r in failed_results:
+                        tid = r.get("test_id", "?")
+                        rname = r.get("name", "?")
+                        details = r.get("details", "")
+                        lines.append(f"- **[{tid}] {rname}**: {details}")
+                    lines.append("")
+        else:
+            lines.append("*无失败测试*\n")
+
+        # 4. 覆盖矩阵
+        lines.append("---\n")
+        lines.append("## 4. 功能覆盖矩阵\n")
+        lines.append("")
+        lines.append("| 模块 | 测试数 | 通过率 | 评估 |")
+        lines.append("|------|--------|--------|------|")
+        for name, mod in sorted(self.modules.items()):
+            if mod["passed_pct"] >= 95:
+                rating = "🟢 良好"
+            elif mod["passed_pct"] >= 80:
+                rating = "🟡 一般"
+            else:
+                rating = "🔴 不足"
+            lines.append(
+                f"| {name} | {mod['total']} | {mod['passed_pct']}% | {rating} |"
+            )
+        lines.append("")
+
+        # Footer
+        lines.append("---\n")
+        lines.append(f"*报告生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n")
+
+        return "\n".join(lines)
+
+    def generate_json(self) -> dict:
+        """生成完整 JSON 数据结构。"""
+        summary = self._get_overall_summary()
+        modules_data = {}
+        for name, mod in sorted(self.modules.items()):
+            modules_data[name] = {
+                "total": mod["total"],
+                "passed": mod["passed"],
+                "failed": mod["failed"],
+                "skipped": mod["skipped"],
+                "passed_pct": mod["passed_pct"],
+                "error": mod["error"],
+                "results": mod["results"],
+            }
+        return {
+            "report_type": "octos_unified_test_report",
+            "test_date": self.test_date,
+            "binary_path": self.binary_path,
+            "summary": summary,
+            "modules": modules_data,
+        }
+
+    def save_report(self) -> Path:
+        """保存 .md + .json 报告，返回 .md 路径。"""
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        md_path = self.output_dir / f"OCTOS_TEST_REPORT_{ts}.md"
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write(self.generate_markdown())
+        log.info(f"Unified report saved: {md_path}")
+
+        json_path = self.output_dir / f"OCTOS_TEST_REPORT_{ts}.json"
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(self.generate_json(), f, ensure_ascii=False, indent=2)
+        log.info(f"Unified JSON report saved: {json_path}")
+
+        return md_path
+
+    def print_summary(self):
+        """打印终端摘要。"""
+        summary = self._get_overall_summary()
+        print("")
+        print("=" * 70)
+        print("📊 UNIFIED TEST SUMMARY")
+        print("=" * 70)
+        print("")
+        print(f"📅 Test Date: {self.test_date}")
+        print("")
+        print("🔹 Module Status:")
+        for name, mod in sorted(self.modules.items()):
+            icon = "✅" if mod["failed"] == 0 else "❌"
+            err = f" ({mod['error'][:60]})" if mod['error'] else ""
+            print(f"   • {name:<10}: {icon}  {mod['passed']}/{mod['total']} passed{err}")
+        print("")
+        overall_ok = summary["failed"] == 0
+        overall_icon = "✅ ALL PASSED" if overall_ok else "❌ SOME FAILED"
+        print(f"🎯 Overall: {overall_icon}")
+        print(f"   Total: {summary['total']}, Passed: {summary['passed']}, "
+              f"Failed: {summary['failed']}, Pass Rate: {summary['passed_pct']}%")
+        print("")
+
+
 class LoggerManager:
     """Manage multiple loggers for different modules."""
     
@@ -803,7 +1057,7 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1151,7 +1405,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1189,7 +1443,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1224,7 +1478,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1269,7 +1523,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1312,7 +1566,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1351,7 +1605,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1389,7 +1643,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1428,7 +1682,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1470,7 +1724,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1511,7 +1765,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1559,7 +1813,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1607,7 +1861,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-3.1-8b-instruct",
+                        "model_id": "deepseek-ai/deepseek-v4-flash",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -2196,14 +2450,15 @@ def run_bot_test_with_flaky_retry(module: str) -> Tuple[bool, List[str]]:
     return False, retry_failed
 
 
-def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]:
-    """Run all bot tests (telegram + discord + matrix).
+def run_all_bot_tests(from_test: Optional[str] = None, return_details: bool = False) -> Tuple[bool, List[str]]:
+    """Run all bot tests (telegram + discord + matrix + ...).
     
     Args:
         from_test: Optional test name to start from. Applied to both modules.
+        return_details: If True, also return detailed results list.
     
     Returns:
-        Tuple of (all_passed, error_messages)
+        Tuple of (all_passed, error_messages) or (all_passed, error_messages, detailed_results)
     """
     log.info("=" * 60)
     log.info("Running ALL bot tests")
@@ -2214,6 +2469,7 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
     modules = ["telegram", "discord", "matrix", "slack", "feishu", "wechat", "whatsapp", "wecom-bot", "wecom", "qq-bot", "twilio"]
     all_passed = True
     errors = []
+    detailed_results = []
     
     for module in modules:
         passed, failures = run_bot_test_with_per_test_retry(module, from_test=from_test)
@@ -2225,13 +2481,41 @@ def run_all_bot_tests(from_test: Optional[str] = None) -> Tuple[bool, List[str]]
                     # If it's an error message (not a test name), format it differently
                     if '::' in failure or failure.startswith('test_'):
                         errors.append(f"{module}: {failure}")
+                        detailed_results.append({
+                            "channel": module,
+                            "test_id": failure,
+                            "name": failure,
+                            "status": "FAIL",
+                        })
                     else:
                         # It's an error message, truncate if too long
                         error_summary = failure[:100] + "..." if len(failure) > 100 else failure
                         errors.append(f"{module}: {error_summary}")
+                        detailed_results.append({
+                            "channel": module,
+                            "test_id": failure,
+                            "name": error_summary,
+                            "status": "FAIL",
+                        })
             else:
                 errors.append(f"{module}: (unknown failures - check logs)")
+                detailed_results.append({
+                    "channel": module,
+                    "test_id": "unknown",
+                    "name": "unknown failure",
+                    "status": "FAIL",
+                })
+        else:
+            # All passed for this module
+            detailed_results.append({
+                "channel": module,
+                "test_id": "all",
+                "name": f"{module} all tests",
+                "status": "PASS",
+            })
     
+    if return_details:
+        return all_passed, errors, detailed_results
     return all_passed, errors
 
 
@@ -2286,11 +2570,14 @@ def list_cli_category_cases(category: str):
     print(f"\nTotal: {len(cases)} test(s)\n")
 
 
-def run_cli_tests(verbose: bool = False, output_dir: Optional[str] = None, scope: Optional[str] = None) -> Tuple[bool, List[str]]:
+def run_cli_tests(verbose: bool = False, output_dir: Optional[str] = None, scope: Optional[str] = None, return_details: bool = False) -> Tuple[bool, List[str]]:
     """Run CLI tests using the Python implementation.
-    
+
+    Args:
+        return_details: If True, also return detailed results list.
+
     Returns:
-        Tuple of (all_passed, error_messages)
+        Tuple of (all_passed, error_messages) or (all_passed, error_messages, detailed_results)
     """
     cli_logger = logger_mgr.get_module_logger("cli")
     
@@ -2302,26 +2589,37 @@ def run_cli_tests(verbose: bool = False, output_dir: Optional[str] = None, scope
     output_path = Path(output_dir) if output_dir else None
     
     try:
-        # Call the Python CLI test module
-        all_passed, errors = run_cli_tests_module(
+        # Call the Python CLI test module (always with return_details internally)
+        result = run_cli_tests_module(
             binary_path=BINARY_PATH,
             test_dir=TEST_DIR,
             log_dir=LOG_DIR,
             verbose=verbose,
             output_dir=output_path,
-            scope=scope
+            scope=scope,
+            return_details=return_details,
         )
+        
+        if return_details:
+            all_passed, errors, detailed = result
+        else:
+            all_passed, errors = result
+            detailed = []
         
         if all_passed:
             cli_logger.info("✅ CLI tests passed")
         else:
             cli_logger.error("❌ CLI tests failed")
         
+        if return_details:
+            return all_passed, errors, detailed
         return all_passed, errors
     except Exception as e:
         cli_logger.error(f"CLI tests failed with exception: {e}")
         import traceback
         cli_logger.error(traceback.format_exc())
+        if return_details:
+            return False, [f"CLI tests exception: {str(e)}"], []
         return False, [f"CLI tests exception: {str(e)}"]
 
 
@@ -2357,15 +2655,16 @@ def list_serve_tests():
     print("⚠️  8.12/8.13 存在环境限制, 详见 README.md\n")
 
 
-def run_serve_tests(verbose: bool = False, test_ids: Optional[List[str]] = None) -> Tuple[bool, List[str]]:
+def run_serve_tests(verbose: bool = False, test_ids: Optional[List[str]] = None, return_details: bool = False) -> Tuple[bool, List[str]]:
     """Run serve tests.
-    
+
     Args:
         verbose: Enable verbose output
         test_ids: Specific test IDs to run (e.g., ['8.1', '8.2']). None means all.
-    
+        return_details: If True, also return detailed results list.
+
     Returns:
-        Tuple of (all_passed, error_messages)
+        Tuple of (all_passed, error_messages) or (all_passed, error_messages, detailed_results)
     """
     if not SERVE_TEST_AVAILABLE:
         log.error("Serve test module not available.")
@@ -2373,24 +2672,28 @@ def run_serve_tests(verbose: bool = False, test_ids: Optional[List[str]] = None)
         log.error("  pip install httpx pytest")
         log.error("")
         log.error("Or run from tests directory with proper PYTHONPATH")
+        if return_details:
+            return False, ["Serve test module import failed - missing dependencies"], []
         return False, ["Serve test module import failed - missing dependencies"]
-    
+
     serve_logger = logger_mgr.get_module_logger("serve")
-    
+
     serve_logger.info("=" * 60)
     serve_logger.info("Running Serve tests")
     serve_logger.info("=" * 60)
-    
+
     # Create serve tester
     tester = OctosServeTester(BINARY_PATH, LOG_DIR)
-    
+
     try:
         # Start server
         serve_logger.info("Starting octos serve...")
         if not tester.start_server(port=8080, host="127.0.0.1"):
             serve_logger.error("Failed to start octos serve")
+            if return_details:
+                return False, ["Failed to start server"], []
             return False, ["Failed to start server"]
-        
+
         # Define all tests
         all_tests = [
             ("8.1", "Server Startup", tester.test_server_startup),
@@ -2413,7 +2716,17 @@ def run_serve_tests(verbose: bool = False, test_ids: Optional[List[str]] = None)
             ("8.12", "Bind Address (0.0.0.0)", tester.test_bind_address_external),
             ("8.13", "Default Bind (127.0.0.1)", tester.test_bind_address_local_default),
         ]
-        
+
+        # Notification tests (16.x)
+        notification_tests = [
+            ("16.1", "Notification Session Opened", tester.test_16_1_notification_session_opened),
+            ("16.2", "Notification Turn Started", tester.test_16_2_notification_turn_started),
+            ("16.3", "Notification Turn Completed", tester.test_16_3_notification_turn_completed),
+            ("16.4", "Notification Turn Error", tester.test_16_4_notification_turn_error),
+            ("16.5", "Notification Agent Updated", tester.test_16_5_notification_agent_updated),
+        ]
+        all_tests.extend(notification_tests)
+
         # Filter tests if specific IDs provided
         if test_ids:
             tests_to_run = []
@@ -2427,30 +2740,90 @@ def run_serve_tests(verbose: bool = False, test_ids: Optional[List[str]] = None)
                         break
                 if not matched:
                     serve_logger.warning(f"Test not found: {test_id}")
-            
+
             if not tests_to_run:
                 serve_logger.error("No valid tests to run")
+                if return_details:
+                    return False, [f"Invalid test IDs: {', '.join(test_ids)}"], []
                 return False, [f"Invalid test IDs: {', '.join(test_ids)}"]
         else:
             tests_to_run = all_tests
-        
+
         # Run tests
         for test_id, test_name, test_func in tests_to_run:
             tester.run_test(test_id, test_name, test_func)
-        
+
         # Generate and save report
         tester.save_report()
         tester.print_report_to_stdout()
-        
+
         # Determine result
         all_passed = tester.failed == 0
         errors = [f"{r.test_id} {r.name}: {r.details}" for r in tester.results if r.status == "FAIL"]
-        
+
         if all_passed:
             serve_logger.info("✅ All serve tests passed!")
         else:
             serve_logger.error(f"❌ {tester.failed} serve test(s) failed")
-        
+
+        # ── Stdio 传输模式测试 (30.x) ──
+        serve_logger.info("")
+        serve_logger.info("=" * 60)
+        serve_logger.info("Running Stdio transport tests")
+        serve_logger.info("=" * 60)
+
+        from serve.test_serve import OctosStdioTester
+        stdio_tester = OctosStdioTester(BINARY_PATH, LOG_DIR)
+        if stdio_tester.start_server():
+            stdio_tests = [
+                ("30.1", "Stdio Connectivity", stdio_tester.test_30_1_stdio_connectivity),
+                ("30.2", "Stdio Capabilities List", stdio_tester.test_30_2_stdio_capabilities),
+                ("30.3", "Stdio System Status", stdio_tester.test_30_3_stdio_system_status),
+                ("30.4", "Stdio Session List", stdio_tester.test_30_4_stdio_session_list),
+                ("30.5", "Stdio Session Open", stdio_tester.test_30_5_stdio_session_open),
+                ("30.6", "Stdio Auth Me", stdio_tester.test_30_6_stdio_auth_me),
+            ]
+            for test_id, test_name, test_func in stdio_tests:
+                stdio_tester.run_test(test_id, test_name, test_func)
+            stdio_tester.save_report()
+            stdio_tester.print_report_to_stdout()
+            stdio_failed = stdio_tester.failed
+            stdio_errors = [
+                f"{r.test_id} {r.name}: {r.details}"
+                for r in stdio_tester.results if r.status == "FAIL"
+            ]
+        else:
+            serve_logger.warning("Failed to start stdio server — skipping stdio tests")
+            stdio_failed = 0
+            stdio_errors = []
+
+        all_passed = all_passed and stdio_failed == 0
+        errors.extend(stdio_errors)
+
+        if return_details:
+            # Collect detailed results
+            serve_details = [
+                {
+                    "test_id": r.test_id,
+                    "name": r.name,
+                    "status": r.status,
+                    "details": r.details,
+                    "duration_sec": r.duration_sec,
+                }
+                for r in tester.results
+            ]
+            stdio_details = [
+                {
+                    "test_id": r.test_id,
+                    "name": r.name,
+                    "status": r.status,
+                    "details": r.details,
+                    "duration_sec": r.duration_sec,
+                }
+                for r in stdio_tester.results
+            ]
+            return all_passed, errors, serve_details, stdio_details
+
         return all_passed, errors
         
     finally:
@@ -2757,69 +3130,98 @@ def main() -> int:
             return 1
         
         prepare_test_environment()
-        
-        # Run tests in order: CLI first, then Serve, then Bot
-        cli_passed, cli_errors = run_cli_tests()
-        serve_passed, serve_errors = run_serve_tests()
-        bot_passed, bot_errors = run_all_bot_tests()
-        
-        # Generate comprehensive report using print (not log)
-        print("")
-        print("=" * 70)
-        print("📊 TEST SUMMARY REPORT")
-        print("=" * 70)
-        print("")
-        print(f"📅 Test Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print("")
-        
-        # Module status
-        print("🔹 Module Status:")
-        print(f"   • CLI Tests:   {'✅ PASSED' if cli_passed else '❌ FAILED'}")
-        print(f"   • Serve Tests: {'✅ PASSED' if serve_passed else '❌ FAILED'}")
-        print(f"   • Bot Tests:   {'✅ PASSED' if bot_passed else '❌ FAILED'}")
-        print("")
-        
-        # Overall result
-        overall_passed = cli_passed and serve_passed and bot_passed
-        print(f"🎯 Overall Result: {'✅ ALL TESTS PASSED' if overall_passed else '❌ SOME TESTS FAILED'}")
-        print("")
-        
-        # Error details
-        has_errors = len(cli_errors) > 0 or len(bot_errors) > 0
+
+        test_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        report_output_dir = Path("test-results")
+        reporter = UnifiedTestReporter(BINARY_PATH, test_date, report_output_dir)
+
+        cli_passed = serve_passed = bot_passed = False
+        cli_errors = serve_errors = bot_errors = []
+        cli_details = serve_details = stdio_details = bot_details = []
+
+        # ── CLI 测试 ──
+        try:
+            cli_passed, cli_errors, cli_details = run_cli_tests(return_details=True)
+            cli_total = len(cli_details)
+            cli_pass_count = sum(1 for r in cli_details if r["status"] == "PASS")
+            cli_fail_count = sum(1 for r in cli_details if r["status"] == "FAIL")
+            reporter.add_module("cli", cli_details, passed=cli_pass_count,
+                                failed=cli_fail_count, total=cli_total)
+        except Exception as e:
+            import traceback
+            cli_errors = [f"CLI exception: {e}"]
+            log.error(f"CLI tests failed with exception: {e}")
+            log.error(traceback.format_exc())
+            reporter.add_module("cli", [], passed=0, failed=0, total=0, error=str(e))
+
+        # ── Serve + Stdio 测试 ──
+        try:
+            serve_passed, serve_errors, serve_details, stdio_details = run_serve_tests(return_details=True)
+            serve_total = len(serve_details)
+            serve_pass = sum(1 for r in serve_details if r["status"] == "PASS")
+            serve_fail = sum(1 for r in serve_details if r["status"] == "FAIL")
+            serve_skip = sum(1 for r in serve_details if r["status"] == "SKIP")
+            reporter.add_module("serve", serve_details, passed=serve_pass,
+                                failed=serve_fail, total=serve_total, skipped=serve_skip)
+
+            stdio_total = len(stdio_details)
+            stdio_pass = sum(1 for r in stdio_details if r["status"] == "PASS")
+            stdio_fail = sum(1 for r in stdio_details if r["status"] == "FAIL")
+            stdio_skip = sum(1 for r in stdio_details if r["status"] == "SKIP")
+            reporter.add_module("stdio", stdio_details, passed=stdio_pass,
+                                failed=stdio_fail, total=stdio_total, skipped=stdio_skip)
+        except Exception as e:
+            import traceback
+            serve_errors = [f"Serve exception: {e}"]
+            log.error(f"Serve tests failed with exception: {e}")
+            log.error(traceback.format_exc())
+            reporter.add_module("serve", [], passed=0, failed=0, total=0, error=str(e))
+            reporter.add_module("stdio", [], passed=0, failed=0, total=0, error=str(e))
+
+        # ── Bot 测试 ──
+        try:
+            bot_passed, bot_errors, bot_details = run_all_bot_tests(return_details=True)
+            bot_total = len(bot_details)
+            bot_pass = sum(1 for r in bot_details if r["status"] == "PASS")
+            bot_fail = sum(1 for r in bot_details if r["status"] == "FAIL")
+            reporter.add_module("bot", bot_details, passed=bot_pass,
+                                failed=bot_fail, total=bot_total)
+        except Exception as e:
+            import traceback
+            bot_errors = [f"Bot exception: {e}"]
+            log.error(f"Bot tests failed with exception: {e}")
+            log.error(traceback.format_exc())
+            reporter.add_module("bot", [], passed=0, failed=0, total=0, error=str(e))
+
+        # ── 保存报告 ──
+        report_path = reporter.save_report()
+        reporter.print_summary()
+
+        # ── 额外的失败详情打印 ──
+        has_errors = len(cli_errors) > 0 or len(serve_errors) > 0 or len(bot_errors) > 0
         if has_errors:
             print("=" * 70)
             print("❌ FAILED TESTS DETAILS")
             print("=" * 70)
             print("")
-            
-            if cli_errors:
-                print("🔸 CLI Test Failures:")
-                for error in cli_errors:
-                    print(f"   • {error}")
-                print("")
-            
-            if bot_errors:
-                print("🔸 Bot Test Failures:")
-                for error in bot_errors:
-                    print(f"   • {error}")
-                print("")
-            
-            if serve_errors:
-                print("🔸 Serve Test Failures:")
-                for error in serve_errors:
-                    print(f"   • {error}")
-                print("")
-            
-            print(f"📝 Total Failures: {len(cli_errors) + len(bot_errors) + len(serve_errors)}")
+
+            for label, errors in [("CLI", cli_errors), ("Serve", serve_errors), ("Bot", bot_errors)]:
+                if errors:
+                    print(f"🔸 {label} Test Failures:")
+                    for error in errors[:20]:  # Limit to 20 errors
+                        print(f"   • {error}")
+                    print("")
+
+            print(f"📝 Total Failures: {len(cli_errors) + len(serve_errors) + len(bot_errors)}")
             print("")
-        
-        # Log location
+
         print("=" * 70)
-        print(f"📁 Logs: {LOG_DIR}")
+        print(f"📁 Logs:      {LOG_DIR}")
+        print(f"📄 Report:    {report_path}")
         print("=" * 70)
         print("")
-        
-        return 0 if overall_passed else 1
+
+        return 0 if (cli_passed and serve_passed and bot_passed) else 1
     
     return 1
 

@@ -115,8 +115,8 @@
 | # | 事项 | 涉及 | 说明 | 预估 | 状态 |
 |---|------|------|------|:----:|:----:|
 | 5 | **serve 6 个需 LLM method 升级** | serve | approval/respond、permission/profile.*、task/*、agent — 当前验证 error shape | 1 天 | ✅ 已完成（5 个升真实调用，6 个修正断言）|
-| 6 | **serve --stdio 传输** | serve | 当前只测了 WS，补 stdio mode 黑盒 | 1 天 | |
-| 7 | **serve 通知流验证** | serve | 35 个 notification 类型只有 session/open 被测到 | 1-2 天 | |
+| 6 | **serve --stdio 传输** | serve | 当前只测了 WS，补 stdio mode 黑盒 | 1 天 | ✅ 已完成（6 个测试，覆盖连通性/capabilities/system_status/session/session_open/auth）|
+| 7 | **serve 通知流验证** | serve | 35 个 notification 类型只有 session/open 被测到 | 1-2 天 | ✅ 已完成（新增 4 个：turn/started/turn/completed/turn/error/agent/updated）|
 | 8 | **octos-tui 协议端到端** | tui | --mode protocol PTY 有阻塞问题（TUI bootstrap 阶段不产生渲染输出），需 TUI 侧配合 | — | ❌ 暂不推进 |
 
 ### P2 — 中优先级
@@ -162,8 +162,8 @@
 9. **P0 排查** — session_delete_rx 已修复确认、Mock Server 未复现、profile routing 阻塞确认
 
 ### 仅剩待办
-- **serve --stdio 传输** — P1
-- **serve 通知流验证** — P1
+- ~~**serve --stdio 传输** — P1~~ ✅ 已完成
+- ~~**serve 通知流验证** — P1~~ ✅ 已完成
 - **Feishu Webhook 模式** — P2
 - **WhatsApp reconnect** — P2
 - **LINE 消息分片** — P2

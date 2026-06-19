@@ -28,7 +28,7 @@ Always prefer `test_run.py` over raw `pytest` because it handles binary detectio
 # Run everything
 uv run python test_run.py all
 
-# Bot tests (requires ANTHROPIC_API_KEY)
+# Bot tests (requires ANTHROPIC_API_KEY or OPENAI_API_KEY)
 uv run python test_run.py --test bot
 uv run python test_run.py --test bot telegram
 uv run python test_run.py --test bot discord
@@ -46,7 +46,8 @@ uv run python test_run.py --test serve 8.1
 
 | Variable | Required For | Notes |
 |----------|-------------|-------|
-| `ANTHROPIC_API_KEY` | Bot tests | Real LLM API key |
+| `ANTHROPIC_API_KEY` | Bot tests | 二选一，兼容 NVIDIA/OpenAI 等任何 OpenAI 兼容 API |
+| `OPENAI_API_KEY` | Bot tests | 二选一，NVIDIA key (`nvapi-...`) 或 OpenAI key 均可 |
 | `TELEGRAM_BOT_TOKEN` | Telegram tests | Mock mode accepts any non-empty string |
 | `DISCORD_BOT_TOKEN` | Discord tests | Optional; mock mode auto-fills a fake token |
 
