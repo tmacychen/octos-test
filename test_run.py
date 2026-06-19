@@ -112,6 +112,7 @@ else:
 
 TEST_DIR = Path("/tmp/octos_test")
 LOG_DIR = TEST_DIR / "logs"
+REPORT_DIR = SCRIPT_DIR / "test-results"  # 项目根下的统一报告目录
 BINARY_PATH = Path(os.environ.get("OCTOS_BINARY", "")) if os.environ.get("OCTOS_BINARY") else None
 BOT_TEST_DIR = TEST_REPO_ROOT / "bot_mock_test"
 CLI_TEST_DIR = TEST_REPO_ROOT / "cli_test"
@@ -3132,7 +3133,7 @@ def main() -> int:
         prepare_test_environment()
 
         test_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        report_output_dir = Path("test-results")
+        report_output_dir = REPORT_DIR
         reporter = UnifiedTestReporter(BINARY_PATH, test_date, report_output_dir)
 
         cli_passed = serve_passed = bot_passed = False
@@ -3141,7 +3142,7 @@ def main() -> int:
 
         # ── CLI 测试 ──
         try:
-            cli_passed, cli_errors, cli_details = run_cli_tests(return_details=True)
+            cli_passed, cli_errors, cli_details = run_cli_tests(return_details=True, output_dir=str(TEST_DIR / "module_reports"))
             cli_total = len(cli_details)
             cli_pass_count = sum(1 for r in cli_details if r["status"] == "PASS")
             cli_fail_count = sum(1 for r in cli_details if r["status"] == "FAIL")
