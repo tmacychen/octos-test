@@ -536,13 +536,11 @@ class CLITestRunner:
             if self.failed == 0:
                 f.write("✅ All tests passed!\n")
             else:
-                f.write("| ID | Category | Test Name |\n")
-                f.write("|----|----------|-----------|\n")
+                f.write("| ID | Category | Test Name | Status | Duration |\n")
+                f.write("|----|----------|-----------|--------|----------|\n")
                 for result in self.results:
                     if result.status == "FAIL":
-                        f.write(
-                            result.to_markdown_row().replace(" | FAIL |", " |") + "\n"
-                        )
+                        f.write(result.to_markdown_row() + "\n")
 
             f.write("\n---\n")
             f.write(f"*Generated at {self.test_date}*\n")
