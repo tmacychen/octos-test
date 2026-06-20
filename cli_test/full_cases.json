@@ -346,7 +346,9 @@
       "category": "Security",
       "name": "dangerous command sudo",
       "command": "chat -m \"请执行 sudo ls\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "unexpected|Syntax",
+      "validation": "contains"
     },
     {
       "id": "4.4",
@@ -525,28 +527,36 @@
       "category": "Completions",
       "name": "dynamic completions models",
       "command": "completions bash --dynamic Models",
-      "timeout": 30
+      "timeout": 30,
+      "expected": "possible values",
+      "validation": "contains"
     },
     {
       "id": "8.7",
       "category": "Completions",
       "name": "dynamic completions providers",
       "command": "completions bash --dynamic Providers",
-      "timeout": 30
+      "timeout": 30,
+      "expected": "possible values",
+      "validation": "contains"
     },
     {
       "id": "8.8",
       "category": "Completions",
       "name": "dynamic completions sessions",
       "command": "completions bash --dynamic Sessions",
-      "timeout": 30
+      "timeout": 30,
+      "expected": "possible values",
+      "validation": "contains"
     },
     {
       "id": "8.9",
       "category": "Completions",
       "name": "dynamic completions skills",
       "command": "completions bash --dynamic Skills",
-      "timeout": 30
+      "timeout": 30,
+      "expected": "possible values",
+      "validation": "contains"
     },
     {
       "id": "9.1",
@@ -575,7 +585,9 @@
       "category": "Skills",
       "name": "skills info",
       "command": "skills info deep_search",
-      "timeout": 60
+      "timeout": 60,
+      "expected": "not found",
+      "validation": "contains"
     },
     {
       "id": "9.5",
@@ -642,55 +654,63 @@
       "category": "Office",
       "name": "office validate",
       "command": "office validate \"{tempDir}/test.pptx\"",
-      "expected": "",
-      "timeout": 60
+      "expected": "does not exist",
+      "timeout": 60,
+      "validation": "contains"
     },
     {
       "id": "16.2",
       "category": "Office",
       "name": "office extract",
       "command": "office extract \"{tempDir}/test.pptx\"",
-      "expected": "",
-      "timeout": 60
+      "expected": "does not exist",
+      "timeout": 60,
+      "validation": "contains"
     },
     {
       "id": "16.3",
       "category": "Office",
       "name": "office pack",
       "command": "office pack \"{tempDir}/unpacked\" --output \"{tempDir}/test.pptx\"",
-      "expected": "",
-      "timeout": 60
+      "expected": "does not exist",
+      "timeout": 60,
+      "validation": "contains"
     },
     {
       "id": "16.4",
       "category": "Office",
       "name": "office clean",
       "command": "office clean \"{tempDir}/unpacked\"",
-      "expected": "",
-      "timeout": 60
+      "expected": "does not exist",
+      "timeout": 60,
+      "validation": "contains"
     },
     {
       "id": "16.5",
       "category": "Office",
       "name": "office thumbnail",
       "command": "office thumbnail \"{tempDir}/test.pptx\"",
-      "expected": "",
-      "timeout": 60
+      "expected": "does not exist",
+      "timeout": 60,
+      "validation": "contains"
     },
     {
       "id": "17.1",
       "category": "Account",
       "name": "account list",
       "command": "account list",
-      "timeout": 30
+      "timeout": 30,
+      "expected": "required",
+      "validation": "contains"
     },
     {
       "id": "18.1",
       "category": "Admin",
       "name": "admin tenant list",
       "command": "admin tenant list",
-      "expected": "",
-      "timeout": 30
+      "expected": "similar",
+      "timeout": 30,
+      "validation": "contains"
     },
     {
       "id": "19.1",
@@ -769,7 +789,9 @@
       "category": "Extension",
       "name": "skill availability",
       "command": "skills info nonexistent_skill",
-      "timeout": 30
+      "timeout": 30,
+      "expected": "not found",
+      "validation": "contains"
     },
     {
       "id": "22.3",
@@ -804,28 +826,36 @@
       "category": "Pipeline",
       "name": "dot parse",
       "command": "pipeline --file {tempDir}/test.dot",
-      "timeout": 60
+      "timeout": 60,
+      "expected": "unrecognized",
+      "validation": "contains"
     },
     {
       "id": "23.2",
       "category": "Pipeline",
       "name": "shell handler",
       "command": "pipeline --file {tempDir}/test_shell.dot",
-      "timeout": 120
+      "timeout": 120,
+      "expected": "unrecognized",
+      "validation": "contains"
     },
     {
       "id": "23.3",
       "category": "Pipeline",
       "name": "noop handler",
       "command": "pipeline --file {tempDir}/test_noop.dot",
-      "timeout": 60
+      "timeout": 60,
+      "expected": "unrecognized",
+      "validation": "contains"
     },
     {
       "id": "23.4",
       "category": "Pipeline",
       "name": "conditional edge",
       "command": "pipeline --file {tempDir}/test_cond.dot",
-      "timeout": 60
+      "timeout": 60,
+      "expected": "unrecognized",
+      "validation": "contains"
     },
     {
       "id": "23.5",

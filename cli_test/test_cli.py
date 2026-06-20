@@ -214,10 +214,21 @@ class CLITestRunner:
 
         return logger
 
-    def _run_command(self, cmd_args: str, timeout: int = 60) -> Tuple[int, str, str]:
+    def _run_command(self, cmd_args: str, timeout: int = 60,
+                     env_override: Optional[dict] = None) -> Tuple[int, str, str]:
         """Execute octos command and capture output."""
         import shlex
         full_cmd = [str(self.binary_path)] + shlex.split(cmd_args)
+
+        # 构建子进程环境：基础环境 + 测试用例特定覆盖
+        cmd_env = {**os.environ}
+        if env_override:
+            for k, v in env_override.items():
+                if v == "":
+                    # 空值表示从环境中移除
+                    cmd_env.pop(k, None)
+                else:
+                    cmd_env[k] = v
 
         try:
             result = subprocess.run(
@@ -225,7 +236,7 @@ class CLITestRunner:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                env={**os.environ},
+                env=cmd_env,
             )
             return result.returncode, result.stdout, result.stderr
         except subprocess.TimeoutExpired:
@@ -274,6 +285,7 @@ class CLITestRunner:
         expected: str,
         validation: str = "contains",
         timeout: int = 60,
+        env_override: Optional[dict] = None,
     ) -> CLITestResult:
         """Run a single CLI test case."""
         self.total += 1
@@ -281,10 +293,12 @@ class CLITestRunner:
 
         category_logger = self._get_logger_for_category(category)
         category_logger.info(f"[EXEC] octos {cmd_args}")
+        if env_override:
+            category_logger.info(f"[ENV] overrides: {env_override}")
         category_logger.info(f"[TEST_DIR] {self.category_test_dir}")
 
         # Execute command
-        exit_code, stdout, stderr = self._run_command(cmd_args, timeout)
+        exit_code, stdout, stderr = self._run_command(cmd_args, timeout, env_override)
         actual = stdout + stderr
 
         # Validate
@@ -498,8 +512,9 @@ class CLITestRunner:
             if test_type == "file_check":
                 self.run_file_check(test_id, category, name, file_path, should_exist)
             else:
+                env_override = test.get("env")
                 self.run_cli_test(
-                    test_id, category, name, command, expected, validation, timeout
+                    test_id, category, name, command, expected, validation, timeout, env_override
                 )
 
         # Final cleanup
