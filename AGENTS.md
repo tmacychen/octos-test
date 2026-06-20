@@ -73,3 +73,12 @@ There are no linting, formatting, type-checking, or CI configurations in this re
 ## Documentation Language
 
 READMEs and inline documentation are primarily in Chinese. This does not affect code conventions.
+
+## AI 执行规则
+
+### 输出完整性
+执行命令时**禁止过滤输出**：
+- 禁止使用 `grep`、`tail`、`head`、`|` 等管道过滤命令输出
+- 禁止使用 `2>&1 | grep` 等组合过滤
+- 必须让所有 stdout/stderr 原样输出，便于定位问题
+- 如需查看特定内容，应在命令执行完成后用额外的只读命令读取已生成的文件/日志
