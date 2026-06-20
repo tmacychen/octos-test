@@ -216,7 +216,8 @@ class CLITestRunner:
 
     def _run_command(self, cmd_args: str, timeout: int = 60) -> Tuple[int, str, str]:
         """Execute octos command and capture output."""
-        full_cmd = [str(self.binary_path)] + cmd_args.split()
+        import shlex
+        full_cmd = [str(self.binary_path)] + shlex.split(cmd_args)
 
         try:
             result = subprocess.run(
