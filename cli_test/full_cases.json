@@ -59,14 +59,16 @@
       "category": "Chat",
       "name": "single message",
       "command": "chat -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.6",
       "category": "Chat",
       "name": "max iterations",
       "command": "chat --max-iterations 3 -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.7",
@@ -80,21 +82,24 @@
       "category": "Chat",
       "name": "no retry",
       "command": "chat --no-retry -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.9",
       "category": "Chat",
       "name": "cwd option",
       "command": "chat --cwd {testDir} -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.10",
       "category": "Chat",
       "name": "data dir option",
       "command": "chat --data-dir {tempDir}/.octos -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.11",
@@ -108,7 +113,8 @@
       "category": "Chat",
       "name": "model claude",
       "command": "chat --model claude-sonnet-4-20250514 -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.13",
@@ -123,203 +129,232 @@
       "category": "Chat",
       "name": "provider anthropic",
       "command": "chat --provider anthropic --model claude-sonnet-4-20250514 -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.15",
       "category": "Chat",
       "name": "provider openai",
       "command": "chat --provider openai --model gpt-4o -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.16",
       "category": "Chat",
       "name": "provider gemini",
       "command": "chat --provider gemini --model gemini-2.0-flash -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.17",
       "category": "Chat",
       "name": "provider deepseek",
       "command": "chat --provider deepseek --model deepseek-chat -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.18",
       "category": "Chat",
       "name": "provider ollama",
       "command": "chat --provider ollama --model llama3.2 -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.19",
       "category": "Chat",
       "name": "provider moonshot",
       "command": "chat --provider moonshot --model kimi-k2.5 -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.20",
       "category": "Chat",
       "name": "provider dashscope",
       "command": "chat --provider dashscope --model qwen-max -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.21",
       "category": "Chat",
       "name": "provider minimax",
       "command": "chat --provider minimax --model MiniMax-Text-01 -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.22",
       "category": "Chat",
       "name": "provider groq",
       "command": "chat --provider groq --model llama-3.3-70b-versatile -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.23",
       "category": "Chat",
       "name": "custom base url",
       "command": "chat --provider openai --base-url http://localhost:8080/v1 -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.24",
       "category": "Chat",
       "name": "api type override",
       "command": "chat --provider minimax --api-type anthropic --model minimax-text-01 -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.25",
       "category": "Chat",
       "name": "deepseek full config",
       "command": "chat --provider deepseek --base-url https://api.deepseek.com/v1 --model deepseek-chat -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.26",
       "category": "Chat",
       "name": "save memory",
       "command": "chat -m \"请记住我喜欢使用 Python 编程\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.27",
       "category": "Chat",
       "name": "recall memory",
       "command": "chat -m \"我之前说过我喜欢什么编程语言？\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.28",
       "category": "Chat",
       "name": "7 day window",
       "command": "chat -m \"总结一下你最近记得的关于我的信息\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "2.29",
       "category": "Chat",
       "name": "hybrid search fallback",
       "command": "chat -m \"搜索我之前提到的编程语言偏好\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.1",
       "category": "Tools",
       "name": "read file",
       "command": "chat -m \"请读取 Cargo.toml 的内容\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.2",
       "category": "Tools",
       "name": "write file",
       "command": "chat -m \"请创建一个 test.txt 文件，内容为 hello world\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.3",
       "category": "Tools",
       "name": "shell echo",
       "command": "chat -m \"请执行 echo hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.4",
       "category": "Tools",
       "name": "glob rust files",
       "command": "chat -m \"请查找所有 *.rs 文件\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.5",
       "category": "Tools",
       "name": "grep fn main",
       "command": "chat -m \"请在当前目录搜索 fn main\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.6",
       "category": "Tools",
       "name": "list directory",
       "command": "chat -m \"请列出当前目录的内容\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.7",
       "category": "Tools",
       "name": "web search",
       "command": "chat -m \"请搜索 Rust 异步编程的最新进展\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.8",
       "category": "Tools",
       "name": "web fetch",
       "command": "chat -m \"请获取 https://example.com 的内容\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.9",
       "category": "Tools",
       "name": "git status",
       "command": "chat -m \"请执行 git status\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.10",
       "category": "Tools",
       "name": "parallel read",
       "command": "chat -m \"请同时读取 src/main.rs、src/lib.rs 和 Cargo.toml\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.11",
       "category": "Tools",
       "name": "edit file",
       "command": "chat -m \"请将 src/main.rs 中的 foo 替换为 bar\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.12",
       "category": "Tools",
       "name": "context filter",
       "command": "chat -m \"请列出所有 code 标签的工具\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "3.13",
       "category": "Tools",
       "name": "spawn only",
       "command": "chat -m \"请在后台启动一个计算任务，不要等待结果\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "4.1",
@@ -717,21 +752,24 @@
       "category": "Tools",
       "name": "tool policy deny",
       "command": "chat -m \"请执行 ls -la\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "19.2",
       "category": "Tools",
       "name": "tool policy allow",
       "command": "chat -m \"请执行 diff 编辑\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "19.3",
       "category": "Tools",
       "name": "provider policy gemini",
       "command": "chat -m \"请执行 diff 编辑\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "20.1",
@@ -739,42 +777,48 @@
       "name": "episode storage",
       "command": "chat -m \"完成一个简单任务\"",
       "timeout": 15,
-      "note": "Check episodes.redb exists after completion"
+      "note": "Check episodes.redb exists after completion",
+      "expected": "Error"
     },
     {
       "id": "20.2",
       "category": "Memory",
       "name": "long term memory edit",
       "command": "chat -m \"编辑我的长期记忆\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "20.3",
       "category": "Memory",
       "name": "entity bank",
       "command": "chat -m \"创建实体银行条目\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "20.4",
       "category": "Memory",
       "name": "hybrid search fallback",
       "command": "chat -m \"搜索记忆\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "21.1",
       "category": "Provider",
       "name": "failover",
       "command": "chat --provider anthropic --fallback-models gpt-4o -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "21.2",
       "category": "Provider",
       "name": "sub providers",
       "command": "chat -m \"使用子代理\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "22.1",
@@ -798,28 +842,32 @@
       "category": "Extension",
       "name": "plugin sha256",
       "command": "chat -m \"测试插件\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "22.4",
       "category": "Extension",
       "name": "mcp stdio",
       "command": "chat -m \"使用 MCP 工具\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "22.5",
       "category": "Extension",
       "name": "mcp http",
       "command": "chat -m \"使用 HTTP MCP\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "22.6",
       "category": "Extension",
       "name": "gating check",
       "command": "chat -m \"测试门控\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "23.1",
@@ -870,42 +918,48 @@
       "category": "Config",
       "name": "config priority",
       "command": "chat --provider anthropic -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "24.2",
       "category": "Config",
       "name": "config parse fail",
       "command": "chat -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "24.3",
       "category": "Hooks",
       "name": "before tool call hook",
       "command": "chat -m \"读取文件\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "24.4",
       "category": "Hooks",
       "name": "after tool call hook",
       "command": "chat -m \"读取文件\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "24.5",
       "category": "Hooks",
       "name": "hook timeout",
       "command": "chat -m \"测试超时 hook\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "24.6",
       "category": "Hooks",
       "name": "circuit breaker",
       "command": "chat -m \"测试熔断\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "24.7",
@@ -920,35 +974,40 @@
       "category": "Loop",
       "name": "loop detection length 1",
       "command": "chat -m \"重复调用同一工具\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "25.2",
       "category": "Loop",
       "name": "loop detection length 2",
       "command": "chat -m \"A-B-A-B 循环\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "25.3",
       "category": "Loop",
       "name": "token budget",
       "command": "chat --max-tokens 100 -m \"长文本\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "25.4",
       "category": "Loop",
       "name": "wall clock timeout",
       "command": "chat --max-timeout 10 -m \"hello\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "25.5",
       "category": "Loop",
       "name": "context compaction",
       "command": "chat -m \"长对话测试\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "26.1",
@@ -979,7 +1038,8 @@
       "category": "Security",
       "name": "sbpl injection",
       "command": "chat -m \"测试 SBPL\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "27.1",
@@ -1002,21 +1062,24 @@
       "category": "ToolPolicy",
       "name": "tool allow policy",
       "command": "chat -m \"读取文件\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "28.3",
       "category": "ToolPolicy",
       "name": "provider policy",
       "command": "chat --provider gemini -m \"执行编辑\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     },
     {
       "id": "28.4",
       "category": "ToolPolicy",
       "name": "context filter",
       "command": "chat -m \"列出 code 工具\"",
-      "timeout": 15
+      "timeout": 15,
+      "expected": "Error"
     }
   ],
   "platform_overrides": {
