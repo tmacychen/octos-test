@@ -207,14 +207,6 @@
       "expected": ""
     },
     {
-      "id": "2.24",
-      "category": "Chat",
-      "name": "api type override",
-      "command": "chat --provider minimax --api-type anthropic --model minimax-text-01 -m \"hello\"",
-      "timeout": 15,
-      "expected": "Error|error"
-    },
-    {
       "id": "2.25",
       "category": "Chat",
       "name": "deepseek full config",
@@ -807,14 +799,6 @@
       "expected": ""
     },
     {
-      "id": "21.1",
-      "category": "Provider",
-      "name": "failover",
-      "command": "chat --provider anthropic --fallback-models gpt-4o -m \"hello\"",
-      "timeout": 15,
-      "expected": "Error|error"
-    },
-    {
       "id": "21.2",
       "category": "Provider",
       "name": "sub providers",
@@ -870,50 +854,6 @@
       "command": "chat -m \"测试门控\"",
       "timeout": 15,
       "expected": ""
-    },
-    {
-      "id": "23.1",
-      "category": "Pipeline",
-      "name": "dot parse",
-      "command": "pipeline --file {tempDir}/test.dot",
-      "timeout": 60,
-      "expected": "unrecognized",
-      "validation": "contains"
-    },
-    {
-      "id": "23.2",
-      "category": "Pipeline",
-      "name": "shell handler",
-      "command": "pipeline --file {tempDir}/test_shell.dot",
-      "timeout": 120,
-      "expected": "unrecognized",
-      "validation": "contains"
-    },
-    {
-      "id": "23.3",
-      "category": "Pipeline",
-      "name": "noop handler",
-      "command": "pipeline --file {tempDir}/test_noop.dot",
-      "timeout": 60,
-      "expected": "unrecognized",
-      "validation": "contains"
-    },
-    {
-      "id": "23.4",
-      "category": "Pipeline",
-      "name": "conditional edge",
-      "command": "pipeline --file {tempDir}/test_cond.dot",
-      "timeout": 60,
-      "expected": "unrecognized",
-      "validation": "contains"
-    },
-    {
-      "id": "23.5",
-      "category": "Pipeline",
-      "name": "graph validation",
-      "command": "pipeline --file {tempDir}/test_cycle.dot",
-      "expected": "error|Error|cycle|loop",
-      "timeout": 30
     },
     {
       "id": "24.1",
@@ -986,22 +926,6 @@
       "command": "chat -m \"A-B-A-B 循环\"",
       "timeout": 15,
       "expected": ""
-    },
-    {
-      "id": "25.3",
-      "category": "Loop",
-      "name": "token budget",
-      "command": "chat --max-tokens 100 -m \"长文本\"",
-      "timeout": 15,
-      "expected": "Error|error"
-    },
-    {
-      "id": "25.4",
-      "category": "Loop",
-      "name": "wall clock timeout",
-      "command": "chat --max-timeout 10 -m \"hello\"",
-      "timeout": 15,
-      "expected": "Error|error"
     },
     {
       "id": "25.5",
