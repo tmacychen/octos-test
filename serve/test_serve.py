@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import platform
+import re
 import subprocess
 import sys
 import tempfile
@@ -120,24 +121,21 @@ class OctosServeTester:
 
             self.logger.setLevel(logging.INFO)
 
-    def _is_port_available(self, host: str, port: int) -> bool:
-        """检查端口是否可用"""
+    def _reserve_port(self, host: str, preferred: int):
+        """预留一个可用端口，返回 (socket, port)。调用方需保持 socket 打开直到子进程启动。"""
         import socket
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.bind((host, port))
-                return True
-            except OSError:
-                return False
-
-    def _find_available_port(self, host: str, preferred: int) -> int:
-        """找到一个可用端口，优先使用 preferred"""
-        if self._is_port_available(host, preferred):
-            return preferred
-        import socket
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((host, 0))
-            return s.getsockname()[1]
+        # 优先使用 preferred 端口
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            s.bind((host, preferred))
+            return s, preferred
+        except OSError:
+            pass
+        # preferred 被占用，让 OS 分配
+        s.bind((host, 0))
+        port = s.getsockname()[1]
+        return s, port
 
     def _read_server_output(self, process, logger, output_lines=None):
         """后台线程：持续读取服务器输出并记录到日志"""
@@ -156,14 +154,19 @@ class OctosServeTester:
         """启动 octos serve 进程"""
         self._setup_logger()
 
-        # 检测端口可用性，被占用则自动分配可用端口
-        actual_port = self._find_available_port(host, port)
-        if actual_port != port:
-            self.logger.warning(f"Port {port} is in use, using port {actual_port} instead")
-
         # Create temp data dir for isolation
         self.temp_dir = tempfile.TemporaryDirectory()
         data_dir = Path(self.temp_dir.name)
+
+        # 预留端口：保持 reservation socket 打开直到子进程启动，避免 TOCTOU 竞态
+        reservation = None
+        try:
+            reservation, actual_port = self._reserve_port(host, port)
+            if actual_port != port:
+                self.logger.warning(f"Port {port} is in use, using port {actual_port} instead")
+        except Exception as e:
+            self.logger.error(f"Failed to reserve port: {e}")
+            return False
 
         # Build command
         cmd = [str(self.binary_path), "serve",
@@ -190,7 +193,11 @@ class OctosServeTester:
                 env={**os.environ, "OCTOS_HOME": str(data_dir)}
             )
 
-            # 收集服务器输出行，用于诊断和端口检测
+            # 子进程已启动，可以释放预留端口了
+            reservation.close()
+            reservation = None
+
+            # 收集服务器输出行，用于诊断
             server_output = []
             output_thread = threading.Thread(
                 target=self._read_server_output,
@@ -210,7 +217,6 @@ class OctosServeTester:
                 # 检查进程是否已退出
                 exit_code = self.server_process.poll()
                 if exit_code is not None:
-                    # 进程已退出：收集已读到的输出行作为诊断
                     self.logger.error(f"Server exited early (code={exit_code}). Output:")
                     for line in server_output:
                         self.logger.error(f"  {line}")
@@ -233,6 +239,9 @@ class OctosServeTester:
         except Exception as e:
             self.logger.error(f"Failed to start server: {e}")
             return False
+        finally:
+            if reservation is not None:
+                reservation.close()
 
     def stop_server(self):
         """停止 octos serve 进程"""
