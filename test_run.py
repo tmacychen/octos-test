@@ -675,6 +675,15 @@ def build_octos(features: str = "telegram,discord,slack,whatsapp,email,feishu,tw
     return False
 
 
+def _cleanup_stale_processes():
+    """清理残留的 octos 进程，释放 episode store 锁和端口。"""
+    for name in ["octos serve", "octos chat", "octos gateway"]:
+        try:
+            subprocess.run(["pkill", "-f", name], capture_output=True, timeout=5)
+        except Exception:
+            pass
+
+
 def _ensure_nvidia_config():
     """检测 NVIDIA key 并配置 octos 使用 NVIDIA OpenAI 兼容 API。"""
     api_key = os.environ.get("OPENAI_API_KEY", "")
@@ -705,7 +714,10 @@ def prepare_test_environment():
     """Prepare test environment and copy files if needed."""
     TEST_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    
+
+    # ── 清理残留的 octos 进程 ──
+    _cleanup_stale_processes()
+
     # ── 自动配置 NVIDIA OpenAI 兼容 API ──
     # 当 OPENAI_API_KEY 是 NVIDIA key 时，在 octos config 中添加 base_url
     _ensure_nvidia_config()
