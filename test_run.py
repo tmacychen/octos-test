@@ -675,10 +675,40 @@ def build_octos(features: str = "telegram,discord,slack,whatsapp,email,feishu,tw
     return False
 
 
+def _ensure_nvidia_config():
+    """检测 NVIDIA key 并配置 octos 使用 NVIDIA OpenAI 兼容 API。"""
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key.startswith("nvapi-"):
+        return
+
+    config_path = Path.home() / ".config" / "octos" / "config.json"
+    if not config_path.exists():
+        return
+
+    try:
+        config = json.loads(config_path.read_text())
+        # 已有 base_url 则跳过（用户自定义）
+        if config.get("base_url"):
+            return
+
+        nvidia_base_url = "https://integrate.api.nvidia.com/v1"
+        nvidia_model = "deepseek-ai/deepseek-v4-flash"
+        config["base_url"] = nvidia_base_url
+        config["model"] = nvidia_model
+        config_path.write_text(json.dumps(config, indent=2))
+        log.info(f"🔄 NVIDIA API key detected → updated octos config: base_url={nvidia_base_url}, model={nvidia_model}")
+    except Exception as e:
+        log.warning(f"⚠️  Failed to update octos config for NVIDIA: {e}")
+
+
 def prepare_test_environment():
     """Prepare test environment and copy files if needed."""
     TEST_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # ── 自动配置 NVIDIA OpenAI 兼容 API ──
+    # 当 OPENAI_API_KEY 是 NVIDIA key 时，在 octos config 中添加 base_url
+    _ensure_nvidia_config()
     
     # Check if bot test files have changed
     bot_hash_file = TEST_DIR / ".bot_test_hashes.json"
