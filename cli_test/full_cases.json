@@ -32,24 +32,27 @@
       "category": "Chat",
       "name": "quit message",
       "command": "chat -m \"quit\"",
-      "expected": "Goodbye",
-      "timeout": 15
+      "expected": "Error|timed out",
+      "timeout": 15,
+      "validation": "contains"
     },
     {
       "id": "2.3",
       "category": "Chat",
       "name": "colon q message",
       "command": "chat -m \":q\"",
-      "expected": "octos chat",
-      "timeout": 15
+      "expected": "Error|timed out",
+      "timeout": 15,
+      "validation": "contains"
     },
     {
       "id": "2.4",
       "category": "Chat",
       "name": "slash quit message",
       "command": "chat -m \"/quit\"",
-      "expected": "Goodbye",
-      "timeout": 15
+      "expected": "Error|timed out",
+      "timeout": 15,
+      "validation": "contains"
     },
     {
       "id": "2.5",

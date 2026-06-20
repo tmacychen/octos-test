@@ -240,12 +240,18 @@ class CLITestRunner:
 
         Supports '|' as OR operator in expected string.
         Example: "Created|.octos" means output should contain "Created" OR ".octos"
+
+        When expected is empty and validation is "contains" (default),
+        falls back to checking exit_code == 0.
         """
         if validation == "contains":
             # Split by '|' to support multiple possible matches (OR logic)
             expected_parts = [
                 part.strip() for part in expected.split("|") if part.strip()
             ]
+            if not expected_parts:
+                # No expected output specified: command should succeed (exit 0)
+                return exit_code == 0
             # Return True if ANY part is found in actual output
             return any(part in actual for part in expected_parts)
         elif validation == "not_contains":
