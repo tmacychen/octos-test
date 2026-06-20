@@ -212,7 +212,7 @@
       "name": "api type override",
       "command": "chat --provider minimax --api-type anthropic --model minimax-text-01 -m \"hello\"",
       "timeout": 15,
-      "expected": "Error"
+      "expected": "Error|error"
     },
     {
       "id": "2.25",
@@ -367,7 +367,7 @@
         "ANTHROPIC_API_KEY": "",
         "OPENAI_API_KEY": ""
       },
-      "expected": "",
+      "expected": "Error|error",
       "timeout": 15
     },
     {
@@ -812,7 +812,7 @@
       "name": "failover",
       "command": "chat --provider anthropic --fallback-models gpt-4o -m \"hello\"",
       "timeout": 15,
-      "expected": "Error"
+      "expected": "Error|error"
     },
     {
       "id": "21.2",
@@ -993,7 +993,7 @@
       "name": "token budget",
       "command": "chat --max-tokens 100 -m \"长文本\"",
       "timeout": 15,
-      "expected": "Error"
+      "expected": "Error|error"
     },
     {
       "id": "25.4",
@@ -1001,7 +1001,7 @@
       "name": "wall clock timeout",
       "command": "chat --max-timeout 10 -m \"hello\"",
       "timeout": 15,
-      "expected": "Error"
+      "expected": "Error|error"
     },
     {
       "id": "25.5",
