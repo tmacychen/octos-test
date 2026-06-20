@@ -137,10 +137,12 @@ class OctosServeTester:
         port = s.getsockname()[1]
         return s, port
 
-    def _read_server_output(self, process, logger, output_lines=None):
+    def _read_server_output(self, process, logger, output_lines=None, stop_event=None):
         """后台线程：持续读取服务器输出并记录到日志"""
         try:
             for line in iter(process.stdout.readline, ''):
+                if stop_event and stop_event.is_set():
+                    break
                 if line:
                     stripped = line.rstrip()
                     logger.info(f"  [SERVER] {stripped}")
@@ -198,10 +200,11 @@ class OctosServeTester:
             reservation = None
 
             # 收集服务器输出行，用于诊断
+            self._server_output_stop = threading.Event()
             server_output = []
             output_thread = threading.Thread(
                 target=self._read_server_output,
-                args=(self.server_process, self.logger, server_output),
+                args=(self.server_process, self.logger, server_output, self._server_output_stop),
                 daemon=True
             )
             output_thread.start()
@@ -245,6 +248,10 @@ class OctosServeTester:
 
     def stop_server(self):
         """停止 octos serve 进程"""
+        # 通知输出读取线程停止
+        if hasattr(self, '_server_output_stop'):
+            self._server_output_stop.set()
+
         if self.server_process:
             try:
                 self.logger.info("Stopping server...")
@@ -2633,7 +2640,11 @@ class OctosStdioTester:
             start_time = time.time()
             while time.time() - start_time < timeout:
                 if self.server_process.poll() is not None:
-                    stdout, stderr = self.server_process.communicate()
+                    try:
+                        stdout, stderr = self.server_process.communicate(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        self.server_process.kill()
+                        stdout, stderr = self.server_process.communicate(timeout=5)
                     self.logger.error(f"Server exited early. stdout:\n{stdout}\nstderr:\n{stderr}")
                     return False
                 time.sleep(0.2)

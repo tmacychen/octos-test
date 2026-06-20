@@ -2237,7 +2237,7 @@ while True:
             elif 'ERROR' in text and ('test_' in text or 'setup' in text.lower()):
                 error_messages.append(text)
     
-    pytest_proc.wait()
+    pytest_proc.wait(timeout=300)
     result = subprocess.CompletedProcess(
         args=pytest_args,
         returncode=pytest_proc.returncode,
