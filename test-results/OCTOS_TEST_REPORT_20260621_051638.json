@@ -1,0 +1,2409 @@
+{
+  "report_type": "octos_unified_test_report",
+  "test_date": "2026-06-20 22:31:50",
+  "binary_path": "/Volumes/AppleData/octos/target/release/octos",
+  "summary": {
+    "total": 367,
+    "passed": 61,
+    "failed": 306,
+    "skipped": 0,
+    "passed_pct": 16.6
+  },
+  "modules": {
+    "bot": {
+      "total": 214,
+      "passed": 0,
+      "failed": 214,
+      "skipped": 0,
+      "passed_pct": 0.0,
+      "error": "",
+      "results": [
+        {
+          "channel": "telegram",
+          "test_id": "ALL_TESTS_SKIPPED",
+          "name": "ALL_TESTS_SKIPPED",
+          "status": "FAIL"
+        },
+        {
+          "channel": "discord",
+          "test_id": "\u001b[31m\u001b[1m________ ERROR at setup of TestDiscordLLMMessages.test_regular_message _________\u001b[0m",
+          "name": "\u001b[31m\u001b[1m________ ERROR at setup of TestDiscordLLMMessages.test_regular_message _________\u001b[0m",
+          "status": "FAIL"
+        },
+        {
+          "channel": "discord",
+          "test_id": "\u001b[31m\u001b[1m________ ERROR at setup of TestDiscordLLMMessages.test_chinese_message _________\u001b[0m",
+          "name": "\u001b[31m\u001b[1m________ ERROR at setup of TestDiscordLLMMessages.test_chinese_message _________\u001b[0m",
+          "status": "FAIL"
+        },
+        {
+          "channel": "discord",
+          "test_id": "\u001b[31mERROR\u001b[0m bot_mock_test/test_discord.py::\u001b[1mTestDiscordLLMMessages::test_regular_message\u001b[0m - AssertionError: Bot 未在 30s 内回复 '/new'",
+          "name": "\u001b[31mERROR\u001b[0m bot_mock_test/test_discord.py::\u001b[1mTestDiscordLLMMessages::test_regular_message\u001b[0m - AssertionError: Bot 未在 30s 内回复 '/new'",
+          "status": "FAIL"
+        },
+        {
+          "channel": "discord",
+          "test_id": "\u001b[31mERROR\u001b[0m bot_mock_test/test_discord.py::\u001b[1mTestDiscordLLMMessages::test_chinese_message\u001b[0m - AssertionError: Bot 未在 30s 内回复 '/new'",
+          "name": "\u001b[31mERROR\u001b[0m bot_mock_test/test_discord.py::\u001b[1mTestDiscordLLMMessages::test_chinese_message\u001b[0m - AssertionError: Bot 未在 30s 内回复 '/new'",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_new_creates_session",
+          "name": "test_new_creates_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_new_with_invalid_name",
+          "name": "test_new_with_invalid_name",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_clear_resets_session",
+          "name": "test_clear_resets_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_switch_session",
+          "name": "test_switch_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_back_to_previous",
+          "name": "test_back_to_previous",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_delete_session",
+          "name": "test_delete_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_sessions_list",
+          "name": "test_sessions_list",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_very_long_message",
+          "name": "test_very_long_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_special_characters",
+          "name": "test_special_characters",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_unicode_emoji",
+          "name": "test_unicode_emoji",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_html_formatted_message",
+          "name": "test_html_formatted_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_queue_mode_show",
+          "name": "test_queue_mode_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_queue_mode_set",
+          "name": "test_queue_mode_set",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_soul_show_empty",
+          "name": "test_soul_show_empty",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_soul_set",
+          "name": "test_soul_set",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_status_command",
+          "name": "test_status_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_adaptive_command",
+          "name": "test_adaptive_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_reset_command",
+          "name": "test_reset_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_help_command",
+          "name": "test_help_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_regular_message",
+          "name": "test_regular_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_chinese_message",
+          "name": "test_chinese_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_profile_session_isolation",
+          "name": "test_profile_session_isolation",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_queue_mode_per_profile",
+          "name": "test_queue_mode_per_profile",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_rapid_messages",
+          "name": "test_rapid_messages",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_concurrent_rooms",
+          "name": "test_concurrent_rooms",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_message_with_mention",
+          "name": "test_message_with_mention",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_message_with_code_block",
+          "name": "test_message_with_code_block",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_message_with_link",
+          "name": "test_message_with_link",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_duplicate_event_id_ignored",
+          "name": "test_duplicate_event_id_ignored",
+          "status": "FAIL"
+        },
+        {
+          "channel": "matrix",
+          "test_id": "test_allowed_sender_gets_reply",
+          "name": "test_allowed_sender_gets_reply",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_simple_message",
+          "name": "test_simple_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_empty_message",
+          "name": "test_empty_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_very_long_message",
+          "name": "test_very_long_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_special_characters",
+          "name": "test_special_characters",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_unicode_emoji",
+          "name": "test_unicode_emoji",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_new_default",
+          "name": "test_new_default",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_new_named",
+          "name": "test_new_named",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_new_invalid_name",
+          "name": "test_new_invalid_name",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_switch_to_existing",
+          "name": "test_switch_to_existing",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_switch_to_default",
+          "name": "test_switch_to_default",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_sessions_list",
+          "name": "test_sessions_list",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_back_returns_session",
+          "name": "test_back_returns_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_back_with_history",
+          "name": "test_back_with_history",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_delete_session",
+          "name": "test_delete_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_soul_show_default",
+          "name": "test_soul_show_default",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_clear_resets_session",
+          "name": "test_clear_resets_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_soul_set",
+          "name": "test_soul_set",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_soul_reset",
+          "name": "test_soul_reset",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_adaptive_no_router",
+          "name": "test_adaptive_no_router",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_queue_show",
+          "name": "test_queue_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_queue_set_followup",
+          "name": "test_queue_set_followup",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_queue_set_invalid",
+          "name": "test_queue_set_invalid",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_status_show",
+          "name": "test_status_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_reset_command",
+          "name": "test_reset_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_unknown_command_help",
+          "name": "test_unknown_command_help",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_back_alias_b",
+          "name": "test_back_alias_b",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_delete_alias_d",
+          "name": "test_delete_alias_d",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_delete_no_name",
+          "name": "test_delete_no_name",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_steer_mode_non_abort_messages_not_triggered",
+          "name": "test_steer_mode_non_abort_messages_not_triggered",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_interrupt_mode_non_abort_messages_not_triggered",
+          "name": "test_interrupt_mode_non_abort_messages_not_triggered",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_two_users_independent",
+          "name": "test_two_users_independent",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_profile_session_isolation",
+          "name": "test_profile_session_isolation",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_soul_per_profile",
+          "name": "test_soul_per_profile",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_queue_mode_per_profile",
+          "name": "test_queue_mode_per_profile",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_message_with_mention",
+          "name": "test_message_with_mention",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_message_with_code_block",
+          "name": "test_message_with_code_block",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_message_with_link",
+          "name": "test_message_with_link",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_concurrent_session_creation",
+          "name": "test_concurrent_session_creation",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_rapid_messages",
+          "name": "test_rapid_messages",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_who_are_you",
+          "name": "test_who_are_you",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_hello_greeting",
+          "name": "test_hello_greeting",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_chinese_greeting",
+          "name": "test_chinese_greeting",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_abort_with_whitespace",
+          "name": "test_abort_with_whitespace",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_abort_multilanguage[english_stop]",
+          "name": "test_abort_multilanguage[english_stop]",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_abort_multilanguage[chinese_stop]",
+          "name": "test_abort_multilanguage[chinese_stop]",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_abort_multilanguage[japanese_stop]",
+          "name": "test_abort_multilanguage[japanese_stop]",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_abort_multilanguage[russian_stop]",
+          "name": "test_abort_multilanguage[russian_stop]",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_duplicate_event_id_ignored",
+          "name": "test_duplicate_event_id_ignored",
+          "status": "FAIL"
+        },
+        {
+          "channel": "slack",
+          "test_id": "test_allowed_sender_gets_reply",
+          "name": "test_allowed_sender_gets_reply",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_new_default",
+          "name": "test_new_default",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_new_named",
+          "name": "test_new_named",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_new_invalid_name",
+          "name": "test_new_invalid_name",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_switch_to_existing",
+          "name": "test_switch_to_existing",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_switch_to_default",
+          "name": "test_switch_to_default",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_sessions_list",
+          "name": "test_sessions_list",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_back_returns_session",
+          "name": "test_back_returns_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_back_with_history",
+          "name": "test_back_with_history",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_delete_session",
+          "name": "test_delete_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_delete_no_name",
+          "name": "test_delete_no_name",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_soul_show_default",
+          "name": "test_soul_show_default",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_soul_set",
+          "name": "test_soul_set",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_clear_resets_session",
+          "name": "test_clear_resets_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_soul_reset",
+          "name": "test_soul_reset",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_adaptive_no_router",
+          "name": "test_adaptive_no_router",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_queue_show",
+          "name": "test_queue_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_queue_set_followup",
+          "name": "test_queue_set_followup",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_queue_set_invalid",
+          "name": "test_queue_set_invalid",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_status_show",
+          "name": "test_status_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_reset_command",
+          "name": "test_reset_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_unknown_command_help",
+          "name": "test_unknown_command_help",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_two_users_independent",
+          "name": "test_two_users_independent",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_abort_with_whitespace",
+          "name": "test_abort_with_whitespace",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_abort_multilanguage[english_stop]",
+          "name": "test_abort_multilanguage[english_stop]",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_abort_multilanguage[chinese_stop]",
+          "name": "test_abort_multilanguage[chinese_stop]",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_abort_multilanguage[japanese_stop]",
+          "name": "test_abort_multilanguage[japanese_stop]",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_abort_multilanguage[russian_stop]",
+          "name": "test_abort_multilanguage[russian_stop]",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_regular_message",
+          "name": "test_regular_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_profile_session_isolation",
+          "name": "test_profile_session_isolation",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_concurrent_session_creation",
+          "name": "test_concurrent_session_creation",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_stream_edit_creates_edit_operations",
+          "name": "test_stream_edit_creates_edit_operations",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_edit_preserves_message_identity",
+          "name": "test_edit_preserves_message_identity",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_large_message_handling",
+          "name": "test_large_message_handling",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_session_file_size_limit_enforcement",
+          "name": "test_session_file_size_limit_enforcement",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_session_created_on_first_message",
+          "name": "test_session_created_on_first_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_short_idle_session_cleanup",
+          "name": "test_short_idle_session_cleanup",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_jsonl_file_created_after_message",
+          "name": "test_jsonl_file_created_after_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_jsonl_entries_have_required_fields",
+          "name": "test_jsonl_entries_have_required_fields",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_duplicate_message_id_ignored",
+          "name": "test_duplicate_message_id_ignored",
+          "status": "FAIL"
+        },
+        {
+          "channel": "feishu",
+          "test_id": "test_allowed_sender_gets_reply",
+          "name": "test_allowed_sender_gets_reply",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wechat",
+          "test_id": "test_new_default",
+          "name": "test_new_default",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_new_creates_session",
+          "name": "test_new_creates_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_new_with_invalid_name",
+          "name": "test_new_with_invalid_name",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_switch_session",
+          "name": "test_switch_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_sessions_list",
+          "name": "test_sessions_list",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_back_to_previous",
+          "name": "test_back_to_previous",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_delete_session",
+          "name": "test_delete_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_clear_resets_session",
+          "name": "test_clear_resets_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_empty_message",
+          "name": "test_empty_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_special_characters",
+          "name": "test_special_characters",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_unicode_emoji",
+          "name": "test_unicode_emoji",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_queue_mode_show",
+          "name": "test_queue_mode_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_queue_mode_set",
+          "name": "test_queue_mode_set",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_soul_show_empty",
+          "name": "test_soul_show_empty",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_soul_set",
+          "name": "test_soul_set",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_status_command",
+          "name": "test_status_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_adaptive_command",
+          "name": "test_adaptive_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_reset_command",
+          "name": "test_reset_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_help_command",
+          "name": "test_help_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_regular_message",
+          "name": "test_regular_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_chinese_message",
+          "name": "test_chinese_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_two_users_independent_sessions",
+          "name": "test_two_users_independent_sessions",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_abort_multilanguage",
+          "name": "test_abort_multilanguage",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_image_with_caption",
+          "name": "test_image_with_caption",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_audio_message",
+          "name": "test_audio_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_duplicate_message_id_ignored",
+          "name": "test_duplicate_message_id_ignored",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_allowed_sender_gets_reply",
+          "name": "test_allowed_sender_gets_reply",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_ws_reconnect",
+          "name": "test_ws_reconnect",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_typing_tracking_on_bot_api_call",
+          "name": "test_typing_tracking_on_bot_api_call",
+          "status": "FAIL"
+        },
+        {
+          "channel": "whatsapp",
+          "test_id": "test_location_message",
+          "name": "test_location_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_subscription_state",
+          "name": "test_subscription_state",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_multiple_connections_tracked",
+          "name": "test_multiple_connections_tracked",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_new_default",
+          "name": "test_new_default",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_sessions_list",
+          "name": "test_sessions_list",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_help",
+          "name": "test_help",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_clear_resets_session",
+          "name": "test_clear_resets_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_soul_show",
+          "name": "test_soul_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_queue_show",
+          "name": "test_queue_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_status",
+          "name": "test_status",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_simple_greeting",
+          "name": "test_simple_greeting",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_chinese_message",
+          "name": "test_chinese_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_llm_meaningful_reply",
+          "name": "test_llm_meaningful_reply",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_stream_chunks_received",
+          "name": "test_stream_chunks_received",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_stream_final_content_nonempty",
+          "name": "test_stream_final_content_nonempty",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_multiple_users_isolated",
+          "name": "test_multiple_users_isolated",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_duplicate_message_id_ignored",
+          "name": "test_duplicate_message_id_ignored",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_allowed_sender_gets_reply",
+          "name": "test_allowed_sender_gets_reply",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom-bot",
+          "test_id": "test_ws_reconnect",
+          "name": "test_ws_reconnect",
+          "status": "FAIL"
+        },
+        {
+          "channel": "wecom",
+          "test_id": "unknown",
+          "name": "unknown failure",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_new_default",
+          "name": "test_new_default",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_new_with_name",
+          "name": "test_new_with_name",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_sessions_list",
+          "name": "test_sessions_list",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_back_command",
+          "name": "test_back_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_delete_session",
+          "name": "test_delete_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_help",
+          "name": "test_help",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_clear_resets_session",
+          "name": "test_clear_resets_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_soul_show",
+          "name": "test_soul_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_queue_show",
+          "name": "test_queue_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_status",
+          "name": "test_status",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_reset",
+          "name": "test_reset",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_adaptive",
+          "name": "test_adaptive",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_simple_greeting",
+          "name": "test_simple_greeting",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_chinese_message",
+          "name": "test_chinese_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_llm_has_content",
+          "name": "test_llm_has_content",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_multiple_users_isolated",
+          "name": "test_multiple_users_isolated",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_c2c_message_gets_reply",
+          "name": "test_c2c_message_gets_reply",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_duplicate_message_id_ignored",
+          "name": "test_duplicate_message_id_ignored",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_allowed_sender_gets_reply",
+          "name": "test_allowed_sender_gets_reply",
+          "status": "FAIL"
+        },
+        {
+          "channel": "qq-bot",
+          "test_id": "test_ws_reconnect",
+          "name": "test_ws_reconnect",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_new_default",
+          "name": "test_new_default",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_new_with_name",
+          "name": "test_new_with_name",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_sessions_list",
+          "name": "test_sessions_list",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_back_command",
+          "name": "test_back_command",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_delete_session",
+          "name": "test_delete_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_help",
+          "name": "test_help",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_clear_resets_session",
+          "name": "test_clear_resets_session",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_soul_show",
+          "name": "test_soul_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_queue_show",
+          "name": "test_queue_show",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_status",
+          "name": "test_status",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_reset",
+          "name": "test_reset",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_adaptive",
+          "name": "test_adaptive",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_simple_greeting",
+          "name": "test_simple_greeting",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_chinese_message",
+          "name": "test_chinese_message",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_llm_has_content",
+          "name": "test_llm_has_content",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_multiple_users_isolated",
+          "name": "test_multiple_users_isolated",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_duplicate_message_sid_ignored",
+          "name": "test_duplicate_message_sid_ignored",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_allowed_sender_gets_reply",
+          "name": "test_allowed_sender_gets_reply",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_long_message_gets_reply",
+          "name": "test_long_message_gets_reply",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_very_long_message_handled",
+          "name": "test_very_long_message_handled",
+          "status": "FAIL"
+        },
+        {
+          "channel": "twilio",
+          "test_id": "test_help_text_complete",
+          "name": "test_help_text_complete",
+          "status": "FAIL"
+        }
+      ]
+    },
+    "cli": {
+      "total": 123,
+      "passed": 41,
+      "failed": 82,
+      "skipped": 0,
+      "passed_pct": 33.3,
+      "error": "",
+      "results": [
+        {
+          "test_id": "1.1",
+          "category": "CLI",
+          "name": "help command",
+          "status": "PASS",
+          "duration_sec": 0.008630037307739258
+        },
+        {
+          "test_id": "2.1",
+          "category": "Chat",
+          "name": "chat help",
+          "status": "PASS",
+          "duration_sec": 0.00830388069152832
+        },
+        {
+          "test_id": "2.2",
+          "category": "Chat",
+          "name": "quit message",
+          "status": "PASS",
+          "duration_sec": 2.373476266860962
+        },
+        {
+          "test_id": "2.3",
+          "category": "Chat",
+          "name": "colon q message",
+          "status": "PASS",
+          "duration_sec": 2.718374252319336
+        },
+        {
+          "test_id": "2.4",
+          "category": "Chat",
+          "name": "slash quit message",
+          "status": "PASS",
+          "duration_sec": 2.1553080081939697
+        },
+        {
+          "test_id": "2.5",
+          "category": "Chat",
+          "name": "single message",
+          "status": "FAIL",
+          "duration_sec": 15.011544942855835
+        },
+        {
+          "test_id": "2.6",
+          "category": "Chat",
+          "name": "max iterations",
+          "status": "FAIL",
+          "duration_sec": 15.010373830795288
+        },
+        {
+          "test_id": "2.7",
+          "category": "Chat",
+          "name": "verbose mode",
+          "status": "FAIL",
+          "duration_sec": 15.013694047927856
+        },
+        {
+          "test_id": "2.8",
+          "category": "Chat",
+          "name": "no retry",
+          "status": "FAIL",
+          "duration_sec": 15.010955095291138
+        },
+        {
+          "test_id": "2.9",
+          "category": "Chat",
+          "name": "cwd option",
+          "status": "FAIL",
+          "duration_sec": 15.015154838562012
+        },
+        {
+          "test_id": "2.10",
+          "category": "Chat",
+          "name": "data dir option",
+          "status": "FAIL",
+          "duration_sec": 0.024015188217163086
+        },
+        {
+          "test_id": "2.11",
+          "category": "Chat",
+          "name": "streaming output",
+          "status": "FAIL",
+          "duration_sec": 15.010344743728638
+        },
+        {
+          "test_id": "2.12",
+          "category": "Chat",
+          "name": "model claude",
+          "status": "FAIL",
+          "duration_sec": 0.6241910457611084
+        },
+        {
+          "test_id": "2.13",
+          "category": "Chat",
+          "name": "model gpt4o",
+          "status": "PASS",
+          "duration_sec": 0.5562288761138916
+        },
+        {
+          "test_id": "2.14",
+          "category": "Chat",
+          "name": "provider anthropic",
+          "status": "FAIL",
+          "duration_sec": 0.590158224105835
+        },
+        {
+          "test_id": "2.15",
+          "category": "Chat",
+          "name": "provider openai",
+          "status": "FAIL",
+          "duration_sec": 0.5996003150939941
+        },
+        {
+          "test_id": "2.16",
+          "category": "Chat",
+          "name": "provider gemini",
+          "status": "FAIL",
+          "duration_sec": 0.5999469757080078
+        },
+        {
+          "test_id": "2.17",
+          "category": "Chat",
+          "name": "provider deepseek",
+          "status": "FAIL",
+          "duration_sec": 0.6300749778747559
+        },
+        {
+          "test_id": "2.18",
+          "category": "Chat",
+          "name": "provider ollama",
+          "status": "FAIL",
+          "duration_sec": 0.5713739395141602
+        },
+        {
+          "test_id": "2.19",
+          "category": "Chat",
+          "name": "provider moonshot",
+          "status": "FAIL",
+          "duration_sec": 0.5808711051940918
+        },
+        {
+          "test_id": "2.20",
+          "category": "Chat",
+          "name": "provider dashscope",
+          "status": "FAIL",
+          "duration_sec": 0.5805439949035645
+        },
+        {
+          "test_id": "2.21",
+          "category": "Chat",
+          "name": "provider minimax",
+          "status": "FAIL",
+          "duration_sec": 0.5692460536956787
+        },
+        {
+          "test_id": "2.22",
+          "category": "Chat",
+          "name": "provider groq",
+          "status": "FAIL",
+          "duration_sec": 0.5692291259765625
+        },
+        {
+          "test_id": "2.23",
+          "category": "Chat",
+          "name": "custom base url",
+          "status": "FAIL",
+          "duration_sec": 7.072834014892578
+        },
+        {
+          "test_id": "2.25",
+          "category": "Chat",
+          "name": "deepseek full config",
+          "status": "FAIL",
+          "duration_sec": 0.36475205421447754
+        },
+        {
+          "test_id": "2.26",
+          "category": "Chat",
+          "name": "save memory",
+          "status": "FAIL",
+          "duration_sec": 15.010776042938232
+        },
+        {
+          "test_id": "2.27",
+          "category": "Chat",
+          "name": "recall memory",
+          "status": "FAIL",
+          "duration_sec": 15.014032125473022
+        },
+        {
+          "test_id": "2.28",
+          "category": "Chat",
+          "name": "7 day window",
+          "status": "FAIL",
+          "duration_sec": 15.012999057769775
+        },
+        {
+          "test_id": "2.29",
+          "category": "Chat",
+          "name": "hybrid search fallback",
+          "status": "FAIL",
+          "duration_sec": 15.01179814338684
+        },
+        {
+          "test_id": "3.1",
+          "category": "Tools",
+          "name": "read file",
+          "status": "FAIL",
+          "duration_sec": 15.015180110931396
+        },
+        {
+          "test_id": "3.2",
+          "category": "Tools",
+          "name": "write file",
+          "status": "FAIL",
+          "duration_sec": 15.0155189037323
+        },
+        {
+          "test_id": "3.3",
+          "category": "Tools",
+          "name": "shell echo",
+          "status": "FAIL",
+          "duration_sec": 15.011522054672241
+        },
+        {
+          "test_id": "3.4",
+          "category": "Tools",
+          "name": "glob rust files",
+          "status": "FAIL",
+          "duration_sec": 15.011109113693237
+        },
+        {
+          "test_id": "3.5",
+          "category": "Tools",
+          "name": "grep fn main",
+          "status": "FAIL",
+          "duration_sec": 15.0105299949646
+        },
+        {
+          "test_id": "3.6",
+          "category": "Tools",
+          "name": "list directory",
+          "status": "FAIL",
+          "duration_sec": 15.012650966644287
+        },
+        {
+          "test_id": "3.7",
+          "category": "Tools",
+          "name": "web search",
+          "status": "FAIL",
+          "duration_sec": 15.014981269836426
+        },
+        {
+          "test_id": "3.8",
+          "category": "Tools",
+          "name": "web fetch",
+          "status": "FAIL",
+          "duration_sec": 15.016704082489014
+        },
+        {
+          "test_id": "3.9",
+          "category": "Tools",
+          "name": "git status",
+          "status": "FAIL",
+          "duration_sec": 15.015069007873535
+        },
+        {
+          "test_id": "3.10",
+          "category": "Tools",
+          "name": "parallel read",
+          "status": "FAIL",
+          "duration_sec": 15.015729188919067
+        },
+        {
+          "test_id": "3.11",
+          "category": "Tools",
+          "name": "edit file",
+          "status": "FAIL",
+          "duration_sec": 15.016165733337402
+        },
+        {
+          "test_id": "3.12",
+          "category": "Tools",
+          "name": "context filter",
+          "status": "FAIL",
+          "duration_sec": 15.016891956329346
+        },
+        {
+          "test_id": "3.13",
+          "category": "Tools",
+          "name": "spawn only",
+          "status": "FAIL",
+          "duration_sec": 15.011518239974976
+        },
+        {
+          "test_id": "4.1",
+          "category": "Security",
+          "name": "no api key error",
+          "status": "PASS",
+          "duration_sec": 0.03298521041870117
+        },
+        {
+          "test_id": "4.2",
+          "category": "Security",
+          "name": "dangerous command rm rf",
+          "status": "FAIL",
+          "duration_sec": 15.009927988052368
+        },
+        {
+          "test_id": "4.3",
+          "category": "Security",
+          "name": "dangerous command sudo",
+          "status": "FAIL",
+          "duration_sec": 15.0141921043396
+        },
+        {
+          "test_id": "4.4",
+          "category": "Security",
+          "name": "fork bomb block",
+          "status": "FAIL",
+          "duration_sec": 15.01087212562561
+        },
+        {
+          "test_id": "4.5",
+          "category": "Security",
+          "name": "dd block",
+          "status": "FAIL",
+          "duration_sec": 15.014369010925293
+        },
+        {
+          "test_id": "4.6",
+          "category": "Security",
+          "name": "mkfs block",
+          "status": "FAIL",
+          "duration_sec": 15.015159130096436
+        },
+        {
+          "test_id": "4.7",
+          "category": "Security",
+          "name": "ssrf localhost",
+          "status": "FAIL",
+          "duration_sec": 15.01542615890503
+        },
+        {
+          "test_id": "4.8",
+          "category": "Security",
+          "name": "ssrf private ip",
+          "status": "FAIL",
+          "duration_sec": 15.014444828033447
+        },
+        {
+          "test_id": "4.9",
+          "category": "Security",
+          "name": "ssrf aws metadata",
+          "status": "FAIL",
+          "duration_sec": 15.0149667263031
+        },
+        {
+          "test_id": "4.10",
+          "category": "Security",
+          "name": "ssrf ipv6 loopback",
+          "status": "FAIL",
+          "duration_sec": 15.016115188598633
+        },
+        {
+          "test_id": "4.11",
+          "category": "Security",
+          "name": "ssrf ipv4 mapped",
+          "status": "FAIL",
+          "duration_sec": 15.010842084884644
+        },
+        {
+          "test_id": "4.12",
+          "category": "Security",
+          "name": "ssrf dns fail",
+          "status": "FAIL",
+          "duration_sec": 15.015387296676636
+        },
+        {
+          "test_id": "4.13",
+          "category": "Security",
+          "name": "prompt injection",
+          "status": "FAIL",
+          "duration_sec": 15.017919063568115
+        },
+        {
+          "test_id": "4.14",
+          "category": "Security",
+          "name": "env block",
+          "status": "FAIL",
+          "duration_sec": 15.013479948043823
+        },
+        {
+          "test_id": "4.15",
+          "category": "Security",
+          "name": "credential sanitize openai",
+          "status": "PASS",
+          "duration_sec": 15.010215044021606
+        },
+        {
+          "test_id": "4.16",
+          "category": "Security",
+          "name": "credential sanitize aws",
+          "status": "PASS",
+          "duration_sec": 15.023151159286499
+        },
+        {
+          "test_id": "4.17",
+          "category": "Security",
+          "name": "credential sanitize github",
+          "status": "PASS",
+          "duration_sec": 15.024183988571167
+        },
+        {
+          "test_id": "5.1",
+          "category": "Init",
+          "name": "init defaults",
+          "status": "PASS",
+          "duration_sec": 0.02251124382019043
+        },
+        {
+          "test_id": "6.1",
+          "category": "Status",
+          "name": "status",
+          "status": "PASS",
+          "duration_sec": 0.011684179306030273
+        },
+        {
+          "test_id": "7.1",
+          "category": "Clean",
+          "name": "clean dry run",
+          "status": "PASS",
+          "duration_sec": 0.009520292282104492
+        },
+        {
+          "test_id": "8.1",
+          "category": "Completions",
+          "name": "completions bash",
+          "status": "PASS",
+          "duration_sec": 0.009684085845947266
+        },
+        {
+          "test_id": "8.2",
+          "category": "Completions",
+          "name": "completions zsh",
+          "status": "PASS",
+          "duration_sec": 0.008877754211425781
+        },
+        {
+          "test_id": "8.3",
+          "category": "Completions",
+          "name": "completions fish",
+          "status": "PASS",
+          "duration_sec": 0.0077381134033203125
+        },
+        {
+          "test_id": "8.4",
+          "category": "Completions",
+          "name": "completions powershell",
+          "status": "PASS",
+          "duration_sec": 0.0074920654296875
+        },
+        {
+          "test_id": "8.5",
+          "category": "Completions",
+          "name": "completions elvish",
+          "status": "PASS",
+          "duration_sec": 0.007005214691162109
+        },
+        {
+          "test_id": "8.6",
+          "category": "Completions",
+          "name": "dynamic completions models",
+          "status": "PASS",
+          "duration_sec": 0.006203889846801758
+        },
+        {
+          "test_id": "8.7",
+          "category": "Completions",
+          "name": "dynamic completions providers",
+          "status": "PASS",
+          "duration_sec": 0.0060939788818359375
+        },
+        {
+          "test_id": "8.8",
+          "category": "Completions",
+          "name": "dynamic completions sessions",
+          "status": "PASS",
+          "duration_sec": 0.006133079528808594
+        },
+        {
+          "test_id": "8.9",
+          "category": "Completions",
+          "name": "dynamic completions skills",
+          "status": "PASS",
+          "duration_sec": 0.0059049129486083984
+        },
+        {
+          "test_id": "9.1",
+          "category": "Skills",
+          "name": "skills help",
+          "status": "PASS",
+          "duration_sec": 0.006134986877441406
+        },
+        {
+          "test_id": "9.2",
+          "category": "Skills",
+          "name": "skills list",
+          "status": "PASS",
+          "duration_sec": 0.005975008010864258
+        },
+        {
+          "test_id": "9.3",
+          "category": "Skills",
+          "name": "skills search",
+          "status": "PASS",
+          "duration_sec": 0.6190810203552246
+        },
+        {
+          "test_id": "9.4",
+          "category": "Skills",
+          "name": "skills info",
+          "status": "PASS",
+          "duration_sec": 0.019971847534179688
+        },
+        {
+          "test_id": "9.5",
+          "category": "Skills",
+          "name": "skills remove",
+          "status": "PASS",
+          "duration_sec": 0.01320505142211914
+        },
+        {
+          "test_id": "10.1",
+          "category": "Auth",
+          "name": "auth status",
+          "status": "PASS",
+          "duration_sec": 0.01069331169128418
+        },
+        {
+          "test_id": "10.2",
+          "category": "Auth",
+          "name": "auth keys",
+          "status": "PASS",
+          "duration_sec": 0.010104179382324219
+        },
+        {
+          "test_id": "11.1",
+          "category": "Channels",
+          "name": "channels status",
+          "status": "PASS",
+          "duration_sec": 0.007946968078613281
+        },
+        {
+          "test_id": "12.1",
+          "category": "Cron",
+          "name": "cron list",
+          "status": "PASS",
+          "duration_sec": 0.007333040237426758
+        },
+        {
+          "test_id": "13.1",
+          "category": "Gateway",
+          "name": "gateway help",
+          "status": "PASS",
+          "duration_sec": 0.006967067718505859
+        },
+        {
+          "test_id": "14.1",
+          "category": "Serve",
+          "name": "serve help",
+          "status": "PASS",
+          "duration_sec": 0.006771087646484375
+        },
+        {
+          "test_id": "15.1",
+          "category": "Docs",
+          "name": "docs output",
+          "status": "PASS",
+          "duration_sec": 0.0074579715728759766
+        },
+        {
+          "test_id": "16.1",
+          "category": "Office",
+          "name": "office validate",
+          "status": "PASS",
+          "duration_sec": 0.006407022476196289
+        },
+        {
+          "test_id": "16.2",
+          "category": "Office",
+          "name": "office extract",
+          "status": "FAIL",
+          "duration_sec": 0.0060231685638427734
+        },
+        {
+          "test_id": "16.3",
+          "category": "Office",
+          "name": "office pack",
+          "status": "FAIL",
+          "duration_sec": 0.005953073501586914
+        },
+        {
+          "test_id": "16.4",
+          "category": "Office",
+          "name": "office clean",
+          "status": "FAIL",
+          "duration_sec": 0.005986213684082031
+        },
+        {
+          "test_id": "16.5",
+          "category": "Office",
+          "name": "office thumbnail",
+          "status": "FAIL",
+          "duration_sec": 0.005953073501586914
+        },
+        {
+          "test_id": "17.1",
+          "category": "Account",
+          "name": "account list",
+          "status": "PASS",
+          "duration_sec": 0.006294965744018555
+        },
+        {
+          "test_id": "18.1",
+          "category": "Admin",
+          "name": "admin tenant list",
+          "status": "PASS",
+          "duration_sec": 0.0060939788818359375
+        },
+        {
+          "test_id": "19.1",
+          "category": "Tools",
+          "name": "tool policy deny",
+          "status": "FAIL",
+          "duration_sec": 15.013630151748657
+        },
+        {
+          "test_id": "19.2",
+          "category": "Tools",
+          "name": "tool policy allow",
+          "status": "FAIL",
+          "duration_sec": 15.01332688331604
+        },
+        {
+          "test_id": "19.3",
+          "category": "Tools",
+          "name": "provider policy gemini",
+          "status": "FAIL",
+          "duration_sec": 15.01584005355835
+        },
+        {
+          "test_id": "20.1",
+          "category": "Memory",
+          "name": "episode storage",
+          "status": "FAIL",
+          "duration_sec": 15.015000820159912
+        },
+        {
+          "test_id": "20.2",
+          "category": "Memory",
+          "name": "long term memory edit",
+          "status": "FAIL",
+          "duration_sec": 15.012072086334229
+        },
+        {
+          "test_id": "20.3",
+          "category": "Memory",
+          "name": "entity bank",
+          "status": "FAIL",
+          "duration_sec": 15.013649940490723
+        },
+        {
+          "test_id": "20.4",
+          "category": "Memory",
+          "name": "hybrid search fallback",
+          "status": "FAIL",
+          "duration_sec": 15.014893770217896
+        },
+        {
+          "test_id": "21.2",
+          "category": "Provider",
+          "name": "sub providers",
+          "status": "FAIL",
+          "duration_sec": 15.014147281646729
+        },
+        {
+          "test_id": "22.1",
+          "category": "Extension",
+          "name": "skill override",
+          "status": "PASS",
+          "duration_sec": 0.018224000930786133
+        },
+        {
+          "test_id": "22.2",
+          "category": "Extension",
+          "name": "skill availability",
+          "status": "PASS",
+          "duration_sec": 0.011296272277832031
+        },
+        {
+          "test_id": "22.3",
+          "category": "Extension",
+          "name": "plugin sha256",
+          "status": "FAIL",
+          "duration_sec": 15.00778603553772
+        },
+        {
+          "test_id": "22.4",
+          "category": "Extension",
+          "name": "mcp stdio",
+          "status": "FAIL",
+          "duration_sec": 15.012793064117432
+        },
+        {
+          "test_id": "22.5",
+          "category": "Extension",
+          "name": "mcp http",
+          "status": "FAIL",
+          "duration_sec": 15.012639999389648
+        },
+        {
+          "test_id": "22.6",
+          "category": "Extension",
+          "name": "gating check",
+          "status": "FAIL",
+          "duration_sec": 15.014989852905273
+        },
+        {
+          "test_id": "24.1",
+          "category": "Config",
+          "name": "config priority",
+          "status": "FAIL",
+          "duration_sec": 0.5842320919036865
+        },
+        {
+          "test_id": "24.2",
+          "category": "Config",
+          "name": "config parse fail",
+          "status": "FAIL",
+          "duration_sec": 15.012424945831299
+        },
+        {
+          "test_id": "24.3",
+          "category": "Hooks",
+          "name": "before tool call hook",
+          "status": "FAIL",
+          "duration_sec": 15.010803937911987
+        },
+        {
+          "test_id": "24.4",
+          "category": "Hooks",
+          "name": "after tool call hook",
+          "status": "FAIL",
+          "duration_sec": 15.01243782043457
+        },
+        {
+          "test_id": "24.5",
+          "category": "Hooks",
+          "name": "hook timeout",
+          "status": "FAIL",
+          "duration_sec": 15.011867046356201
+        },
+        {
+          "test_id": "24.6",
+          "category": "Hooks",
+          "name": "circuit breaker",
+          "status": "FAIL",
+          "duration_sec": 15.014553785324097
+        },
+        {
+          "test_id": "24.7",
+          "category": "Config",
+          "name": "feature flags",
+          "status": "PASS",
+          "duration_sec": 0.016065120697021484
+        },
+        {
+          "test_id": "25.1",
+          "category": "Loop",
+          "name": "loop detection length 1",
+          "status": "FAIL",
+          "duration_sec": 15.010051250457764
+        },
+        {
+          "test_id": "25.2",
+          "category": "Loop",
+          "name": "loop detection length 2",
+          "status": "FAIL",
+          "duration_sec": 15.012377738952637
+        },
+        {
+          "test_id": "25.5",
+          "category": "Loop",
+          "name": "context compaction",
+          "status": "FAIL",
+          "duration_sec": 15.013545989990234
+        },
+        {
+          "test_id": "26.1",
+          "category": "Security",
+          "name": "base64 uri sanitize",
+          "status": "FAIL",
+          "duration_sec": 15.01553201675415
+        },
+        {
+          "test_id": "26.2",
+          "category": "Security",
+          "name": "sandbox macos",
+          "status": "FAIL",
+          "duration_sec": 15.016309022903442
+        },
+        {
+          "test_id": "26.3",
+          "category": "Security",
+          "name": "sandbox linux",
+          "status": "FAIL",
+          "duration_sec": 15.013089179992676
+        },
+        {
+          "test_id": "26.4",
+          "category": "Security",
+          "name": "sbpl injection",
+          "status": "FAIL",
+          "duration_sec": 15.015511989593506
+        },
+        {
+          "test_id": "27.1",
+          "category": "Gateway",
+          "name": "jsonl persistence",
+          "status": "PASS",
+          "duration_sec": 0.01975083351135254
+        },
+        {
+          "test_id": "28.1",
+          "category": "ToolPolicy",
+          "name": "tool deny policy",
+          "status": "FAIL",
+          "duration_sec": 15.01061463356018
+        },
+        {
+          "test_id": "28.2",
+          "category": "ToolPolicy",
+          "name": "tool allow policy",
+          "status": "FAIL",
+          "duration_sec": 15.015581369400024
+        },
+        {
+          "test_id": "28.3",
+          "category": "ToolPolicy",
+          "name": "provider policy",
+          "status": "FAIL",
+          "duration_sec": 0.5873739719390869
+        },
+        {
+          "test_id": "28.4",
+          "category": "ToolPolicy",
+          "name": "context filter",
+          "status": "FAIL",
+          "duration_sec": 15.011662244796753
+        }
+      ]
+    },
+    "serve": {
+      "total": 24,
+      "passed": 20,
+      "failed": 4,
+      "skipped": 0,
+      "passed_pct": 83.3,
+      "error": "",
+      "results": [
+        {
+          "test_id": "8.1",
+          "name": "Server Startup",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.010898113250732422
+        },
+        {
+          "test_id": "8.2",
+          "name": "Version Endpoint",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.007801055908203125
+        },
+        {
+          "test_id": "8.3",
+          "name": "Metrics Endpoint",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.013098001480102539
+        },
+        {
+          "test_id": "8.4",
+          "name": "Auth Token Required",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.0055501461029052734
+        },
+        {
+          "test_id": "8.5",
+          "name": "Auth Invalid Token",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.005219221115112305
+        },
+        {
+          "test_id": "8.6",
+          "name": "Dashboard Web UI",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.0050280094146728516
+        },
+        {
+          "test_id": "8.7",
+          "name": "WS Connection + Hello",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.026455163955688477
+        },
+        {
+          "test_id": "8.8",
+          "name": "WS system/status.get",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.0015711784362792969
+        },
+        {
+          "test_id": "8.9",
+          "name": "WS session/list",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.0028231143951416016
+        },
+        {
+          "test_id": "8.10",
+          "name": "WS session/open + turn/start",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.003962039947509766
+        },
+        {
+          "test_id": "8.11",
+          "name": "WS session/delete",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.004226207733154297
+        },
+        {
+          "test_id": "8.14",
+          "name": "WS session/snapshot",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.005738019943237305
+        },
+        {
+          "test_id": "8.15",
+          "name": "WS session/messages_page",
+          "status": "FAIL",
+          "details": "session/messages_page error: session/messages_page: REST handler not configured on this server",
+          "duration_sec": 0.004045009613037109
+        },
+        {
+          "test_id": "8.16",
+          "name": "WS session/status.get",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.005285739898681641
+        },
+        {
+          "test_id": "8.17",
+          "name": "WS session/title.set",
+          "status": "FAIL",
+          "details": "session/title.set error: unknown session: test-title-5354633f",
+          "duration_sec": 0.005511045455932617
+        },
+        {
+          "test_id": "8.18",
+          "name": "WS content/list",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.00344085693359375
+        },
+        {
+          "test_id": "8.19",
+          "name": "WS turn/interrupt",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 1.5111000537872314
+        },
+        {
+          "test_id": "8.12",
+          "name": "Bind Address (0.0.0.0)",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 1.1022388935089111
+        },
+        {
+          "test_id": "8.13",
+          "name": "Default Bind (127.0.0.1)",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.011577129364013672
+        },
+        {
+          "test_id": "16.1",
+          "name": "Notification Session Opened",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 1.0174670219421387
+        },
+        {
+          "test_id": "16.2",
+          "name": "Notification Turn Started",
+          "status": "FAIL",
+          "details": "Exception: TimeoutError: ",
+          "duration_sec": 5.032735109329224
+        },
+        {
+          "test_id": "16.3",
+          "name": "Notification Turn Completed",
+          "status": "FAIL",
+          "details": "Exception: TimeoutError: ",
+          "duration_sec": 10.019541025161743
+        },
+        {
+          "test_id": "16.4",
+          "name": "Notification Turn Error",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.015055179595947266
+        },
+        {
+          "test_id": "16.5",
+          "name": "Notification Agent Updated",
+          "status": "PASS",
+          "details": "",
+          "duration_sec": 0.003031015396118164
+        }
+      ]
+    },
+    "stdio": {
+      "total": 6,
+      "passed": 0,
+      "failed": 6,
+      "skipped": 0,
+      "passed_pct": 0.0,
+      "error": "",
+      "results": [
+        {
+          "test_id": "30.1",
+          "name": "Stdio Connectivity",
+          "status": "FAIL",
+          "details": "Exception: TimeoutError: ",
+          "duration_sec": 315.02113485336304
+        },
+        {
+          "test_id": "30.2",
+          "name": "Stdio Capabilities List",
+          "status": "FAIL",
+          "details": "Exception: TimeoutError: ",
+          "duration_sec": 314.97701478004456
+        },
+        {
+          "test_id": "30.3",
+          "name": "Stdio System Status",
+          "status": "FAIL",
+          "details": "Exception: TimeoutError: ",
+          "duration_sec": 315.0085051059723
+        },
+        {
+          "test_id": "30.4",
+          "name": "Stdio Session List",
+          "status": "FAIL",
+          "details": "Exception: TimeoutError: ",
+          "duration_sec": 315.00978112220764
+        },
+        {
+          "test_id": "30.5",
+          "name": "Stdio Session Open",
+          "status": "FAIL",
+          "details": "Exception: TimeoutError: ",
+          "duration_sec": 315.0368287563324
+        },
+        {
+          "test_id": "30.6",
+          "name": "Stdio Auth Me",
+          "status": "FAIL",
+          "details": "Exception: TimeoutError: ",
+          "duration_sec": 315.01167702674866
+        }
+      ]
+    }
+  }
+}

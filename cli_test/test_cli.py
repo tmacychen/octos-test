@@ -251,11 +251,18 @@ class CLITestRunner:
         "OPENAI_API_KEY not set",
         "ANTHROPIC_API_KEY not set",
         "GEMINI_API_KEY not set",
+        "DEEPSEEK_API_KEY",
+        "MOONSHOT_API_KEY",
+        "MINIMAX_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "GROQ_API_KEY",
         "OLLAMA_HOST",
         "not configured",
         "No API key configured",
         "API key not",
         "environment variable not found",
+        "API error",           # Generic API invocation error (e.g. auth, 401)
+        "model not found",     # Model lookup failure (wrong provider for model)
     ]
 
     def _should_skip(self, actual: str, exit_code: int) -> str:
