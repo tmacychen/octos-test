@@ -269,6 +269,8 @@ class CLITestRunner:
         "no LLM provider configured",  # No provider in isolated --data-dir
         "Database already open",    # Episodes DB locked by another process
         "Cannot acquire lock",      # Same as above, different wording
+        "Too Many Requests",       # HTTP 429 rate limit
+        "rate limit",              # Generic rate limit
     ]
 
     def _should_skip(self, actual: str, exit_code: int) -> str:
