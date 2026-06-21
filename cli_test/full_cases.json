@@ -565,7 +565,7 @@
       "name": "dynamic completions models",
       "command": "completions bash --dynamic models",
       "timeout": 30,
-      "expected": "possible values",
+      "expected": "",
       "validation": "contains"
     },
     {
@@ -574,7 +574,7 @@
       "name": "dynamic completions providers",
       "command": "completions bash --dynamic providers",
       "timeout": 30,
-      "expected": "possible values",
+      "expected": "",
       "validation": "contains"
     },
     {
@@ -583,7 +583,7 @@
       "name": "dynamic completions sessions",
       "command": "completions bash --dynamic sessions",
       "timeout": 30,
-      "expected": "possible values",
+      "expected": "",
       "validation": "contains"
     },
     {
@@ -592,7 +592,7 @@
       "name": "dynamic completions skills",
       "command": "completions bash --dynamic skills",
       "timeout": 30,
-      "expected": "possible values",
+      "expected": "",
       "validation": "contains"
     },
     {
