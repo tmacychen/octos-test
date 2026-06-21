@@ -3644,8 +3644,7 @@ if __name__ == "__main__":
             ("8.17", "WS session/title.set", tester.test_ws_session_title_set),
             ("8.18", "WS content/list", tester.test_ws_content_list),
             ("8.19", "WS turn/interrupt", tester.test_ws_turn_interrupt),
-            ("8.12", "Bind Address (0.0.0.0)", tester.test_bind_address_external),
-            ("8.13", "Default Bind (127.0.0.1)", tester.test_bind_address_local_default),
+            # NOTE: 8.12/8.13 会重启服务器，放在最末尾避免影响后续测试
             # ── 10.x WS 基础协议 ──
             ("10.1", "WS Hello Capabilities", tester.test_10_1_ws_hello_capabilities),
             ("10.2", "Config Capabilities List", tester.test_10_2_ws_config_capabilities_list),
@@ -3738,6 +3737,9 @@ if __name__ == "__main__":
             ("24.1", "Auth Send Code", tester.test_24_1_auth_send_code),
             ("24.2", "Auth Logout", tester.test_24_2_auth_logout),
             ("24.3", "Profile LLM Select No Profile", tester.test_24_3_profile_llm_select_no_profile),
+            # ── 8.12/8.13 Bind Address (会重启服务器，必须放在最后) ──
+            ("8.12", "Bind Address (0.0.0.0)", tester.test_bind_address_external),
+            ("8.13", "Default Bind (127.0.0.1)", tester.test_bind_address_local_default),
         ]
 
         for test_id, name, test_func in tests:
