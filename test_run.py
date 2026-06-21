@@ -2737,7 +2737,7 @@ def run_serve_tests(verbose: bool = False, test_ids: Optional[List[str]] = None,
                 return False, ["Failed to start server"], []
             return False, ["Failed to start server"]
 
-        # Define all tests
+        # Define all tests — MUST stay in sync with serve/test_serve.py __main__ list
         all_tests = [
             ("8.1", "Server Startup", tester.test_server_startup),
             ("8.2", "Version Endpoint", tester.test_version_endpoint),
@@ -2758,17 +2758,99 @@ def run_serve_tests(verbose: bool = False, test_ids: Optional[List[str]] = None,
             ("8.19", "WS turn/interrupt", tester.test_ws_turn_interrupt),
             ("8.12", "Bind Address (0.0.0.0)", tester.test_bind_address_external),
             ("8.13", "Default Bind (127.0.0.1)", tester.test_bind_address_local_default),
-        ]
-
-        # Notification tests (16.x)
-        notification_tests = [
+            # ── 10.x WS 基础协议 ──
+            ("10.1", "WS Hello Capabilities", tester.test_10_1_ws_hello_capabilities),
+            ("10.2", "Config Capabilities List", tester.test_10_2_ws_config_capabilities_list),
+            ("10.3", "WS System Status", tester.test_10_3_ws_system_status),
+            ("10.4", "WS Auth Me", tester.test_10_4_ws_auth_me),
+            # ── 11.x Session ──
+            ("11.1", "Session List Empty", tester.test_11_1_session_list_empty),
+            ("11.2", "Profile Local Create", tester.test_11_2_profile_local_create),
+            ("11.3", "Session Open After Profile", tester.test_11_3_session_open_after_profile),
+            ("11.4", "Session List After Open", tester.test_11_4_session_list_after_open),
+            ("11.5", "Session Title Set", tester.test_11_5_session_title_set_and_verify),
+            ("11.6", "Session Messages Page", tester.test_11_6_session_messages_page),
+            ("11.7", "Session Status Get", tester.test_11_7_session_status_get),
+            ("11.8", "Session Files List", tester.test_11_8_session_files_list),
+            ("11.9", "Session Tasks List", tester.test_11_9_session_tasks_list),
+            ("11.10", "Session Workspace Get", tester.test_11_10_session_workspace_get),
+            ("11.11", "Session Delete", tester.test_11_11_session_delete),
+            ("11.12", "Session Hydrate", tester.test_11_12_session_hydrate),
+            ("11.13", "Session Goal Get", tester.test_11_13_session_goal_get),
+            ("11.14", "Session Goal Set", tester.test_11_14_session_goal_set),
+            # ── 12.x Turn ──
+            ("12.1", "Turn State Get No Active", tester.test_12_1_turn_state_get_no_active_turn),
+            ("12.2", "Turn Start Error Without LLM", tester.test_12_2_turn_start_returns_error_without_llm),
+            # ── 13.x Profile ──
+            ("13.1", "Profile LLM List", tester.test_13_1_profile_llm_list),
+            ("13.2", "Profile Skills List", tester.test_13_2_profile_skills_list),
+            ("13.3", "Profile LLM Catalog", tester.test_13_3_profile_llm_catalog),
+            ("13.4", "Onboarding Workspace Probe", tester.test_13_4_onboarding_workspace_probe),
+            # ── 14.x Auth/Config ──
+            ("14.1", "Auth Status", tester.test_14_1_auth_status_unauthenticated),
+            ("14.2", "MCP Status List", tester.test_14_2_mcp_status_list),
+            # ── 15.x Tool/Content ──
+            ("15.1", "Tool Status List", tester.test_15_1_tool_status_list),
+            ("15.2", "Content List", tester.test_15_2_content_list),
+            # ── 16.x 通知 ──
             ("16.1", "Notification Session Opened", tester.test_16_1_notification_session_opened),
             ("16.2", "Notification Turn Started", tester.test_16_2_notification_turn_started),
             ("16.3", "Notification Turn Completed", tester.test_16_3_notification_turn_completed),
             ("16.4", "Notification Turn Error", tester.test_16_4_notification_turn_error),
             ("16.5", "Notification Agent Updated", tester.test_16_5_notification_agent_updated),
+            # ── 17.x 错误路径 ──
+            ("17.1", "Unknown Method Error", tester.test_17_1_unknown_method),
+            ("17.2", "Missing Session ID", tester.test_17_2_missing_session_id),
+            ("17.3", "Session Open Invalid", tester.test_17_3_session_open_invalid_format),
+            ("17.4", "Turn State Unknown", tester.test_17_4_turn_state_unknown_turn),
+            ("17.5", "JSON-RPC Missing Version", tester.test_17_5_jsonrpc_missing_version),
+            # ── 18.x Approval / Permission / Diff ──
+            ("18.1", "Approval Scopes List", tester.test_18_1_approval_scopes_list),
+            ("18.2", "Permission Profile List", tester.test_18_2_permission_profile_list),
+            ("18.3", "Permission Profile Set", tester.test_18_3_permission_profile_set),
+            ("18.4", "Diff Preview Get", tester.test_18_4_diff_preview_get),
+            ("18.5", "User Question Respond", tester.test_18_5_user_question_respond),
+            # ── 19.x Task ──
+            ("19.1", "Task List", tester.test_19_1_task_list),
+            ("19.2", "Task Cancel", tester.test_19_2_task_cancel),
+            ("19.3", "Task Restart From Node", tester.test_19_3_task_restart_from_node),
+            ("19.4", "Task Output Read", tester.test_19_4_task_output_read),
+            ("19.5", "Task Artifact List", tester.test_19_5_task_artifact_list),
+            ("19.6", "Task Artifact Read", tester.test_19_6_task_artifact_read),
+            # ── 20.x Agent ──
+            ("20.1", "Agent List", tester.test_20_1_agent_list),
+            ("20.2", "Agent Status Read", tester.test_20_2_agent_status_read),
+            ("20.3", "Agent Output Read", tester.test_20_3_agent_output_read),
+            ("20.4", "Agent Artifact List", tester.test_20_4_agent_artifact_list),
+            ("20.5", "Agent Artifact Read", tester.test_20_5_agent_artifact_read),
+            ("20.6", "Agent Interrupt", tester.test_20_6_agent_interrupt),
+            ("20.7", "Agent Close", tester.test_20_7_agent_close),
+            # ── 21.x Session Goal / Thread / Loop / Review ──
+            ("21.1", "Session Goal Clear", tester.test_21_1_session_goal_clear),
+            ("21.2", "Thread Graph Get", tester.test_21_2_thread_graph_get),
+            ("21.3", "Session Status Read", tester.test_21_3_session_status_read),
+            ("21.4", "Loop List", tester.test_21_4_loop_list),
+            ("21.5", "Loop Create", tester.test_21_5_loop_create),
+            ("21.6", "Review Start", tester.test_21_6_review_start),
+            # ── 22.x Router / Content ──
+            ("22.1", "Router Get Metrics", tester.test_22_1_router_get_metrics),
+            ("22.2", "Router Set Mode", tester.test_22_2_router_set_mode),
+            ("22.3", "Content Delete", tester.test_22_3_content_delete),
+            ("22.4", "Content Bulk Delete", tester.test_22_4_content_bulk_delete),
+            # ── 23.x Profile LLM / Skills ──
+            ("23.1", "Profile LLM Select", tester.test_23_1_profile_llm_select),
+            ("23.2", "Profile LLM Upsert", tester.test_23_2_profile_llm_upsert),
+            ("23.3", "Profile LLM Delete", tester.test_23_3_profile_llm_delete),
+            ("23.4", "Profile LLM Test", tester.test_23_4_profile_llm_test),
+            ("23.5", "Profile LLM Fetch Models", tester.test_23_5_profile_llm_fetch_models),
+            ("23.6", "Profile Skills Registry Search", tester.test_23_6_profile_skills_registry_search),
+            ("23.7", "Profile Skills Install", tester.test_23_7_profile_skills_install),
+            ("23.8", "Profile Skills Remove", tester.test_23_8_profile_skills_remove),
+            # ── 24.x Auth ──
+            ("24.1", "Auth Send Code", tester.test_24_1_auth_send_code),
+            ("24.2", "Auth Logout", tester.test_24_2_auth_logout),
+            ("24.3", "Profile LLM Select No Profile", tester.test_24_3_profile_llm_select_no_profile),
         ]
-        all_tests.extend(notification_tests)
 
         # Filter tests if specific IDs provided
         if test_ids:

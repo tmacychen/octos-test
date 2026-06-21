@@ -681,7 +681,7 @@ class OctosServeTester:
                     "params": {
                         "session_id": session_id,
                         "turn_id": turn_id,
-                        "content": "Say 'hello from API channel test' and nothing else.",
+                        "input": "Say 'hello from API channel test' and nothing else.",
                     },
                 }
                 await ws.send(json.dumps(turn_req))
@@ -1072,7 +1072,7 @@ class OctosServeTester:
                     "params": {
                         "session_id": session_id,
                         "turn_id": turn_start_id,
-                        "content": "Write a 500-word essay about the history of computing. Take your time.",
+                        "input": "Write a 500-word essay about the history of computing. Take your time.",
                     },
                 }
                 await ws.send(json.dumps(turn_req))
@@ -1593,7 +1593,7 @@ class OctosServeTester:
         sid = self._open_test_session(pid)
         resp = self._ws_call("turn/start", {
             "session_id": sid,
-            "content": "Say hello",
+            "input": "Say hello",
         }, timeout=15)
         # 必有 error（无 LLM 配置）
         assert "error" in resp, f"Expected error without LLM, got: {resp}"
@@ -1812,7 +1812,7 @@ class OctosServeTester:
                         "jsonrpc": "2.0", "id": start_id,
                         "method": "turn/start",
                         "params": {"session_id": sid, "turn_id": start_id,
-                                   "message": "Hello"},
+                                   "input": "Hello"},
                     }))
                     deadline = time.time() + 10
                     found_started = False
@@ -1873,7 +1873,7 @@ class OctosServeTester:
                         "jsonrpc": "2.0", "id": turn_start_id,
                         "method": "turn/start",
                         "params": {"session_id": sid, "turn_id": turn_start_id,
-                                   "message": "Hello"},
+                                   "input": "Hello"},
                     }))
 
                     deadline = time.time() + 10
@@ -1936,7 +1936,7 @@ class OctosServeTester:
                     "jsonrpc": "2.0", "id": start_id,
                     "method": "turn/start",
                     "params": {"session_id": sid, "turn_id": start_id,
-                               "message": "Hello"},
+                               "input": "Hello"},
                 }))
 
                 deadline = time.time() + 15
