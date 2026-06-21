@@ -680,6 +680,7 @@ class OctosServeTester:
                     "method": "turn/start",
                     "params": {
                         "session_id": session_id,
+                        "turn_id": turn_id,
                         "content": "Say 'hello from API channel test' and nothing else.",
                     },
                 }
@@ -1070,6 +1071,7 @@ class OctosServeTester:
                     "method": "turn/start",
                     "params": {
                         "session_id": session_id,
+                        "turn_id": turn_start_id,
                         "content": "Write a 500-word essay about the history of computing. Take your time.",
                     },
                 }
@@ -1809,12 +1811,13 @@ class OctosServeTester:
                     await ws.send(json.dumps({
                         "jsonrpc": "2.0", "id": start_id,
                         "method": "turn/start",
-                        "params": {"session_id": sid, "message": "Hello"},
+                        "params": {"session_id": sid, "turn_id": start_id,
+                                   "message": "Hello"},
                     }))
-                    deadline = time.time() + 30
+                    deadline = time.time() + 10
                     found_started = False
                     while time.time() < deadline:
-                        msg = await asyncio.wait_for(ws.recv(), timeout=20)
+                        msg = await asyncio.wait_for(ws.recv(), timeout=5)
                         data = json.loads(msg)
                         is_notification = data.get("id") is None
                         method = data.get("method", "")
@@ -1865,17 +1868,19 @@ class OctosServeTester:
                         if json.loads(msg).get("result"):
                             break
 
+                    turn_start_id = str(uuid.uuid4())
                     await ws.send(json.dumps({
-                        "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                        "jsonrpc": "2.0", "id": turn_start_id,
                         "method": "turn/start",
-                        "params": {"session_id": sid, "message": "Hello"},
+                        "params": {"session_id": sid, "turn_id": turn_start_id,
+                                   "message": "Hello"},
                     }))
 
-                    deadline = time.time() + 90
+                    deadline = time.time() + 10
                     found_completed = False
                     while time.time() < deadline:
                         try:
-                            msg = await asyncio.wait_for(ws.recv(), timeout=30)
+                            msg = await asyncio.wait_for(ws.recv(), timeout=5)
                         except (asyncio.TimeoutError, TimeoutError):
                             self.logger.warning("  SKIP: turn/completed not received (timeout)")
                             return "SKIP"
@@ -1930,7 +1935,8 @@ class OctosServeTester:
                 await ws.send(json.dumps({
                     "jsonrpc": "2.0", "id": start_id,
                     "method": "turn/start",
-                    "params": {"session_id": sid, "message": "Hello"},
+                    "params": {"session_id": sid, "turn_id": start_id,
+                               "message": "Hello"},
                 }))
 
                 deadline = time.time() + 15
@@ -2816,19 +2822,46 @@ class OctosStdioTester:
         raise TimeoutError(f"RPC {method} timed out")
 
     def _read_line_timeout(self, proc, timeout: float) -> str:
-        """以超时方式从 proc.stdout 读取一行"""
+        """以超时方式从 proc.stdout 读取一行
+
+        select.select 只检测内核 pipe buffer 中的新数据，无法感知
+        Python BufferedReader 中已预取的缓冲数据。当上一次 readline()
+        调用一次从 pipe 读取了多个 JSON 行到缓冲区时，后续 select.select
+        会超时（内核 pipe 已空），但缓冲区中仍有未读取的行。
+
+        因此每次迭代前先用 buffer.peek() 检查 Python 缓冲区是否有数据。
+        """
         import select
-        import errno
         deadline = time.time() + timeout
         fd = proc.stdout.fileno()
         while time.time() < deadline:
+            # 先检查 Python 层缓冲区是否有预取数据
+            try:
+                if proc.stdout.buffer.peek():
+                    line = proc.stdout.readline()
+                    if line:
+                        return line
+            except Exception:
+                pass
+
             remaining = deadline - time.time()
             if remaining <= 0:
                 break
-            r, _, _ = select.select([fd], [], [], remaining)
+            r, _, _ = select.select([fd], [], [], min(remaining, 0.5))
             if r:
                 line = proc.stdout.readline()
-                return line
+                if line:
+                    return line
+
+        # 最后一次尝试：缓冲区可能仍有残余数据
+        try:
+            if proc.stdout.buffer.peek():
+                line = proc.stdout.readline()
+                if line:
+                    return line
+        except Exception:
+            pass
+
         return ""
 
     # ── 30.x Stdio 测试用例 ──
