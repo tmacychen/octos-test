@@ -46,80 +46,42 @@ def runner():
 
 @pytest.fixture(autouse=True)
 def cleanup_state(request, runner):
-    """每个测试前清理 Mock Server 状态，并添加延迟缓解压力
-    
+    """每个测试前清理 Mock Server 状态
+
     包含 Mock Server 崩溃检测：如果 Mock Server 不可达，
     自动跳过当前测试（pytest.skip），避免级联 ERROR。
     """
     import httpx
-    import os
-    import glob
     from test_helpers import inject_and_get_reply
-    
+
     # 🔥 Health check: 验证 Mock Server 是否在线
-    max_health_retries = 5  # Increased from 3 to 5 for better resilience
-    health_retry_delay = 2.0  # Increased from 1.0 to 2.0 seconds
-    for attempt in range(max_health_retries):
+    for attempt in range(3):
         try:
             if runner.health():
                 break
         except Exception:
             pass
-        if attempt < max_health_retries - 1:
-            print(f"  ⚠ Mock Server not responding, retry {attempt + 1}/{max_health_retries}...")
-            time.sleep(health_retry_delay)
+        if attempt < 2:
+            print(f"  ⚠ Mock Server not responding, retry {attempt + 1}/3...")
+            time.sleep(1.0)
     else:
         pytest.skip("Mock Server 崩溃，无法恢复（需重启 test_run.py）")
         return
-    
-    # Wait for any pending LLM responses to complete（增加以避免跨测试污染）
-    # LLM 流式响应可能持续 10-30 秒，等待过短会导致延迟响应污染下一测试
-    time.sleep(5.0)
-    
+
+    # Minimal wait for previous test state to settle
+    time.sleep(1.0)
+
     try:
         runner.clear()
     except httpx.HTTPError:
         pytest.skip("Mock Server 无法清理，跳过测试")
         return
-    
-    # 🔥 清理大 session 文件（避免大 session 导致 Mock Server 崩溃）
-    # 注意：只清理大于 100KB 的文件，避免误删正在使用的正常 session
-    try:
-        data_dir = os.environ.get("OCTOS_TEST_DIR", "/tmp/octos_test")
-        session_files = glob.glob(f"{data_dir}/users/*/sessions/*.jsonl")
-        deleted_count = 0
-        for session_file in session_files:
-            try:
-                file_size = os.path.getsize(session_file)
-                if file_size > 100_000:  # 只删除大于 100KB 的文件
-                    os.remove(session_file)
-                    deleted_count += 1
-            except OSError:
-                pass
-        if deleted_count > 0:
-            print(f"  🗑 Cleaned up {deleted_count} large session files")
-    except Exception as e:
-        print(f"  ⚠ Session cleanup warning: {type(e).__name__}: {str(e)[:80]}")
-    
-    # 重置所有非默认状态
-    # 注意：增加超时时间以应对 LLM 响应延迟，避免误 skip
-    try:
-        inject_and_get_reply(runner, "/reset", timeout=10)
-    except httpx.HTTPError:
-        pytest.skip("Mock Server /reset 失败，跳过测试")
-        return
-    except AssertionError:
-        pytest.skip("Mock Server /reset 无响应，跳过测试")
-        return
-    except Exception as e:
-        print(f"  ⚠ /reset failed: {type(e).__name__}: {str(e)[:80]}")
-    
+
     yield
-    
-    # After abort tests or LLM-intensive tests, add extra delay to ensure full cleanup
-    # This helps prevent message sending failures in subsequent tests
+
+    # After abort tests or LLM-intensive tests, add small delay
     if request.node.get_closest_marker('abort_test') or request.node.get_closest_marker('llm_intensive'):
-        time.sleep(ABORT_TEST_DELAY)
+        time.sleep(2.0)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
