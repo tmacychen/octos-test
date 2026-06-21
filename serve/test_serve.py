@@ -2741,64 +2741,70 @@ class OctosStdioTester:
 
     def _stdio_rpc(self, method: str, params: dict = None,
                    timeout: float = 15.0) -> dict:
-        """通过 stdin/stdout 发送 JSON-RPC 请求并等待响应"""
-        import asyncio as _asyncio
+        """通过 stdin/stdout 发送 JSON-RPC 请求并等待响应（同步实现）"""
+        import select
 
-        async def _run():
-            proc = self.server_process
-            if proc is None or proc.poll() is not None:
-                raise RuntimeError("Stdio server not running")
+        proc = self.server_process
+        if proc is None or proc.poll() is not None:
+            raise RuntimeError("Stdio server not running")
 
-            # 1. client/hello
-            hello_id = str(uuid.uuid4())
-            hello = {
-                "jsonrpc": "2.0", "id": hello_id,
-                "method": "client_hello",
-                "params": {
-                    "features": ["session.workspace_cwd.v1", "auxiliary.rest_to_ws.v1"],
-                    "client": "octos-test",
-                    "version": "0.1.0",
-                },
-            }
-            proc.stdin.write(json.dumps(hello) + "\n")
-            proc.stdin.flush()
+        # 1. client/hello
+        hello_id = str(uuid.uuid4())
+        hello = {
+            "jsonrpc": "2.0", "id": hello_id,
+            "method": "client_hello",
+            "params": {
+                "features": ["session.workspace_cwd.v1", "auxiliary.rest_to_ws.v1"],
+                "client": "octos-test",
+                "version": "0.1.0",
+            },
+        }
+        proc.stdin.write(json.dumps(hello) + "\n")
+        proc.stdin.flush()
 
-            hello_resp = await _asyncio.wait_for(
-                _asyncio.get_event_loop().run_in_executor(
-                    None, proc.stdout.readline),
-                timeout=timeout)
-            if not hello_resp:
-                raise TimeoutError("No hello response from stdio server")
-            hello_data = json.loads(hello_resp.strip())
-            self.logger.debug(f"hello response: {json.dumps(hello_data)[:200]}")
+        hello_resp = self._read_line_timeout(proc, timeout)
+        if not hello_resp:
+            raise TimeoutError("No hello response from stdio server")
+        hello_data = json.loads(hello_resp.strip())
+        self.logger.debug(f"hello response: {json.dumps(hello_data)[:200]}")
 
-            # 2. Send actual RPC
-            req_id = str(uuid.uuid4())
-            req = {"jsonrpc": "2.0", "id": req_id, "method": method}
-            if params is not None:
-                req["params"] = params
-            proc.stdin.write(json.dumps(req) + "\n")
-            proc.stdin.flush()
+        # 2. Send actual RPC
+        req_id = str(uuid.uuid4())
+        req = {"jsonrpc": "2.0", "id": req_id, "method": method}
+        if params is not None:
+            req["params"] = params
+        proc.stdin.write(json.dumps(req) + "\n")
+        proc.stdin.flush()
 
-            # 3. Read response (skip notifications)
-            deadline = time.time() + timeout
-            while time.time() < deadline:
-                remaining = deadline - time.time()
-                line = await _asyncio.wait_for(
-                    _asyncio.get_event_loop().run_in_executor(
-                        None, proc.stdout.readline),
-                    timeout=max(remaining, 1))
-                if not line:
-                    if proc.poll() is not None:
-                        raise RuntimeError(f"Stdio server exited (code {proc.returncode})")
-                    raise TimeoutError(f"RPC {method} timed out")
-                resp = json.loads(line.strip())
-                if resp.get("id") == req_id:
-                    return resp
-                self.logger.debug(f"notification: {json.dumps(resp)[:200]}")
-            raise TimeoutError(f"RPC {method} timed out")
+        # 3. Read response (skip notifications)
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            line = self._read_line_timeout(proc, max(deadline - time.time(), 1))
+            if not line:
+                if proc.poll() is not None:
+                    raise RuntimeError(f"Stdio server exited (code {proc.returncode})")
+                raise TimeoutError(f"RPC {method} timed out")
+            resp = json.loads(line.strip())
+            if resp.get("id") == req_id:
+                return resp
+            self.logger.debug(f"notification: {json.dumps(resp)[:200]}")
+        raise TimeoutError(f"RPC {method} timed out")
 
-        return _asyncio.run(_run())
+    def _read_line_timeout(self, proc, timeout: float) -> str:
+        """以超时方式从 proc.stdout 读取一行"""
+        import select
+        import errno
+        deadline = time.time() + timeout
+        fd = proc.stdout.fileno()
+        while time.time() < deadline:
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                break
+            r, _, _ = select.select([fd], [], [], remaining)
+            if r:
+                line = proc.stdout.readline()
+                return line
+        return ""
 
     # ── 30.x Stdio 测试用例 ──
 
