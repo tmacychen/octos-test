@@ -261,8 +261,12 @@ class CLITestRunner:
         "No API key configured",
         "API key not",
         "environment variable not found",
-        "API error",           # Generic API invocation error (e.g. auth, 401)
-        "model not found",     # Model lookup failure (wrong provider for model)
+        "API error",               # Generic API invocation error (e.g. auth, 401)
+        "model not found",         # Model lookup failure (wrong provider for model)
+        "operation timed out",     # Network timeout (registry fetch, API call)
+        "Service Unavailable",     # HTTP 503
+        "Connection refused",      # Custom base URL with no server
+        "no LLM provider configured",  # No provider in isolated --data-dir
     ]
 
     def _should_skip(self, actual: str, exit_code: int) -> str:

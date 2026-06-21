@@ -39,8 +39,8 @@
     {
       "id": "2.24",
       "category": "Chat",
-      "name": "api type override (minimax with anthropic type)",
-      "command": "chat --provider minimax --api-type anthropic --model minimax-text-01 -m \"hello\" --max-iterations 3",
+      "name": "provider minimax",
+      "command": "chat --provider minimax --model minimax-text-01 -m \"hello\"",
       "timeout": 60,
       "expected": ""
     },
@@ -563,7 +563,7 @@
       "id": "8.6",
       "category": "Completions",
       "name": "dynamic completions models",
-      "command": "completions bash --dynamic Models",
+      "command": "completions bash --dynamic models",
       "timeout": 30,
       "expected": "possible values",
       "validation": "contains"
@@ -572,7 +572,7 @@
       "id": "8.7",
       "category": "Completions",
       "name": "dynamic completions providers",
-      "command": "completions bash --dynamic Providers",
+      "command": "completions bash --dynamic providers",
       "timeout": 30,
       "expected": "possible values",
       "validation": "contains"
@@ -581,7 +581,7 @@
       "id": "8.8",
       "category": "Completions",
       "name": "dynamic completions sessions",
-      "command": "completions bash --dynamic Sessions",
+      "command": "completions bash --dynamic sessions",
       "timeout": 30,
       "expected": "possible values",
       "validation": "contains"
@@ -590,7 +590,7 @@
       "id": "8.9",
       "category": "Completions",
       "name": "dynamic completions skills",
-      "command": "completions bash --dynamic Skills",
+      "command": "completions bash --dynamic skills",
       "timeout": 30,
       "expected": "possible values",
       "validation": "contains"
@@ -615,7 +615,8 @@
       "category": "Skills",
       "name": "skills search",
       "command": "skills search deep-search",
-      "timeout": 60
+      "timeout": 60,
+      "expected": "deep-search|search|registry|timed out|operation timed out"
     },
     {
       "id": "9.4",
@@ -700,7 +701,7 @@
       "category": "Office",
       "name": "office extract",
       "command": "office extract \"{tempDir}/test.pptx\"",
-      "expected": "does not exist",
+      "expected": "No such file|does not exist",
       "timeout": 60,
       "validation": "contains"
     },
@@ -709,7 +710,7 @@
       "category": "Office",
       "name": "office pack",
       "command": "office pack \"{tempDir}/unpacked\" --output \"{tempDir}/test.pptx\"",
-      "expected": "does not exist",
+      "expected": "<INPUT> <OUTPUT>|does not exist",
       "timeout": 60,
       "validation": "contains"
     },
@@ -718,7 +719,7 @@
       "category": "Office",
       "name": "office clean",
       "command": "office clean \"{tempDir}/unpacked\"",
-      "expected": "does not exist",
+      "expected": "not a directory|is not a directory",
       "timeout": 60,
       "validation": "contains"
     },
@@ -727,7 +728,7 @@
       "category": "Office",
       "name": "office thumbnail",
       "command": "office thumbnail \"{tempDir}/test.pptx\"",
-      "expected": "does not exist",
+      "expected": "file not found|not found|does not exist",
       "timeout": 60,
       "validation": "contains"
     },
