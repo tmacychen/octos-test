@@ -267,6 +267,8 @@ class CLITestRunner:
         "Service Unavailable",     # HTTP 503
         "Connection refused",      # Custom base URL with no server
         "no LLM provider configured",  # No provider in isolated --data-dir
+        "Database already open",    # Episodes DB locked by another process
+        "Cannot acquire lock",      # Same as above, different wording
     ]
 
     def _should_skip(self, actual: str, exit_code: int) -> str:
