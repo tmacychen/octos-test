@@ -2795,7 +2795,10 @@ class OctosStdioTester:
         hello_data = json.loads(hello_resp.strip())
         self.logger.debug(f"hello response: {json.dumps(hello_data)[:200]}")
 
-        # 2. Send actual RPC
+        # 2. Small yield for server to finish hello processing
+        time.sleep(0.1)
+
+        # 3. Send actual RPC
         req_id = str(uuid.uuid4())
         req = {"jsonrpc": "2.0", "id": req_id, "method": method}
         if params is not None:
@@ -2824,44 +2827,21 @@ class OctosStdioTester:
     def _read_line_timeout(self, proc, timeout: float) -> str:
         """以超时方式从 proc.stdout 读取一行
 
-        select.select 只检测内核 pipe buffer 中的新数据，无法感知
-        Python BufferedReader 中已预取的缓冲数据。当上一次 readline()
-        调用一次从 pipe 读取了多个 JSON 行到缓冲区时，后续 select.select
-        会超时（内核 pipe 已空），但缓冲区中仍有未读取的行。
-
-        因此每次迭代前先用 buffer.peek() 检查 Python 缓冲区是否有数据。
+        select.select 检测内核 pipe buffer 的新数据。注意不能用 buffer.peek()
+        因为它对 pipe 会阻塞等待数据，导致死锁。
         """
         import select
         deadline = time.time() + timeout
         fd = proc.stdout.fileno()
         while time.time() < deadline:
-            # 先检查 Python 层缓冲区是否有预取数据
-            try:
-                if proc.stdout.buffer.peek():
-                    line = proc.stdout.readline()
-                    if line:
-                        return line
-            except Exception:
-                pass
-
             remaining = deadline - time.time()
             if remaining <= 0:
                 break
-            r, _, _ = select.select([fd], [], [], min(remaining, 0.5))
+            r, _, _ = select.select([fd], [], [], remaining)
             if r:
                 line = proc.stdout.readline()
                 if line:
                     return line
-
-        # 最后一次尝试：缓冲区可能仍有残余数据
-        try:
-            if proc.stdout.buffer.peek():
-                line = proc.stdout.readline()
-                if line:
-                    return line
-        except Exception:
-            pass
-
         return ""
 
     # ── 30.x Stdio 测试用例 ──
