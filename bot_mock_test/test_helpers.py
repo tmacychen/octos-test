@@ -110,18 +110,17 @@ def test_ws_reconnect_basic(runner, timeout_cmd: int = 30, **inject_kwargs) -> s
       3. 等待 bot 重连（15s 检测窗口）
       4. 再发 /new 验证重连成功
 
-    Args:
-        runner: Mock runner 实例
-        timeout_cmd: 命令超时时间
-        **inject_kwargs: 透传给 inject_and_get_reply 的参数
-                         (chat_id/channel_id/group_openid 等)
-
-    Returns:
-        重连后发送命令得到的回复文本
-
-    Raises:
-        AssertionError: 如果任一步骤失败
+    注意: Discord mock 模式下（DISCORD_API_BASE_URL 已设），serenity 的
+    ShardManager 重连时不使用 proxy Http，无法重连到 mock server。
+    该情况下直接 pytest.skip。
     """
+    import os
+
+    # Discord mock mode: serenity reconnect doesn't honor proxy
+    if os.environ.get("DISCORD_API_BASE_URL"):
+        import pytest
+        pytest.skip("Discord mock mode: serenity reconnect does not use proxy (mock)")
+
     import logging
     logger = logging.getLogger(__name__)
 
