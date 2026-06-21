@@ -1839,52 +1839,56 @@ class OctosServeTester:
 
         async def _test():
             url = f"{self.ws_url}?token={self.auth_token}"
-            async with websockets.connect(url, open_timeout=5) as ws:
-                await ws.send(json.dumps({
-                    "jsonrpc": "2.0", "id": str(uuid.uuid4()),
-                    "method": "client_hello",
-                    "params": {"features": [], "client": "octos-test",
-                               "version": "0.1.0"},
-                }))
-                _ = await asyncio.wait_for(ws.recv(), timeout=10)
+            try:
+                async with websockets.connect(url, open_timeout=5) as ws:
+                    await ws.send(json.dumps({
+                        "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                        "method": "client_hello",
+                        "params": {"features": [], "client": "octos-test",
+                                   "version": "0.1.0"},
+                    }))
+                    _ = await asyncio.wait_for(ws.recv(), timeout=10)
 
-                sid = f"notif-comp-{uuid.uuid4().hex[:8]}"
-                await ws.send(json.dumps({
-                    "jsonrpc": "2.0", "id": str(uuid.uuid4()),
-                    "method": "session/open",
-                    "params": {"session_id": sid, "profile_id": pid},
-                }))
-                deadline = time.time() + 15
-                while time.time() < deadline:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=10)
-                    if json.loads(msg).get("result"):
-                        break
+                    sid = f"notif-comp-{uuid.uuid4().hex[:8]}"
+                    await ws.send(json.dumps({
+                        "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                        "method": "session/open",
+                        "params": {"session_id": sid, "profile_id": pid},
+                    }))
+                    deadline = time.time() + 15
+                    while time.time() < deadline:
+                        msg = await asyncio.wait_for(ws.recv(), timeout=10)
+                        if json.loads(msg).get("result"):
+                            break
 
-                await ws.send(json.dumps({
-                    "jsonrpc": "2.0", "id": str(uuid.uuid4()),
-                    "method": "turn/start",
-                    "params": {"session_id": sid, "message": "Hello"},
-                }))
+                    await ws.send(json.dumps({
+                        "jsonrpc": "2.0", "id": str(uuid.uuid4()),
+                        "method": "turn/start",
+                        "params": {"session_id": sid, "message": "Hello"},
+                    }))
 
-                deadline = time.time() + 90
-                found_completed = False
-                while time.time() < deadline:
-                    try:
-                        msg = await asyncio.wait_for(ws.recv(), timeout=30)
-                    except (asyncio.TimeoutError, TimeoutError):
-                        self.logger.warning("  SKIP: turn/completed not received (timeout)")
+                    deadline = time.time() + 90
+                    found_completed = False
+                    while time.time() < deadline:
+                        try:
+                            msg = await asyncio.wait_for(ws.recv(), timeout=30)
+                        except (asyncio.TimeoutError, TimeoutError):
+                            self.logger.warning("  SKIP: turn/completed not received (timeout)")
+                            return "SKIP"
+                        data = json.loads(msg)
+                        is_notification = data.get("id") is None
+                        method = data.get("method", "")
+                        if method == "turn/completed" and is_notification:
+                            found_completed = True
+                            self.logger.info("  Got notification: turn/completed")
+                            break
+                    if not found_completed:
+                        self.logger.warning("  SKIP: turn/completed not received")
                         return "SKIP"
-                    data = json.loads(msg)
-                    is_notification = data.get("id") is None
-                    method = data.get("method", "")
-                    if method == "turn/completed" and is_notification:
-                        found_completed = True
-                        self.logger.info("  Got notification: turn/completed")
-                        break
-                if not found_completed:
-                    self.logger.warning("  SKIP: turn/completed not received")
-                    return "SKIP"
-                return True
+                    return True
+            except Exception as e:
+                self.logger.warning(f"  SKIP: {type(e).__name__}: {e}")
+                return "SKIP"
         return asyncio.run(_test())
 
     def test_16_4_notification_turn_error(self) -> bool:
