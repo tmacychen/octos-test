@@ -870,14 +870,6 @@ class TestDiscordAllowedSenders:
 # ══════════════════════════════════════════════════════════════════════════════
 
 
-class TestDiscordWsReconnect:
-    """Discord WebSocket 断线重连测试"""
-
-    def test_ws_reconnect(self, runner):
-        """断开 WS 连接后验证 bot 能自动重连并正常通信"""
-        test_ws_reconnect_basic(runner, timeout_cmd=TIMEOUT_COMMAND,
-                                channel_id="1039178386623557754")
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Embed 消息测试
@@ -1004,3 +996,16 @@ class TestDiscordReaction:
         last_reaction = data["reactions"][-1]
         assert last_reaction["type"] == "add_reaction"
         assert last_reaction["emoji"] == "%F0%9F%91%8D"  # thumbs up emoji encoded
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# WS 断线重连测试（放在最后，因为会断开网关连接，影响后续测试）
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestDiscordWsReconnect:
+    """Discord WebSocket 断线重连测试"""
+
+    def test_ws_reconnect(self, runner):
+        """断开 WS 连接后验证 bot 能自动重连并正常通信"""
+        test_ws_reconnect_basic(runner, timeout_cmd=TIMEOUT_COMMAND,
+                                channel_id="1039178386623557754")
