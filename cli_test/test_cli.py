@@ -271,6 +271,8 @@ class CLITestRunner:
         "Cannot acquire lock",      # Same as above, different wording
         "Too Many Requests",       # HTTP 429 rate limit
         "rate limit",              # Generic rate limit
+        "authentication failed",   # HTTP 401 wrong key for provider
+        "invalid_request_error",   # API rejected request (wrong endpoint)
     ]
 
     def _should_skip(self, actual: str, exit_code: int) -> str:
