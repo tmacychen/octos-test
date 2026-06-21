@@ -37,9 +37,15 @@
 
 ## 建议
 
-- **CLI 测试默认模型**: `nvidia/llama-3.3-nemotron-super-49b-v1`（0.8s，agent/tool calling 支持好）
-- **备选**: `deepseek-ai/deepseek-v4-flash`（0.9s，1M context）
+- **当前使用**: `meta/llama-4-maverick-17b-128e-instruct`（0.6s，流稳定，tool calling OK）
+- **备选**: `nvidia/llama-3.3-nemotron-super-49b-v1`（0.8s，agent/tool calling 支持好）
 - **最快**: `meta/llama-3.1-8b-instruct`（0.6s，轻量级）
+
+## 注意
+
+`deepseek-ai/deepseek-v4-flash` curl 测 0.9s，但 octos chat 流式调用时
+NVIDIA 端频繁断连（`retryable stream error`），导致重试耗 10-30s/次，
+不适合批量测试。推荐 llama/nemotron 系列。
 
 ---
 
