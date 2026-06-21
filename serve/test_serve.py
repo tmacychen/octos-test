@@ -2629,7 +2629,7 @@ class OctosStdioTester:
 
         cmd = [str(self.binary_path), "serve", "--stdio",
                "--data-dir", str(data_dir),
-               "--port", "0"]
+               "--port", "0", "--solo"]
 
         self.logger.info(f"Starting stdio server: {' '.join(cmd)}")
 
@@ -2748,6 +2748,19 @@ class OctosStdioTester:
         if proc is None or proc.poll() is not None:
             raise RuntimeError("Stdio server not running")
 
+        # 0. Drain any startup output (non-JSON lines like "Listening: ...")
+        deadline_init = time.time() + 3
+        while time.time() < deadline_init:
+            line = self._read_line_timeout(proc, 0.5)
+            if not line:
+                break
+            try:
+                json.loads(line.strip())
+                # It's valid JSON - could be an error or unexpected message
+                self.logger.debug(f"  [stdio init] {line.strip()[:100]}")
+            except (json.JSONDecodeError, ValueError):
+                self.logger.debug(f"  [stdio init (ignored)] {line.strip()[:100]}")
+
         # 1. client/hello
         hello_id = str(uuid.uuid4())
         hello = {
@@ -2776,7 +2789,7 @@ class OctosStdioTester:
         proc.stdin.write(json.dumps(req) + "\n")
         proc.stdin.flush()
 
-        # 3. Read response (skip notifications)
+        # 3. Read response (skip notifications and non-JSON lines)
         deadline = time.time() + timeout
         while time.time() < deadline:
             line = self._read_line_timeout(proc, max(deadline - time.time(), 1))
@@ -2784,7 +2797,11 @@ class OctosStdioTester:
                 if proc.poll() is not None:
                     raise RuntimeError(f"Stdio server exited (code {proc.returncode})")
                 raise TimeoutError(f"RPC {method} timed out")
-            resp = json.loads(line.strip())
+            try:
+                resp = json.loads(line.strip())
+            except (json.JSONDecodeError, ValueError):
+                self.logger.debug(f"  [stdio ignore] {line.strip()[:100]}")
+                continue
             if resp.get("id") == req_id:
                 return resp
             self.logger.debug(f"notification: {json.dumps(resp)[:200]}")
