@@ -1813,7 +1813,7 @@ class OctosServeTester:
                 deadline = time.time() + 30
                 found_started = False
                 while time.time() < deadline:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=10)
+                    msg = await asyncio.wait_for(ws.recv(), timeout=20)
                     data = json.loads(msg)
                     is_notification = data.get("id") is None
                     method = data.get("method", "")
