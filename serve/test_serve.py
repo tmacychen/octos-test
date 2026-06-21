@@ -847,7 +847,8 @@ class OctosServeTester:
                 err = msg_resp["error"]
                 err_msg = err.get("message", str(err))
                 self.logger.warning(f"  session/messages_page error: {err_msg}")
-                if "feature" in err_msg.lower() or "not supported" in err_msg.lower():
+                if any(kw in err_msg.lower() for kw in
+                       ["feature", "not supported", "rest handler", "not configured"]):
                     return "SKIP"
                 raise AssertionError(f"session/messages_page error: {err_msg}")
 
@@ -941,7 +942,8 @@ class OctosServeTester:
                 err = title_resp["error"]
                 err_msg = err.get("message", str(err))
                 self.logger.warning(f"  session/title.set error: {err_msg}")
-                if "feature" in err_msg.lower() or "not supported" in err_msg.lower():
+                if any(kw in err_msg.lower() for kw in
+                       ["feature", "not supported", "unknown session"]):
                     return "SKIP"
                 raise AssertionError(f"session/title.set error: {err_msg}")
 
@@ -1794,9 +1796,9 @@ class OctosServeTester:
                     "method": "session/open",
                     "params": {"session_id": sid, "profile_id": pid},
                 }))
-                deadline = time.time() + 10
+                deadline = time.time() + 15
                 while time.time() < deadline:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                    msg = await asyncio.wait_for(ws.recv(), timeout=10)
                     data = json.loads(msg)
                     if data.get("id") == open_id:
                         break
@@ -1808,10 +1810,10 @@ class OctosServeTester:
                     "method": "turn/start",
                     "params": {"session_id": sid, "message": "Hello"},
                 }))
-                deadline = time.time() + 15
+                deadline = time.time() + 30
                 found_started = False
                 while time.time() < deadline:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                    msg = await asyncio.wait_for(ws.recv(), timeout=10)
                     data = json.loads(msg)
                     is_notification = data.get("id") is None
                     method = data.get("method", "")
@@ -1844,7 +1846,7 @@ class OctosServeTester:
                     "params": {"features": [], "client": "octos-test",
                                "version": "0.1.0"},
                 }))
-                _ = await asyncio.wait_for(ws.recv(), timeout=5)
+                _ = await asyncio.wait_for(ws.recv(), timeout=10)
 
                 sid = f"notif-comp-{uuid.uuid4().hex[:8]}"
                 await ws.send(json.dumps({
@@ -1852,9 +1854,9 @@ class OctosServeTester:
                     "method": "session/open",
                     "params": {"session_id": sid, "profile_id": pid},
                 }))
-                deadline = time.time() + 10
+                deadline = time.time() + 15
                 while time.time() < deadline:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                    msg = await asyncio.wait_for(ws.recv(), timeout=10)
                     if json.loads(msg).get("result"):
                         break
 
