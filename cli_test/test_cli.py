@@ -217,32 +217,52 @@ class CLITestRunner:
 
     def _run_command(self, cmd_args: str, timeout: int = 60,
                      env_override: Optional[dict] = None) -> Tuple[int, str, str]:
-        """Execute octos command and capture output."""
-        import shlex
+        """Execute octos command and capture output.
+
+        Uses process groups (start_new_session=True) so that on timeout
+        the entire process tree is killed — including any gateway
+        subprocess spawned by octos chat, preventing stale DB locks.
+        """
+        import shlex, signal
         full_cmd = [str(self.binary_path)] + shlex.split(cmd_args)
 
-        # 构建子进程环境：基础环境 + 测试用例特定覆盖
         cmd_env = {**os.environ}
         if env_override:
             for k, v in env_override.items():
                 if v == "":
-                    # 空值表示从环境中移除
                     cmd_env.pop(k, None)
                 else:
                     cmd_env[k] = v
 
+        proc = None
         try:
-            result = subprocess.run(
+            proc = subprocess.Popen(
                 full_cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=timeout,
                 env=cmd_env,
+                start_new_session=True,  # Create new process group for cleanup
             )
-            return result.returncode, result.stdout, result.stderr
+            stdout, stderr = proc.communicate(timeout=timeout)
+            return proc.returncode, stdout, stderr
         except subprocess.TimeoutExpired:
+            # Kill the entire process group to prevent zombie DB locks
+            if proc:
+                try:
+                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                except (ProcessLookupError, OSError):
+                    try:
+                        proc.kill()
+                    except OSError:
+                        pass
             return -1, "", f"Command timed out after {timeout}s"
         except Exception as e:
+            if proc:
+                try:
+                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                except Exception:
+                    pass
             return -1, "", str(e)
 
     # Patterns in command output that indicate the test should SKIP
@@ -484,6 +504,38 @@ class CLITestRunner:
 
         return result
 
+    def _cleanup_db_lock(self):
+        """Release stale episodes.redb locks from previous runs.
+
+        octos chat spawns gateway subprocesses that hold the database lock.
+        If a previous test timed out and the process tree wasn't cleaned,
+        subsequent tests will get 'Database already open' errors.
+        """
+        import subprocess as sp
+        db_path = os.path.expanduser("~/.octos/episodes.redb")
+        if not os.path.exists(db_path):
+            return
+
+        try:
+            result = sp.run(
+                ["lsof", "-t", db_path],
+                capture_output=True, text=True, timeout=5
+            )
+            pids = [p.strip() for p in result.stdout.split("\n") if p.strip()]
+            if pids:
+                self.logger.warning(f"[CLEANUP] Killing {len(pids)} stale process(es) "
+                                    f"holding episodes.redb: {pids}")
+                for pid_str in pids:
+                    try:
+                        pid = int(pid_str)
+                        # Don't kill our own process
+                        if pid != os.getpid():
+                            os.kill(pid, 9)
+                    except (ValueError, ProcessLookupError, PermissionError):
+                        pass
+        except Exception:
+            pass
+
     def _cleanup_category_dir(self):
         """Cleanup current category test directory."""
         if self.category_test_dir and self.category_test_dir.exists():
@@ -510,6 +562,9 @@ class CLITestRunner:
         if self.batch_size is not None:
             filter_parts.append(f"batch={self.batch_index}/{self.batch_size}")
         filter_summary = " | ".join(filter_parts) if filter_parts else "all"
+
+        # Clean up stale DB locks before starting
+        self._cleanup_db_lock()
 
         print(f"\n{'=' * 60}")
         print(f"Octos CLI Automated Test")
