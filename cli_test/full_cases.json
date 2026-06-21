@@ -37,6 +37,22 @@
       "validation": "contains"
     },
     {
+      "id": "2.24",
+      "category": "Chat",
+      "name": "api type override (minimax with anthropic type)",
+      "command": "chat --provider minimax --api-type anthropic --model minimax-text-01 -m \"hello\" --max-iterations 3",
+      "timeout": 60,
+      "expected": ""
+    },
+    {
+      "id": "2.24",
+      "category": "Chat",
+      "name": "api type override (minimax with anthropic type)",
+      "command": "chat --provider minimax --api-type anthropic --model minimax-text-01 -m \"hello\" --max-iterations 3",
+      "timeout": 60,
+      "expected": ""
+    },
+    {
       "id": "2.3",
       "category": "Chat",
       "name": "colon q message",

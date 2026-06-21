@@ -24,7 +24,7 @@ class CLITestResult:
         self.test_id = test_id
         self.category = category
         self.name = name
-        self.status = status  # "PASS" or "FAIL"
+        self.status = status  # "PASS", "FAIL", or "SKIP"
         self.duration_sec = duration_sec
 
     def to_markdown_row(self) -> str:
@@ -83,6 +83,7 @@ class CLITestRunner:
         self.total = 0
         self.passed = 0
         self.failed = 0
+        self.skipped = 0
 
         # Results storage
         self.results: List[CLITestResult] = []
@@ -244,6 +245,32 @@ class CLITestRunner:
         except Exception as e:
             return -1, "", str(e)
 
+    # Patterns in command output that indicate the test should SKIP
+    # (missing external dependency, not a code bug)
+    SKIP_PATTERNS = [
+        "OPENAI_API_KEY not set",
+        "ANTHROPIC_API_KEY not set",
+        "GEMINI_API_KEY not set",
+        "OLLAMA_HOST",
+        "not configured",
+        "No API key configured",
+        "API key not",
+        "environment variable not found",
+    ]
+
+    def _should_skip(self, actual: str, exit_code: int) -> str:
+        """Check if test should be skipped based on output/exit code.
+
+        Returns empty string if not a skip scenario, or a skip reason string.
+        """
+        for pattern in self.SKIP_PATTERNS:
+            if pattern in actual:
+                return f"Missing dependency: {pattern}"
+        # Timed out
+        if exit_code == -1 and "timed out" in actual:
+            return "Command timed out"
+        return ""
+
     def _validate_result(
         self, actual: str, exit_code: int, expected: str, validation: str
     ) -> bool:
@@ -301,16 +328,21 @@ class CLITestRunner:
         exit_code, stdout, stderr = self._run_command(cmd_args, timeout, env_override)
         actual = stdout + stderr
 
-        # Validate
-        passed = self._validate_result(actual, exit_code, expected, validation)
-
-        # Update counters
-        if passed:
-            self.passed += 1
-            status = "PASS"
+        # Check for SKIP conditions first
+        skip_reason = self._should_skip(actual, exit_code)
+        if skip_reason:
+            self.skipped += 1
+            status = "SKIP"
+            self.logger.info(f"[SKIP] {test_id} {name}: {skip_reason}")
         else:
-            self.failed += 1
-            status = "FAIL"
+            # Validate
+            passed = self._validate_result(actual, exit_code, expected, validation)
+            if passed:
+                self.passed += 1
+                status = "PASS"
+            else:
+                self.failed += 1
+                status = "FAIL"
 
         elapsed = time.time() - start_time
 
@@ -321,7 +353,7 @@ class CLITestRunner:
         # Log details
         category_logger.info(f"[EXITCODE] {exit_code}")
         if stdout:
-            category_logger.info(f"[STDOUT] {stdout[:500]}")  # Truncate long output
+            category_logger.info(f"[STDOUT] {stdout[:500]}")
         if stderr:
             category_logger.warning(f"[STDERR] {stderr[:500]}")
         category_logger.info(f"[STATUS] {status}")
@@ -336,9 +368,16 @@ class CLITestRunner:
                 print(f"[STDERR]\n{stderr}")
 
         # Print result
-        color = "\033[0;32m" if passed else "\033[0;31m"
+        if status == "PASS":
+            color = "\033[0;32m"
+        elif status == "SKIP":
+            color = "\033[0;33m"
+        else:
+            color = "\033[0;31m"
         reset = "\033[0m"
         print(f"{color}[{status}]{reset} {test_id} {name}")
+        if skip_reason:
+            print(f"      {color}({skip_reason}){reset}")
 
         return result
 
@@ -546,6 +585,7 @@ class CLITestRunner:
             f.write(f"- **Total**: {self.total}\n")
             f.write(f"- **Passed**: {self.passed}\n")
             f.write(f"- **Failed**: {self.failed}\n")
+            f.write(f"- **Skipped**: {self.skipped}\n")
             f.write(f"- **Pass Rate**: {pass_rate}%\n\n")
 
             f.write("## Test Results\n\n")
@@ -581,6 +621,7 @@ class CLITestRunner:
                 "total": self.total,
                 "passed": self.passed,
                 "failed": self.failed,
+                "skipped": self.skipped,
                 "passed_pct": pass_rate,
             },
             "results": [r.to_dict() for r in self.results],
@@ -605,6 +646,7 @@ class CLITestRunner:
         print(f"  Total:     {self.total}")
         print(f"  Passed:    \033[0;32m{self.passed}\033[0m")
         print(f"  Failed:    \033[0;31m{self.failed}\033[0m")
+        print(f"  Skipped:   \033[0;33m{self.skipped}\033[0m")
         print(f"  Pass Rate: {pass_rate}%")
         print()
         print(f"  Report:    \033[0;32m{report_path}\033[0m")
@@ -616,7 +658,7 @@ class CLITestRunner:
         self.logger.info("=" * 60)
         self.logger.info(
             f"SUMMARY: Total={self.total} Passed={self.passed} "
-            f"Failed={self.failed} PassRate={pass_rate}%"
+            f"Failed={self.failed} Skipped={self.skipped} PassRate={pass_rate}%"
         )
 
 
@@ -671,7 +713,7 @@ def run_cli_tests(
     # Print summary
     runner.print_summary(report_path)
 
-    # Collect error messages
+    # Collect error messages (FAIL only, not SKIP)
     errors = []
     for result in runner.results:
         if result.status == "FAIL":

@@ -2563,36 +2563,43 @@ def run_all_bot_tests(from_test: Optional[str] = None, return_details: bool = Fa
 
 
 def list_cli_categories():
-    """List CLI test categories."""
-    test_cases_file = CLI_TEST_DIR / "test_cases.json"
+    """List CLI test categories from full_cases.json."""
+    test_cases_file = CLI_TEST_DIR / "full_cases.json"
+    if not test_cases_file.exists():
+        test_cases_file = CLI_TEST_DIR / "test_cases.json"
     if not test_cases_file.exists():
         print(f"Test cases file not found: {test_cases_file}")
         return
     
     with open(test_cases_file, 'r') as f:
-        test_cases = json.load(f)
+        data = json.load(f)
     
-    print("\nAvailable CLI test categories:")
-    for category in test_cases.keys():
-        print(f"  - {category}")
+    # Collect unique categories from tests list
+    categories = sorted(set(t["category"] for t in data.get("tests", [])))
+    
+    print(f"\nAvailable CLI test categories ({len(categories)}):")
+    for cat in categories:
+        count = sum(1 for t in data["tests"] if t["category"] == cat)
+        print(f"  - {cat} ({count} tests)")
     print("")
 
 
 def list_cli_category_cases(category: str):
-    """List test cases in a CLI category."""
-    test_cases_file = CLI_TEST_DIR / "test_cases.json"
+    """List test cases in a CLI category from full_cases.json."""
+    test_cases_file = CLI_TEST_DIR / "full_cases.json"
+    if not test_cases_file.exists():
+        test_cases_file = CLI_TEST_DIR / "test_cases.json"
     if not test_cases_file.exists():
         print(f"Test cases file not found: {test_cases_file}")
         return
     
     with open(test_cases_file, 'r') as f:
-        test_cases = json.load(f)
+        data = json.load(f)
     
-    if category not in test_cases:
+    cases = [t for t in data.get("tests", []) if t["category"] == category]
+    if not cases:
         print(f"Unknown category: {category}")
         return
-    
-    cases = test_cases[category]
     
     # Only list if it's a list type
     if not isinstance(cases, list):
