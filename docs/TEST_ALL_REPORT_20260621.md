@@ -14,11 +14,11 @@
 | **CLI** | 124 | 87 | 16 | 21 | 70% |
 | **Serve (HTTP/WS)** | 96 | 95 | 1 | 0 | 99% |
 | **Stdio** | 6 | 1 | 5 | 0 | 17% |
-| **Bot (Telegram)** | ~10 | — | — | ~10 | — |
-| **Bot (Discord)** | ~50 | 0 | 0 | ~50 | — |
-| **合计** (有效) | 226 | 183 | 22 | 21 | **81%** |
+| **Bot (Telegram)** | 57 | 31 | 0 | 26 | 54% |
+| **Bot (Discord)** | 50 | 0 | 0 | 50 | — |
+| **合计** (有效) | 283 | 214 | 22 | 47 | **76%** |
 
-> Bot 模块全部 SKIP：Discord 网关连接超时 + Telegram mock 模式跳过。不计入有效。
+> Discord 全部 SKIP：WebSocket 网关连接超时。Telegram 26 SKIP 为 profile/soul/allowed-sender 特殊配置。
 
 ---
 
@@ -88,11 +88,19 @@ Stdio RPC 超时问题待排查，可能与 select/pipe 缓冲区相关。
 
 ---
 
-## 4. Bot 测试 (全部 SKIP)
+## 4. Bot 测试
 
-- **Telegram**: mock 模式自动跳过（无真实 bot token）
-- **Discord**: Discord 网关 `Tungstenite TimedOut` 无法建立连接，全部 SKIP
-- Bot 测试中的 LLM 调用也受 429 rate limit 影响
+### Telegram (31/57 PASS, 54%)
+| 结果 | 数量 | 说明 |
+|------|:---:|------|
+| PASS | 31 | Session 管理、消息收发、回调、多用户、HTML fallback |
+| SKIP | 26 | Profile mode、Soul 模式、Allowed Senders 等需特殊配置 |
+| FAIL | 0 | — |
+
+**Mock 架构**: `TELEGRAM_API_URL=http://127.0.0.1:5000` 生效，LLM 响应 ~1s（llama-4-maverick）。耗时 5:44。
+
+### Discord
+Discord 网关 `Tungstenite TimedOut` — 本机无法连接 Discord WebSocket，全部 SKIP。
 
 ---
 
