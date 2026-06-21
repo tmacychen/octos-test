@@ -68,78 +68,40 @@ def cleanup_state(runner):
         pytest.skip("Mock Server 崩溃，无法恢复（需重启 test_run.py）")
         return  # never reached, but for clarity
     
-    # Initial wait（缩短，减少总体清理时间）
-    time.sleep(2.0)
+    # Minimal wait for previous test state to settle
+    time.sleep(0.5)
     
-    # Check if messages are still arriving（收紧超时，快速失败）
-    # ⚠️ 关键修复：即使 health 通过，如果 server 实际卡住也要 skip
-    # 先发一条空消息测试 server 是否真正可用
+    # Quick stability check: ensure mock server isn't backlogged
     try:
-        prev_count = len(runner.get_sent_messages(timeout=2))
+        prev_count = len(runner.get_sent_messages(timeout=1))
     except httpx.HTTPError:
         pytest.skip("Mock Server 响应异常，跳过测试")
         return
     
     stable_count = 0
-    for _ in range(10):  # 10 * 0.5s = 5s max（收紧）
-        time.sleep(0.5)
+    for _ in range(4):  # 4 * 0.3s = 1.2s max
+        time.sleep(0.3)
         try:
-            curr_count = len(runner.get_sent_messages(timeout=2))
+            curr_count = len(runner.get_sent_messages(timeout=1))
             if curr_count == prev_count:
                 stable_count += 1
-                if stable_count >= 2:  # Stable for 2 consecutive checks
+                if stable_count >= 2:
                     break
             else:
                 stable_count = 0
             prev_count = curr_count
         except httpx.HTTPError:
-            # Mock Server 不响应，跳出循环
             break
     else:
-        # 轮询达到上限仍未稳定，说明 server 可能卡住
-        pytest.skip("Mock Server 消息未稳定（可能卡住），跳过测试")
+        pytest.skip("Mock Server 未稳定，跳过测试")
         return
     
-    # Clear Mock Server state（收紧超时，快速失败）
+    # Clear mock server state
     try:
         runner.clear()
     except httpx.HTTPError:
         pytest.skip("Mock Server 无法清理，跳过测试")
         return
-    
-    # 🔥 清理所有 session 文件（避免大 session 导致 Mock Server 崩溃）
-    try:
-        import os
-        import glob
-        data_dir = os.environ.get("OCTOS_TEST_DIR", "/tmp/octos_test")
-        session_files = glob.glob(f"{data_dir}/users/*/sessions/*.jsonl")
-        deleted_count = 0
-        for session_file in session_files:
-            try:
-                os.remove(session_file)
-                deleted_count += 1
-            except OSError:
-                pass
-        if deleted_count > 0:
-            logger.info(f"  🗑 Cleaned up {deleted_count} session files")
-    except Exception as e:
-        logger.info(f"  ⚠ Session cleanup warning: {type(e).__name__}: {str(e)[:80]}")
-    
-    # 重置所有非默认状态（收紧超时，快速失败）
-    try:
-        inject_and_get_reply(runner, "/reset", timeout=3)
-    except httpx.HTTPError:
-        pytest.skip("Mock Server /reset 失败，跳过测试")
-        return
-    except AssertionError:
-        # Bot 未回复，可能是 server 卡住
-        pytest.skip("Mock Server /reset 无响应，跳过测试")
-        return
-    except Exception as e:
-        logger.info(f"  ⚠ /reset failed: {type(e).__name__}: {str(e)[:80]}")
-    
-    # Extra buffer for gateway recovery
-    time.sleep(0.5)
     yield
 
 
