@@ -701,7 +701,7 @@ def _ensure_nvidia_config():
             return
 
         nvidia_base_url = "https://integrate.api.nvidia.com/v1"
-        nvidia_model = "meta/llama-4-maverick-17b-128e-instruct"
+        nvidia_model = "nvidia/nemotron-3-super-120b-a12b"
         config["base_url"] = nvidia_base_url
         config["model"] = nvidia_model
         config_path.write_text(json.dumps(config, indent=2))
