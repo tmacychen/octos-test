@@ -1100,7 +1100,7 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1448,7 +1448,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1486,7 +1486,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1521,7 +1521,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1566,7 +1566,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1609,7 +1609,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1648,7 +1648,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1686,7 +1686,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1725,7 +1725,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1767,7 +1767,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1808,7 +1808,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1856,7 +1856,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1904,7 +1904,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "openai",
-                        "model_id": "meta/llama-4-maverick-17b-128e-instruct",
+                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
                             "api_key_env": "OPENAI_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"

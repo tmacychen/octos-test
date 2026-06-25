@@ -1214,7 +1214,7 @@ class TestTelegramTypingIndicator:
         """发送消息后 bot 应发送 typing indicator"""
         chat_id = 904
         # 先 cleanup
-        runner._clear_state()
+        runner.clear()
         # 发送消息
         text = inject_and_get_reply(runner, "Hello, just a quick greeting",
                                     timeout=TIMEOUT_LLM, chat_id=chat_id)
