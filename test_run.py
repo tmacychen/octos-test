@@ -1099,10 +1099,10 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1447,10 +1447,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1485,10 +1485,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1520,10 +1520,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1565,10 +1565,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1608,10 +1608,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1647,10 +1647,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1685,10 +1685,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1724,10 +1724,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1766,10 +1766,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1807,10 +1807,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1855,10 +1855,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
@@ -1903,10 +1903,10 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "version": 1,
                 "llm": {
                     "primary": {
-                        "family_id": "openai",
+                        "family_id": "nvidia",
                         "model_id": "nvidia/nemotron-3-super-120b-a12b",
                         "route": {
-                            "api_key_env": "OPENAI_API_KEY",
+                            "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
                         }
                     },
