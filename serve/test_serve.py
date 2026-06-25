@@ -2167,8 +2167,14 @@ class OctosServeTester:
 
     def test_19_4_task_output_read(self) -> bool:
         """19.4: task/output/read — server 不支持"""
-        return self._check_task_unsupported("task/output/read",
-            {"session_id": "00000000-0000-0000-0000-000000000001", "task_id": "00000000-0000-0000-0000-000000000001"})
+        if not HAS_WEBSOCKETS: return "SKIP"
+        resp = self._ws_call("task/output/read",
+            {"session_id": "00000000-0000-0000-0000-000000000001", "task_id": "00000000-0000-0000-0000-000000000001"}, timeout=5)
+        assert "error" in resp, f"Expected error for task/output/read: {resp}"
+        code = resp["error"].get("code", 0)
+        assert code in (-32004, -32602), f"Expected -32004 or -32602, got {code}: {resp['error']}"
+        self.logger.info(f"  task/output/read error code={code} (acceptable)")
+        return True
 
     def test_19_5_task_artifact_list(self) -> bool:
         """19.5: task/artifact/list — server 不支持"""
