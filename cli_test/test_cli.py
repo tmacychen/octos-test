@@ -386,9 +386,7 @@ class CLITestRunner:
             self.skipped += 1
             status = "SKIP"
             self.logger.info(f"[SKIP] {test_id} {name}: {skip_reason}")
-
-        # Skip by test ID (model-dependent security tests)
-        if not skip_reason and test_id in self.SKIP_TEST_IDS:
+        elif test_id in self.SKIP_TEST_IDS:
             self.skipped += 1
             status = "SKIP"
             skip_reason = "Model does not enforce (nemotron/llama limitation)"
