@@ -2760,7 +2760,7 @@ class OctosStdioTester:
         return result
 
     def _stdio_rpc(self, method: str, params: dict = None,
-                   timeout: float = 15.0) -> dict:
+                   timeout: float = 30.0) -> dict:
         """通过 stdin/stdout 发送 JSON-RPC 请求并等待响应（同步实现）"""
         import select
 

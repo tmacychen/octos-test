@@ -3360,5 +3360,60 @@ def main() -> int:
     return 1
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# 测试后自动生成报告
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def _generate_report():
+    """从日志生成统一测试报告（调用 generate_report.py 的解析逻辑）。"""
+    try:
+        # 动态 import，避免启动时加载
+        import importlib
+        spec = importlib.util.spec_from_file_location(
+            "generate_report",
+            SCRIPT_DIR / "generate_report.py",
+        )
+        if spec and spec.loader:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            reporter = mod.OctosReportGenerator(
+                log_dir=LOG_DIR,
+                output_dir=REPORT_DIR,
+            )
+
+            # 解析各模块日志
+            cli_results = mod.parse_cli_logs(LOG_DIR)
+            if cli_results:
+                reporter.add_module("cli", cli_results)
+
+            serve_results, stdio_results = mod.parse_serve_from_log(LOG_DIR)
+            if serve_results:
+                reporter.add_module("serve", serve_results)
+            if stdio_results:
+                reporter.add_module("stdio", stdio_results)
+
+            bot_results = mod.parse_bot_from_logs(LOG_DIR)
+            if bot_results:
+                reporter.add_module("bot", bot_results)
+
+            if reporter.modules:
+                report_path = reporter.save_report()
+                reporter.print_summary()
+                print(f"\n📄 完整报告: {report_path}\n")
+                return report_path
+            else:
+                log.warning("未解析到测试结果，报告未生成")
+        else:
+            log.warning("generate_report.py 加载失败")
+    except Exception as e:
+        log.warning(f"报告生成跳过: {e}")
+    return None
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    exit_code = main()
+    # 只要执行了测试（非 --help/list），就自动生成报告
+    if len(sys.argv) > 1 and sys.argv[1] in ("all", "--test"):
+        _generate_report()
+    sys.exit(exit_code)

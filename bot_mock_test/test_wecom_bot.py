@@ -67,19 +67,58 @@ def runner():
 
 @pytest.fixture(autouse=True)
 def cleanup_state(runner):
-    """Clear mock server state before each test."""
+    """每个测试前清理 Mock Server 状态
+    
+    使用与 Telegram 测试对齐的快速清理模式，减少运行时 SKIP。
+    """
+    import httpx
+
     for attempt in range(3):
         try:
             if runner.health():
                 break
         except Exception:
             pass
-        time.sleep(1.0)
+        if attempt < 2:
+            logger.info(f"  ⚠ Mock Server not responding, retry {attempt + 1}/3...")
+            time.sleep(1.0)
     else:
         pytest.skip("WeCom Bot Mock Server not responding")
+        return
 
-    time.sleep(2.0)
-    runner.clear()
+    # Minimal wait for previous test state to settle
+    time.sleep(0.5)
+
+    # Quick stability check
+    try:
+        prev_count = len(runner.get_sent_messages(timeout=1))
+    except httpx.HTTPError:
+        pytest.skip("Mock Server 响应异常，跳过测试")
+        return
+
+    stable_count = 0
+    for _ in range(4):  # 4 * 0.3s = 1.2s max
+        time.sleep(0.3)
+        try:
+            curr_count = len(runner.get_sent_messages(timeout=1))
+            if curr_count == prev_count:
+                stable_count += 1
+                if stable_count >= 2:
+                    break
+            else:
+                stable_count = 0
+            prev_count = curr_count
+        except httpx.HTTPError:
+            break
+    else:
+        pytest.skip("Mock Server 未稳定，跳过测试")
+        return
+
+    try:
+        runner.clear()
+    except httpx.HTTPError:
+        pytest.skip("Mock Server 无法清理，跳过测试")
+        return
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────

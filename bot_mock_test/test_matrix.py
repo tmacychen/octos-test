@@ -45,15 +45,18 @@ def runner():
 
 @pytest.fixture(autouse=True)
 def cleanup_state(request, runner):
-    """每个测试前清理 Mock Server 状态"""
+    """每个测试前清理 Mock Server 状态
+
+    使用与 Telegram 测试对齐的快速清理模式，减少运行时 SKIP。
+    Matrix 保留 DB 清理因为其 profile 路由需要干净的 episodes.redb。
+    """
     import httpx
     import os
     import glob
     from test_helpers import inject_and_get_reply
 
-    # Health check
-    max_health_retries = 5
-    health_retry_delay = 2.0
+    # Health check: 3 × 1s (优化：之前 5 × 2s = 10s)
+    max_health_retries = 3
     for attempt in range(max_health_retries):
         try:
             if runner.health():
@@ -62,61 +65,58 @@ def cleanup_state(request, runner):
             pass
         if attempt < max_health_retries - 1:
             print(f"  ⚠ Mock Server not responding, retry {attempt + 1}/{max_health_retries}...")
-            time.sleep(health_retry_delay)
+            time.sleep(1.0)
     else:
         pytest.skip("Mock Server 崩溃，无法恢复")
         return
 
-    # 直接清理数据库文件来重置状态
-    db_removed = False
+    # 清理数据库文件（Matrix 需要干净的 episodes.redb）
     try:
         data_dir = os.environ.get("OCTOS_TEST_DIR", "/tmp/octos_test")
         db_path = f"{data_dir}/episodes.redb"
         if os.path.exists(db_path):
             os.remove(db_path)
-            db_removed = True
             print(f"  🗑 Removed database: {db_path}")
     except OSError as e:
         print(f"  ⚠ Database cleanup warning: {e}")
-        db_removed = False
 
-    # 等待 LLM 响应完成（但不要太久，避免新消息被延迟）
-    # 对于非 LLM 测试（如 Bot Management），减少等待时间
-    test_name = request.node.name.lower()
-    is_llm_test = any(keyword in test_name for keyword in ['llm', 'abort', 'queue', 'steer'])
-    if is_llm_test:
-        time.sleep(2.0)
-    else:
-        # 非 LLM 测试只需短暂等待，确保之前的消息被处理
-        time.sleep(0.5)
+    # Minimal wait for previous test state to settle
+    time.sleep(0.5)
 
-    # 检查 Mock Server 是否有积压消息（如果有，说明 Bot 还在处理）
-    # 注意：不要在测试前清理 Mock Server，因为可能干扰 Bot 内部状态
+    # Quick stability check
     try:
-        pending = runner.get_sent_messages(timeout=5)
-        if pending:
-            # 对于非 LLM 测试，积压消息通常是正常的，不需要长时间等待
-            if is_llm_test:
-                wait_time = 30.0 if len(pending) > 10 else 15.0
-                print(f"  ⚠ Mock Server has {len(pending)} pending messages, waiting {wait_time:.0f}s...")
-                time.sleep(wait_time)
-            else:
-                # 非 LLM 测试只需短暂等待，让消息被处理
-                print(f"  ℹ Mock Server has {len(pending)} pending messages, waiting 1s...")
-                time.sleep(1.0)
-    except Exception:
-        pass
+        prev_count = len(runner.get_sent_messages(timeout=1))
+    except httpx.HTTPError:
+        pytest.skip("Mock Server 响应异常，跳过测试")
+        return
 
-    # 对于非 LLM 测试，清理 Mock Server 状态以避免干扰
-    if not is_llm_test:
+    stable_count = 0
+    for _ in range(4):  # 4 * 0.3s = 1.2s max
+        time.sleep(0.3)
         try:
-            runner.clear()
-            print(f"  🧹 Cleared Mock Server state")
-        except Exception as e:
-            print(f"  ⚠ Failed to clear Mock Server: {e}")
+            curr_count = len(runner.get_sent_messages(timeout=1))
+            if curr_count == prev_count:
+                stable_count += 1
+                if stable_count >= 2:
+                    break
+            else:
+                stable_count = 0
+            prev_count = curr_count
+        except httpx.HTTPError:
+            break
+    else:
+        pytest.skip("Mock Server 未稳定，跳过测试")
+        return
+
+    # Clear mock server state
+    try:
+        runner.clear()
+    except Exception as e:
+        print(f"  ⚠ Failed to clear Mock Server: {e}")
 
     yield
 
+    # 保留 abort/llm 密集测试后的额外延迟，避免 state 污染后续测试
     if request.node.get_closest_marker('abort_test') or request.node.get_closest_marker('llm_intensive'):
         time.sleep(ABORT_TEST_DELAY)
 

@@ -34,7 +34,10 @@ def runner():
 
 @pytest.fixture(autouse=True)
 def clear_before(runner):
-    """每个测试前清理 Mock Server 状态，包含健康检查和稳定性检测。"""
+    """每个测试前清理 Mock Server 状态，包含健康检查和稳定性检测。
+    
+    使用与 Telegram 测试对齐的快速清理模式，减少运行时 SKIP。
+    """
     # Health check
     max_retries = 3
     for attempt in range(max_retries):
@@ -48,39 +51,42 @@ def clear_before(runner):
             time.sleep(1.0)
     else:
         pytest.skip("Mock Server 崩溃，无法恢复")
+        return
 
-    # 等待消息稳定
+    # Minimal wait for previous test state to settle
+    time.sleep(0.5)
+
+    # Quick stability check
     try:
-        prev_count = len(runner.get_sent_messages(timeout=2))
+        prev_count = len(runner.get_sent_messages(timeout=1))
     except httpx.HTTPError:
         pytest.skip("Mock Server 响应异常，跳过测试")
         return
 
-    for _ in range(10):
-        time.sleep(0.5)
+    stable_count = 0
+    for _ in range(4):  # 4 * 0.3s = 1.2s max
+        time.sleep(0.3)
         try:
-            curr_count = len(runner.get_sent_messages(timeout=2))
+            curr_count = len(runner.get_sent_messages(timeout=1))
             if curr_count == prev_count:
-                break
+                stable_count += 1
+                if stable_count >= 2:
+                    break
+            else:
+                stable_count = 0
             prev_count = curr_count
         except httpx.HTTPError:
             break
+    else:
+        pytest.skip("Mock Server 未稳定，跳过测试")
+        return
 
-    # 清理状态
+    # Clean state
     try:
         runner.clear()
     except httpx.HTTPError:
         pytest.skip("Mock Server 无法清理，跳过测试")
         return
-
-    # 重置所有非默认状态
-    try:
-        inject_and_get_reply(runner, "/reset", timeout=3,
-                             sender_id="reset_cleanup", chat_id="oc_test_reset")
-    except (httpx.HTTPError, AssertionError, Exception):
-        pass
-
-    time.sleep(0.5)
     yield
 
 

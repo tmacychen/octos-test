@@ -58,6 +58,9 @@ uv run python test_run.py --test cli -s Init
 # Serve 测试
 uv run python test_run.py --test serve
 uv run python test_run.py --test serve 8.1
+
+# 测试报告生成
+uv run python generate_report.py
 ```
 
 ---
@@ -241,7 +244,63 @@ uv run python test_run.py --test serve list
 
 ---
 
-## 五、Rust 代码修改
+## 五、统一测试报告
+
+`generate_report.py` 是一个独立的报告生成器，可以从测试日志中解析结果并生成统一报告。
+
+### 5.1 使用方法
+
+```bash
+# 运行完测试后生成报告
+uv run python generate_report.py
+
+# 指定日志目录
+uv run python generate_report.py --log-dir /path/to/logs
+
+# 指定输出目录
+uv run python generate_report.py --output-dir ./my-report
+```
+
+### 5.2 报告内容
+
+报告包含 4 个部分：
+
+| 章节 | 内容 |
+|------|------|
+| **总体摘要** | Octos 版本、测试日期、各模块通过率、评估、失败概要 |
+| **各模块详细结果** | CLI（按分类分组）、Serve/Stdio（逐条显示）、Bot（按通道分组） |
+| **失败测试详情** | 每个 FAIL 测试的编号、名称和错误详情 |
+| **覆盖矩阵** | 各模块测试数和通过率评分 |
+
+### 5.3 输出文件
+
+```
+test-results/
+├── OCTOS_TEST_REPORT_<timestamp>.md    # Markdown 报告
+├── OCTOS_TEST_REPORT_<timestamp>.json  # JSON 数据（可程序化解析）
+└── logs/                                # 原始日志归档
+    ├── 01_runner_<timestamp>.log        # 主运行日志
+    ├── 02_gateway_<channel>.log         # Gateway 日志
+    ├── cli_test_*.log                    # CLI 模块日志
+    └── ...
+```
+
+### 5.4 工作流示例
+
+```bash
+# 1. 运行各模块测试
+set -x NVIDIA_API_KEY $OPENAI_API_KEY
+OCTOS_BINARY=/path/to/octos uv run python test_run.py --test cli -v
+OCTOS_BINARY=/path/to/octos uv run python test_run.py --test serve -v
+OCTOS_BINARY=/path/to/octos uv run python test_run.py --test bot tg
+
+# 2. 生成统一报告
+uv run python generate_report.py
+```
+
+---
+
+## 六、Rust 代码修改
 
 为支持 Mock 测试模式，对 octos 进行了以下必要修改（不影响生产环境）：
 
@@ -256,7 +315,7 @@ uv run python test_run.py --test serve list
 
 ---
 
-## 六、当前统计
+## 七、当前统计
 
 | 模块 | 用例数 |
 |------|:------:|

@@ -43,7 +43,8 @@ def inject_and_get_reply(runner, text, timeout=TIMEOUT_COMMAND, channel="C012AB3
     
     # Inject the message
     result = runner.inject(text=text, channel=channel, user=user)
-    assert result["success"] is True
+    assert result is not None, f"Slack inject returned None for: {text[:50]}"
+    assert result.get("success") is True
     
     # Wait for new message (count_before + 1)
     reply = runner.wait_for_reply(
@@ -67,10 +68,14 @@ def runner():
 
 @pytest.fixture(autouse=True)
 def cleanup_state(runner):
-    """每个测试前清理 Mock Server 状态"""
-    # Health check
-    max_health_retries = 5
-    health_retry_delay = 2.0
+    """每个测试前清理 Mock Server 状态
+
+    使用与 Telegram 测试对齐的快速清理模式，减少运行时 SKIP。
+    """
+    import httpx
+
+    # Health check: 3 × 1s
+    max_health_retries = 3
     for attempt in range(max_health_retries):
         try:
             if runner.health():
@@ -79,17 +84,45 @@ def cleanup_state(runner):
             pass
         if attempt < max_health_retries - 1:
             print(f"  ⚠ Mock Server not responding, retry {attempt + 1}/{max_health_retries}...")
-            time.sleep(health_retry_delay)
+            time.sleep(1.0)
     else:
         pytest.skip("Mock Server 崩溃，无法恢复")
         return
-    
-    # 清理 Mock Server 状态
+
+    # Minimal wait for previous test state to settle
+    time.sleep(0.5)
+
+    # Quick stability check
+    try:
+        prev_count = len(runner.get_sent_messages(timeout=1))
+    except httpx.HTTPError:
+        pytest.skip("Mock Server 响应异常，跳过测试")
+        return
+
+    stable_count = 0
+    for _ in range(4):  # 4 * 0.3s = 1.2s max
+        time.sleep(0.3)
+        try:
+            curr_count = len(runner.get_sent_messages(timeout=1))
+            if curr_count == prev_count:
+                stable_count += 1
+                if stable_count >= 2:
+                    break
+            else:
+                stable_count = 0
+            prev_count = curr_count
+        except httpx.HTTPError:
+            break
+    else:
+        pytest.skip("Mock Server 未稳定，跳过测试")
+        return
+
+    # Clear mock server state
     try:
         runner.clear()
     except Exception as e:
         print(f"  ⚠ Failed to clear Mock Server: {e}")
-    
+
     yield
 
 

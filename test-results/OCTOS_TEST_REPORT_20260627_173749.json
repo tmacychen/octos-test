@@ -1,0 +1,745 @@
+{
+  "report_type": "octos_unified_test_report",
+  "generator": "generate_report.py",
+  "test_date": "2026-06-27 17:33:51",
+  "binary_path": "/Volumes/AppleData/octos/target/release/octos",
+  "log_dir": "/tmp/octos_test/logs",
+  "summary": {
+    "total": 115,
+    "passed": 91,
+    "failed": 0,
+    "skipped": 24,
+    "passed_pct": 79.1
+  },
+  "modules": {
+    "cli": {
+      "total": 19,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 19,
+      "passed_pct": 0.0,
+      "error": "",
+      "results": [
+        {
+          "test_id": "2.24",
+          "name": "provider minimax",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.10",
+          "name": "data dir option",
+          "status": "SKIP",
+          "details": "Missing dependency: no LLM provider configured",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.12",
+          "name": "model claude",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.13",
+          "name": "model gpt4o",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.14",
+          "name": "provider anthropic",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.15",
+          "name": "provider openai",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.16",
+          "name": "provider gemini",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.17",
+          "name": "provider deepseek",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.18",
+          "name": "provider ollama",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.19",
+          "name": "provider moonshot",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.20",
+          "name": "provider dashscope",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.21",
+          "name": "provider minimax",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.22",
+          "name": "provider groq",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.23",
+          "name": "custom base url",
+          "status": "SKIP",
+          "details": "Missing dependency: Connection refused",
+          "category": "Chat"
+        },
+        {
+          "test_id": "2.25",
+          "name": "deepseek full config",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Chat"
+        },
+        {
+          "test_id": "4.1",
+          "name": "no api key error",
+          "status": "SKIP",
+          "details": "Missing dependency: OPENAI_API_KEY not set",
+          "category": "Security"
+        },
+        {
+          "test_id": "6.1",
+          "name": "status",
+          "status": "SKIP",
+          "details": "Missing dependency: DEEPSEEK_API_KEY",
+          "category": "Status"
+        },
+        {
+          "test_id": "24.1",
+          "name": "config priority",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "Config"
+        },
+        {
+          "test_id": "28.3",
+          "name": "provider policy",
+          "status": "SKIP",
+          "details": "Missing dependency: API error",
+          "category": "ToolPolicy"
+        }
+      ]
+    },
+    "serve": {
+      "total": 96,
+      "passed": 91,
+      "failed": 0,
+      "skipped": 5,
+      "passed_pct": 94.8,
+      "error": "",
+      "results": [
+        {
+          "test_id": "8.1",
+          "name": "Server Startup",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.2",
+          "name": "Version Endpoint",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.3",
+          "name": "Metrics Endpoint",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.4",
+          "name": "Auth Token Required",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.5",
+          "name": "Auth Invalid Token",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.6",
+          "name": "Dashboard Web UI",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.7",
+          "name": "WS Connection + Hello",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.8",
+          "name": "WS system/status.get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.9",
+          "name": "WS session/list",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.10",
+          "name": "WS session/open + turn/start",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.11",
+          "name": "WS session/delete",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.14",
+          "name": "WS session/snapshot",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.15",
+          "name": "WS session/messages_page",
+          "status": "SKIP",
+          "details": ""
+        },
+        {
+          "test_id": "8.16",
+          "name": "WS session/status.get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.17",
+          "name": "WS session/title.set",
+          "status": "SKIP",
+          "details": ""
+        },
+        {
+          "test_id": "8.18",
+          "name": "WS content/list",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.19",
+          "name": "WS turn/interrupt",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "10.1",
+          "name": "WS Hello Capabilities",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "10.2",
+          "name": "Config Capabilities List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "10.3",
+          "name": "WS System Status",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "10.4",
+          "name": "WS Auth Me",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.1",
+          "name": "Session List Empty",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.2",
+          "name": "Profile Local Create",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.3",
+          "name": "Session Open After Profile",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.4",
+          "name": "Session List After Open",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.5",
+          "name": "Session Title Set",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.6",
+          "name": "Session Messages Page",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.7",
+          "name": "Session Status Get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.8",
+          "name": "Session Files List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.9",
+          "name": "Session Tasks List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.10",
+          "name": "Session Workspace Get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.11",
+          "name": "Session Delete",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.12",
+          "name": "Session Hydrate",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.13",
+          "name": "Session Goal Get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.14",
+          "name": "Session Goal Set",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "12.1",
+          "name": "Turn State Get No Active",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "12.2",
+          "name": "Turn Start Error Without LLM",
+          "status": "SKIP",
+          "details": ""
+        },
+        {
+          "test_id": "13.1",
+          "name": "Profile LLM List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "13.2",
+          "name": "Profile Skills List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "13.3",
+          "name": "Profile LLM Catalog",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "13.4",
+          "name": "Onboarding Workspace Probe",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "14.1",
+          "name": "Auth Status",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "14.2",
+          "name": "MCP Status List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "15.1",
+          "name": "Tool Status List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "15.2",
+          "name": "Content List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "16.1",
+          "name": "Notification Session Opened",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "16.2",
+          "name": "Notification Turn Started",
+          "status": "SKIP",
+          "details": ""
+        },
+        {
+          "test_id": "16.3",
+          "name": "Notification Turn Completed",
+          "status": "SKIP",
+          "details": ""
+        },
+        {
+          "test_id": "16.4",
+          "name": "Notification Turn Error",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "16.5",
+          "name": "Notification Agent Updated",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "17.1",
+          "name": "Unknown Method Error",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "17.2",
+          "name": "Missing Session ID",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "17.3",
+          "name": "Session Open Invalid",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "17.4",
+          "name": "Turn State Unknown",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "17.5",
+          "name": "JSON-RPC Missing Version",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "18.1",
+          "name": "Approval Scopes List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "18.2",
+          "name": "Permission Profile List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "18.3",
+          "name": "Permission Profile Set",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "18.4",
+          "name": "Diff Preview Get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "18.5",
+          "name": "User Question Respond",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.1",
+          "name": "Task List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.2",
+          "name": "Task Cancel",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.3",
+          "name": "Task Restart From Node",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.4",
+          "name": "Task Output Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.5",
+          "name": "Task Artifact List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.6",
+          "name": "Task Artifact Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.1",
+          "name": "Agent List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.2",
+          "name": "Agent Status Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.3",
+          "name": "Agent Output Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.4",
+          "name": "Agent Artifact List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.5",
+          "name": "Agent Artifact Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.6",
+          "name": "Agent Interrupt",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.7",
+          "name": "Agent Close",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.1",
+          "name": "Session Goal Clear",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.2",
+          "name": "Thread Graph Get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.3",
+          "name": "Session Status Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.4",
+          "name": "Loop List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.5",
+          "name": "Loop Create",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.6",
+          "name": "Review Start",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "22.1",
+          "name": "Router Get Metrics",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "22.2",
+          "name": "Router Set Mode",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "22.3",
+          "name": "Content Delete",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "22.4",
+          "name": "Content Bulk Delete",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.1",
+          "name": "Profile LLM Select",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.2",
+          "name": "Profile LLM Upsert",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.3",
+          "name": "Profile LLM Delete",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.4",
+          "name": "Profile LLM Test",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.5",
+          "name": "Profile LLM Fetch Models",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.6",
+          "name": "Profile Skills Registry Search",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.7",
+          "name": "Profile Skills Install",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.8",
+          "name": "Profile Skills Remove",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "24.1",
+          "name": "Auth Send Code",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "24.2",
+          "name": "Auth Logout",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "24.3",
+          "name": "Profile LLM Select No Profile",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.12",
+          "name": "Bind Address (0.0.0.0)",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.13",
+          "name": "Default Bind (127.0.0.1)",
+          "status": "PASS",
+          "details": ""
+        }
+      ]
+    }
+  }
+}

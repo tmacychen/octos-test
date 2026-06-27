@@ -1,0 +1,1967 @@
+{
+  "report_type": "octos_unified_test_report",
+  "generator": "generate_report.py",
+  "octos_version": "octos 1.1.0 (c44a212c 2026-06-25)",
+  "test_date": "2026-06-27 17:33:51",
+  "binary_path": "/Volumes/AppleData/octos/target/release/octos",
+  "log_dir": "/tmp/octos_test/logs",
+  "summary": {
+    "total": 277,
+    "passed": 233,
+    "failed": 19,
+    "skipped": 25,
+    "passed_pct": 84.1
+  },
+  "modules": {
+    "bot": {
+      "total": 51,
+      "passed": 50,
+      "failed": 1,
+      "skipped": 0,
+      "passed_pct": 98.0,
+      "error": "",
+      "results": [
+        {
+          "channel": "tg",
+          "test_id": "test_new_default",
+          "name": "test_new_default",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_new_named",
+          "name": "test_new_named",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_new_invalid_name",
+          "name": "test_new_invalid_name",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_switch_to_existing",
+          "name": "test_switch_to_existing",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_switch_to_default",
+          "name": "test_switch_to_default",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_sessions_list",
+          "name": "test_sessions_list",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_back_returns_session",
+          "name": "test_back_returns_session",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_back_with_history",
+          "name": "test_back_with_history",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_back_alias_b",
+          "name": "test_back_alias_b",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_delete_session",
+          "name": "test_delete_session",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_delete_alias_d",
+          "name": "test_delete_alias_d",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_delete_no_name",
+          "name": "test_delete_no_name",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_soul_show_default",
+          "name": "test_soul_show_default",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_clear_resets_session",
+          "name": "test_clear_resets_session",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_soul_set",
+          "name": "test_soul_set",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_soul_reset",
+          "name": "test_soul_reset",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_adaptive_no_router",
+          "name": "test_adaptive_no_router",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_queue_show",
+          "name": "test_queue_show",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_queue_set_followup",
+          "name": "test_queue_set_followup",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_queue_set_invalid",
+          "name": "test_queue_set_invalid",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_status_show",
+          "name": "test_status_show",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_reset_command",
+          "name": "test_reset_command",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_unknown_command_help",
+          "name": "test_unknown_command_help",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_steer_mode_non_abort_messages_not_triggered",
+          "name": "test_steer_mode_non_abort_messages_not_triggered",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_interrupt_mode_non_abort_messages_not_triggered",
+          "name": "test_interrupt_mode_non_abort_messages_not_triggered",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_two_users_independent",
+          "name": "test_two_users_independent",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_callback_session_switch",
+          "name": "test_callback_session_switch",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_profile_session_isolation",
+          "name": "test_profile_session_isolation",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_normal_message_within_limit",
+          "name": "test_normal_message_within_limit",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_message_near_limit",
+          "name": "test_message_near_limit",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_concurrent_session_creation",
+          "name": "test_concurrent_session_creation",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_large_message_handling",
+          "name": "test_large_message_handling",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_stream_edit_creates_edit_operations",
+          "name": "test_stream_edit_creates_edit_operations",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_edit_preserves_message_identity",
+          "name": "test_edit_preserves_message_identity",
+          "status": "FAIL"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_who_are_you",
+          "name": "test_who_are_you",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_hello_greeting",
+          "name": "test_hello_greeting",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_chinese_greeting",
+          "name": "test_chinese_greeting",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_abort_with_whitespace",
+          "name": "test_abort_with_whitespace",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_non_abort_messages_not_triggered",
+          "name": "test_non_abort_messages_not_triggered",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_abort_multilanguage",
+          "name": "test_abort_multilanguage",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_session_accumulation_stability",
+          "name": "test_session_accumulation_stability",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_session_file_size_limit_enforcement",
+          "name": "test_session_file_size_limit_enforcement",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_mention_group_behavior",
+          "name": "test_mention_group_behavior",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_typing_indicator_sent",
+          "name": "test_typing_indicator_sent",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_bot_health",
+          "name": "test_bot_health",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_send_photo_reply",
+          "name": "test_send_photo_reply",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_delete_via_edit",
+          "name": "test_delete_via_edit",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_dedup_duplicate_update",
+          "name": "test_dedup_duplicate_update",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_html_fallback_on_parse_error",
+          "name": "test_html_fallback_on_parse_error",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_allowed_sender_gets_reply",
+          "name": "test_allowed_sender_gets_reply",
+          "status": "PASS"
+        },
+        {
+          "channel": "tg",
+          "test_id": "test_blocked_sender_no_reply",
+          "name": "test_blocked_sender_no_reply",
+          "status": "PASS"
+        }
+      ]
+    },
+    "cli": {
+      "total": 124,
+      "passed": 91,
+      "failed": 13,
+      "skipped": 20,
+      "passed_pct": 73.4,
+      "error": "",
+      "results": [
+        {
+          "test_id": "1.1",
+          "category": "CLI",
+          "name": "help command",
+          "status": "PASS",
+          "duration_sec": 0.06504392623901367,
+          "details": ""
+        },
+        {
+          "test_id": "2.1",
+          "category": "Chat",
+          "name": "chat help",
+          "status": "PASS",
+          "duration_sec": 0.007179975509643555,
+          "details": ""
+        },
+        {
+          "test_id": "2.2",
+          "category": "Chat",
+          "name": "quit message",
+          "status": "PASS",
+          "duration_sec": 1.511672019958496,
+          "details": ""
+        },
+        {
+          "test_id": "2.24",
+          "category": "Chat",
+          "name": "provider minimax",
+          "status": "SKIP",
+          "duration_sec": 0.5945968627929688,
+          "details": ""
+        },
+        {
+          "test_id": "2.3",
+          "category": "Chat",
+          "name": "colon q message",
+          "status": "PASS",
+          "duration_sec": 2.995441198348999,
+          "details": ""
+        },
+        {
+          "test_id": "2.4",
+          "category": "Chat",
+          "name": "slash quit message",
+          "status": "PASS",
+          "duration_sec": 1.2623307704925537,
+          "details": ""
+        },
+        {
+          "test_id": "2.5",
+          "category": "Chat",
+          "name": "single message",
+          "status": "PASS",
+          "duration_sec": 1.312492847442627,
+          "details": ""
+        },
+        {
+          "test_id": "2.6",
+          "category": "Chat",
+          "name": "max iterations",
+          "status": "PASS",
+          "duration_sec": 1.132176160812378,
+          "details": ""
+        },
+        {
+          "test_id": "2.7",
+          "category": "Chat",
+          "name": "verbose mode",
+          "status": "PASS",
+          "duration_sec": 1.2164921760559082,
+          "details": ""
+        },
+        {
+          "test_id": "2.8",
+          "category": "Chat",
+          "name": "no retry",
+          "status": "PASS",
+          "duration_sec": 1.347477912902832,
+          "details": ""
+        },
+        {
+          "test_id": "2.9",
+          "category": "Chat",
+          "name": "cwd option",
+          "status": "PASS",
+          "duration_sec": 1.1571063995361328,
+          "details": ""
+        },
+        {
+          "test_id": "2.10",
+          "category": "Chat",
+          "name": "data dir option",
+          "status": "SKIP",
+          "duration_sec": 0.022808074951171875,
+          "details": ""
+        },
+        {
+          "test_id": "2.11",
+          "category": "Chat",
+          "name": "streaming output",
+          "status": "PASS",
+          "duration_sec": 1.6831920146942139,
+          "details": ""
+        },
+        {
+          "test_id": "2.12",
+          "category": "Chat",
+          "name": "model claude",
+          "status": "SKIP",
+          "duration_sec": 0.590397834777832,
+          "details": ""
+        },
+        {
+          "test_id": "2.13",
+          "category": "Chat",
+          "name": "model gpt4o",
+          "status": "SKIP",
+          "duration_sec": 0.6378209590911865,
+          "details": ""
+        },
+        {
+          "test_id": "2.14",
+          "category": "Chat",
+          "name": "provider anthropic",
+          "status": "SKIP",
+          "duration_sec": 0.5675022602081299,
+          "details": ""
+        },
+        {
+          "test_id": "2.15",
+          "category": "Chat",
+          "name": "provider openai",
+          "status": "SKIP",
+          "duration_sec": 0.6017048358917236,
+          "details": ""
+        },
+        {
+          "test_id": "2.16",
+          "category": "Chat",
+          "name": "provider gemini",
+          "status": "SKIP",
+          "duration_sec": 0.5827779769897461,
+          "details": ""
+        },
+        {
+          "test_id": "2.17",
+          "category": "Chat",
+          "name": "provider deepseek",
+          "status": "SKIP",
+          "duration_sec": 0.6921892166137695,
+          "details": ""
+        },
+        {
+          "test_id": "2.18",
+          "category": "Chat",
+          "name": "provider ollama",
+          "status": "SKIP",
+          "duration_sec": 0.5989241600036621,
+          "details": ""
+        },
+        {
+          "test_id": "2.19",
+          "category": "Chat",
+          "name": "provider moonshot",
+          "status": "SKIP",
+          "duration_sec": 0.5902469158172607,
+          "details": ""
+        },
+        {
+          "test_id": "2.20",
+          "category": "Chat",
+          "name": "provider dashscope",
+          "status": "SKIP",
+          "duration_sec": 0.5712041854858398,
+          "details": ""
+        },
+        {
+          "test_id": "2.21",
+          "category": "Chat",
+          "name": "provider minimax",
+          "status": "SKIP",
+          "duration_sec": 0.5850820541381836,
+          "details": ""
+        },
+        {
+          "test_id": "2.22",
+          "category": "Chat",
+          "name": "provider groq",
+          "status": "SKIP",
+          "duration_sec": 0.5877842903137207,
+          "details": ""
+        },
+        {
+          "test_id": "2.23",
+          "category": "Chat",
+          "name": "custom base url",
+          "status": "SKIP",
+          "duration_sec": 7.075551271438599,
+          "details": ""
+        },
+        {
+          "test_id": "2.25",
+          "category": "Chat",
+          "name": "deepseek full config",
+          "status": "SKIP",
+          "duration_sec": 0.22523188591003418,
+          "details": ""
+        },
+        {
+          "test_id": "2.26",
+          "category": "Chat",
+          "name": "save memory",
+          "status": "PASS",
+          "duration_sec": 2.619264841079712,
+          "details": ""
+        },
+        {
+          "test_id": "2.27",
+          "category": "Chat",
+          "name": "recall memory",
+          "status": "PASS",
+          "duration_sec": 1.2686131000518799,
+          "details": ""
+        },
+        {
+          "test_id": "2.28",
+          "category": "Chat",
+          "name": "7 day window",
+          "status": "PASS",
+          "duration_sec": 1.1545722484588623,
+          "details": ""
+        },
+        {
+          "test_id": "2.29",
+          "category": "Chat",
+          "name": "hybrid search fallback",
+          "status": "PASS",
+          "duration_sec": 1.3642678260803223,
+          "details": ""
+        },
+        {
+          "test_id": "3.1",
+          "category": "Tools",
+          "name": "read file",
+          "status": "PASS",
+          "duration_sec": 1.2712178230285645,
+          "details": ""
+        },
+        {
+          "test_id": "3.2",
+          "category": "Tools",
+          "name": "write file",
+          "status": "PASS",
+          "duration_sec": 1.347607135772705,
+          "details": ""
+        },
+        {
+          "test_id": "3.3",
+          "category": "Tools",
+          "name": "shell echo",
+          "status": "PASS",
+          "duration_sec": 1.406599760055542,
+          "details": ""
+        },
+        {
+          "test_id": "3.4",
+          "category": "Tools",
+          "name": "glob rust files",
+          "status": "PASS",
+          "duration_sec": 1.4285287857055664,
+          "details": ""
+        },
+        {
+          "test_id": "3.5",
+          "category": "Tools",
+          "name": "grep fn main",
+          "status": "PASS",
+          "duration_sec": 1.582468032836914,
+          "details": ""
+        },
+        {
+          "test_id": "3.6",
+          "category": "Tools",
+          "name": "list directory",
+          "status": "PASS",
+          "duration_sec": 1.3921148777008057,
+          "details": ""
+        },
+        {
+          "test_id": "3.7",
+          "category": "Tools",
+          "name": "web search",
+          "status": "PASS",
+          "duration_sec": 1.8036000728607178,
+          "details": ""
+        },
+        {
+          "test_id": "3.8",
+          "category": "Tools",
+          "name": "web fetch",
+          "status": "PASS",
+          "duration_sec": 1.3416388034820557,
+          "details": ""
+        },
+        {
+          "test_id": "3.9",
+          "category": "Tools",
+          "name": "git status",
+          "status": "PASS",
+          "duration_sec": 1.8455958366394043,
+          "details": ""
+        },
+        {
+          "test_id": "3.10",
+          "category": "Tools",
+          "name": "parallel read",
+          "status": "PASS",
+          "duration_sec": 17.550981998443604,
+          "details": ""
+        },
+        {
+          "test_id": "3.11",
+          "category": "Tools",
+          "name": "edit file",
+          "status": "PASS",
+          "duration_sec": 1.816396951675415,
+          "details": ""
+        },
+        {
+          "test_id": "3.12",
+          "category": "Tools",
+          "name": "context filter",
+          "status": "PASS",
+          "duration_sec": 1.403597116470337,
+          "details": ""
+        },
+        {
+          "test_id": "3.13",
+          "category": "Tools",
+          "name": "spawn only",
+          "status": "PASS",
+          "duration_sec": 2.6825430393218994,
+          "details": ""
+        },
+        {
+          "test_id": "4.1",
+          "category": "Security",
+          "name": "no api key error",
+          "status": "SKIP",
+          "duration_sec": 0.01988673210144043,
+          "details": ""
+        },
+        {
+          "test_id": "4.2",
+          "category": "Security",
+          "name": "dangerous command rm rf",
+          "status": "FAIL",
+          "duration_sec": 2.466118335723877,
+          "details": ""
+        },
+        {
+          "test_id": "4.3",
+          "category": "Security",
+          "name": "dangerous command sudo",
+          "status": "FAIL",
+          "duration_sec": 2.3441920280456543,
+          "details": ""
+        },
+        {
+          "test_id": "4.4",
+          "category": "Security",
+          "name": "fork bomb block",
+          "status": "FAIL",
+          "duration_sec": 1.3748106956481934,
+          "details": ""
+        },
+        {
+          "test_id": "4.5",
+          "category": "Security",
+          "name": "dd block",
+          "status": "FAIL",
+          "duration_sec": 1.4771499633789062,
+          "details": ""
+        },
+        {
+          "test_id": "4.6",
+          "category": "Security",
+          "name": "mkfs block",
+          "status": "FAIL",
+          "duration_sec": 1.4222168922424316,
+          "details": ""
+        },
+        {
+          "test_id": "4.7",
+          "category": "Security",
+          "name": "ssrf localhost",
+          "status": "FAIL",
+          "duration_sec": 1.3074250221252441,
+          "details": ""
+        },
+        {
+          "test_id": "4.8",
+          "category": "Security",
+          "name": "ssrf private ip",
+          "status": "FAIL",
+          "duration_sec": 1.4368820190429688,
+          "details": ""
+        },
+        {
+          "test_id": "4.9",
+          "category": "Security",
+          "name": "ssrf aws metadata",
+          "status": "FAIL",
+          "duration_sec": 1.4138147830963135,
+          "details": ""
+        },
+        {
+          "test_id": "4.10",
+          "category": "Security",
+          "name": "ssrf ipv6 loopback",
+          "status": "FAIL",
+          "duration_sec": 1.3341360092163086,
+          "details": ""
+        },
+        {
+          "test_id": "4.11",
+          "category": "Security",
+          "name": "ssrf ipv4 mapped",
+          "status": "FAIL",
+          "duration_sec": 1.4798059463500977,
+          "details": ""
+        },
+        {
+          "test_id": "4.12",
+          "category": "Security",
+          "name": "ssrf dns fail",
+          "status": "PASS",
+          "duration_sec": 2.116708278656006,
+          "details": ""
+        },
+        {
+          "test_id": "4.13",
+          "category": "Security",
+          "name": "prompt injection",
+          "status": "FAIL",
+          "duration_sec": 1.3306899070739746,
+          "details": ""
+        },
+        {
+          "test_id": "4.14",
+          "category": "Security",
+          "name": "env block",
+          "status": "PASS",
+          "duration_sec": 1.3455259799957275,
+          "details": ""
+        },
+        {
+          "test_id": "4.15",
+          "category": "Security",
+          "name": "credential sanitize openai",
+          "status": "PASS",
+          "duration_sec": 1.3838839530944824,
+          "details": ""
+        },
+        {
+          "test_id": "4.16",
+          "category": "Security",
+          "name": "credential sanitize aws",
+          "status": "PASS",
+          "duration_sec": 1.3676328659057617,
+          "details": ""
+        },
+        {
+          "test_id": "4.17",
+          "category": "Security",
+          "name": "credential sanitize github",
+          "status": "PASS",
+          "duration_sec": 1.487025260925293,
+          "details": ""
+        },
+        {
+          "test_id": "5.1",
+          "category": "Init",
+          "name": "init defaults",
+          "status": "PASS",
+          "duration_sec": 0.02384209632873535,
+          "details": ""
+        },
+        {
+          "test_id": "6.1",
+          "category": "Status",
+          "name": "status",
+          "status": "SKIP",
+          "duration_sec": 0.012070894241333008,
+          "details": ""
+        },
+        {
+          "test_id": "7.1",
+          "category": "Clean",
+          "name": "clean dry run",
+          "status": "PASS",
+          "duration_sec": 0.009076833724975586,
+          "details": ""
+        },
+        {
+          "test_id": "8.1",
+          "category": "Completions",
+          "name": "completions bash",
+          "status": "PASS",
+          "duration_sec": 0.015987157821655273,
+          "details": ""
+        },
+        {
+          "test_id": "8.2",
+          "category": "Completions",
+          "name": "completions zsh",
+          "status": "PASS",
+          "duration_sec": 0.008847951889038086,
+          "details": ""
+        },
+        {
+          "test_id": "8.3",
+          "category": "Completions",
+          "name": "completions fish",
+          "status": "PASS",
+          "duration_sec": 0.007879972457885742,
+          "details": ""
+        },
+        {
+          "test_id": "8.4",
+          "category": "Completions",
+          "name": "completions powershell",
+          "status": "PASS",
+          "duration_sec": 0.007834911346435547,
+          "details": ""
+        },
+        {
+          "test_id": "8.5",
+          "category": "Completions",
+          "name": "completions elvish",
+          "status": "PASS",
+          "duration_sec": 0.007966995239257812,
+          "details": ""
+        },
+        {
+          "test_id": "8.6",
+          "category": "Completions",
+          "name": "dynamic completions models",
+          "status": "PASS",
+          "duration_sec": 0.006083965301513672,
+          "details": ""
+        },
+        {
+          "test_id": "8.7",
+          "category": "Completions",
+          "name": "dynamic completions providers",
+          "status": "PASS",
+          "duration_sec": 0.006089925765991211,
+          "details": ""
+        },
+        {
+          "test_id": "8.8",
+          "category": "Completions",
+          "name": "dynamic completions sessions",
+          "status": "PASS",
+          "duration_sec": 0.0059967041015625,
+          "details": ""
+        },
+        {
+          "test_id": "8.9",
+          "category": "Completions",
+          "name": "dynamic completions skills",
+          "status": "PASS",
+          "duration_sec": 0.005911111831665039,
+          "details": ""
+        },
+        {
+          "test_id": "9.1",
+          "category": "Skills",
+          "name": "skills help",
+          "status": "PASS",
+          "duration_sec": 0.006110191345214844,
+          "details": ""
+        },
+        {
+          "test_id": "9.2",
+          "category": "Skills",
+          "name": "skills list",
+          "status": "PASS",
+          "duration_sec": 0.0075531005859375,
+          "details": ""
+        },
+        {
+          "test_id": "9.3",
+          "category": "Skills",
+          "name": "skills search",
+          "status": "SKIP",
+          "duration_sec": 15.024292945861816,
+          "details": ""
+        },
+        {
+          "test_id": "9.4",
+          "category": "Skills",
+          "name": "skills info",
+          "status": "PASS",
+          "duration_sec": 0.0179140567779541,
+          "details": ""
+        },
+        {
+          "test_id": "9.5",
+          "category": "Skills",
+          "name": "skills remove",
+          "status": "PASS",
+          "duration_sec": 0.011733055114746094,
+          "details": ""
+        },
+        {
+          "test_id": "10.1",
+          "category": "Auth",
+          "name": "auth status",
+          "status": "PASS",
+          "duration_sec": 0.015161991119384766,
+          "details": ""
+        },
+        {
+          "test_id": "10.2",
+          "category": "Auth",
+          "name": "auth keys",
+          "status": "PASS",
+          "duration_sec": 0.022583961486816406,
+          "details": ""
+        },
+        {
+          "test_id": "11.1",
+          "category": "Channels",
+          "name": "channels status",
+          "status": "PASS",
+          "duration_sec": 0.008282899856567383,
+          "details": ""
+        },
+        {
+          "test_id": "12.1",
+          "category": "Cron",
+          "name": "cron list",
+          "status": "PASS",
+          "duration_sec": 0.0066568851470947266,
+          "details": ""
+        },
+        {
+          "test_id": "13.1",
+          "category": "Gateway",
+          "name": "gateway help",
+          "status": "PASS",
+          "duration_sec": 0.00620269775390625,
+          "details": ""
+        },
+        {
+          "test_id": "14.1",
+          "category": "Serve",
+          "name": "serve help",
+          "status": "PASS",
+          "duration_sec": 0.006222963333129883,
+          "details": ""
+        },
+        {
+          "test_id": "15.1",
+          "category": "Docs",
+          "name": "docs output",
+          "status": "PASS",
+          "duration_sec": 0.010517120361328125,
+          "details": ""
+        },
+        {
+          "test_id": "16.1",
+          "category": "Office",
+          "name": "office validate",
+          "status": "PASS",
+          "duration_sec": 0.00653076171875,
+          "details": ""
+        },
+        {
+          "test_id": "16.2",
+          "category": "Office",
+          "name": "office extract",
+          "status": "PASS",
+          "duration_sec": 0.005812883377075195,
+          "details": ""
+        },
+        {
+          "test_id": "16.3",
+          "category": "Office",
+          "name": "office pack",
+          "status": "PASS",
+          "duration_sec": 0.005936145782470703,
+          "details": ""
+        },
+        {
+          "test_id": "16.4",
+          "category": "Office",
+          "name": "office clean",
+          "status": "PASS",
+          "duration_sec": 0.005944013595581055,
+          "details": ""
+        },
+        {
+          "test_id": "16.5",
+          "category": "Office",
+          "name": "office thumbnail",
+          "status": "PASS",
+          "duration_sec": 0.0058400630950927734,
+          "details": ""
+        },
+        {
+          "test_id": "17.1",
+          "category": "Account",
+          "name": "account list",
+          "status": "PASS",
+          "duration_sec": 0.006098031997680664,
+          "details": ""
+        },
+        {
+          "test_id": "18.1",
+          "category": "Admin",
+          "name": "admin tenant list",
+          "status": "PASS",
+          "duration_sec": 0.006021976470947266,
+          "details": ""
+        },
+        {
+          "test_id": "19.1",
+          "category": "Tools",
+          "name": "tool policy deny",
+          "status": "PASS",
+          "duration_sec": 1.3167223930358887,
+          "details": ""
+        },
+        {
+          "test_id": "19.2",
+          "category": "Tools",
+          "name": "tool policy allow",
+          "status": "PASS",
+          "duration_sec": 2.0246708393096924,
+          "details": ""
+        },
+        {
+          "test_id": "19.3",
+          "category": "Tools",
+          "name": "provider policy gemini",
+          "status": "PASS",
+          "duration_sec": 1.8655858039855957,
+          "details": ""
+        },
+        {
+          "test_id": "20.1",
+          "category": "Memory",
+          "name": "episode storage",
+          "status": "PASS",
+          "duration_sec": 1.6383368968963623,
+          "details": ""
+        },
+        {
+          "test_id": "20.2",
+          "category": "Memory",
+          "name": "long term memory edit",
+          "status": "PASS",
+          "duration_sec": 3.503397226333618,
+          "details": ""
+        },
+        {
+          "test_id": "20.3",
+          "category": "Memory",
+          "name": "entity bank",
+          "status": "PASS",
+          "duration_sec": 3.1465609073638916,
+          "details": ""
+        },
+        {
+          "test_id": "20.4",
+          "category": "Memory",
+          "name": "hybrid search fallback",
+          "status": "PASS",
+          "duration_sec": 1.2262847423553467,
+          "details": ""
+        },
+        {
+          "test_id": "21.2",
+          "category": "Provider",
+          "name": "sub providers",
+          "status": "PASS",
+          "duration_sec": 1.5706360340118408,
+          "details": ""
+        },
+        {
+          "test_id": "22.1",
+          "category": "Extension",
+          "name": "skill override",
+          "status": "PASS",
+          "duration_sec": 0.01735210418701172,
+          "details": ""
+        },
+        {
+          "test_id": "22.2",
+          "category": "Extension",
+          "name": "skill availability",
+          "status": "PASS",
+          "duration_sec": 0.011005878448486328,
+          "details": ""
+        },
+        {
+          "test_id": "22.3",
+          "category": "Extension",
+          "name": "plugin sha256",
+          "status": "PASS",
+          "duration_sec": 1.2388579845428467,
+          "details": ""
+        },
+        {
+          "test_id": "22.4",
+          "category": "Extension",
+          "name": "mcp stdio",
+          "status": "PASS",
+          "duration_sec": 1.6490099430084229,
+          "details": ""
+        },
+        {
+          "test_id": "22.5",
+          "category": "Extension",
+          "name": "mcp http",
+          "status": "PASS",
+          "duration_sec": 1.2262969017028809,
+          "details": ""
+        },
+        {
+          "test_id": "22.6",
+          "category": "Extension",
+          "name": "gating check",
+          "status": "PASS",
+          "duration_sec": 1.7444002628326416,
+          "details": ""
+        },
+        {
+          "test_id": "24.1",
+          "category": "Config",
+          "name": "config priority",
+          "status": "SKIP",
+          "duration_sec": 0.6142010688781738,
+          "details": ""
+        },
+        {
+          "test_id": "24.2",
+          "category": "Config",
+          "name": "config parse fail",
+          "status": "PASS",
+          "duration_sec": 1.2155399322509766,
+          "details": ""
+        },
+        {
+          "test_id": "24.3",
+          "category": "Hooks",
+          "name": "before tool call hook",
+          "status": "PASS",
+          "duration_sec": 1.3357748985290527,
+          "details": ""
+        },
+        {
+          "test_id": "24.4",
+          "category": "Hooks",
+          "name": "after tool call hook",
+          "status": "PASS",
+          "duration_sec": 1.3833470344543457,
+          "details": ""
+        },
+        {
+          "test_id": "24.5",
+          "category": "Hooks",
+          "name": "hook timeout",
+          "status": "PASS",
+          "duration_sec": 1.6250720024108887,
+          "details": ""
+        },
+        {
+          "test_id": "24.6",
+          "category": "Hooks",
+          "name": "circuit breaker",
+          "status": "PASS",
+          "duration_sec": 1.6481709480285645,
+          "details": ""
+        },
+        {
+          "test_id": "24.7",
+          "category": "Config",
+          "name": "feature flags",
+          "status": "PASS",
+          "duration_sec": 0.01620197296142578,
+          "details": ""
+        },
+        {
+          "test_id": "25.1",
+          "category": "Loop",
+          "name": "loop detection length 1",
+          "status": "PASS",
+          "duration_sec": 1.760632038116455,
+          "details": ""
+        },
+        {
+          "test_id": "25.2",
+          "category": "Loop",
+          "name": "loop detection length 2",
+          "status": "PASS",
+          "duration_sec": 1.5618162155151367,
+          "details": ""
+        },
+        {
+          "test_id": "25.5",
+          "category": "Loop",
+          "name": "context compaction",
+          "status": "PASS",
+          "duration_sec": 1.9708127975463867,
+          "details": ""
+        },
+        {
+          "test_id": "26.1",
+          "category": "Security",
+          "name": "base64 uri sanitize",
+          "status": "PASS",
+          "duration_sec": 1.5645227432250977,
+          "details": ""
+        },
+        {
+          "test_id": "26.2",
+          "category": "Security",
+          "name": "sandbox macos",
+          "status": "FAIL",
+          "duration_sec": 1.2283098697662354,
+          "details": ""
+        },
+        {
+          "test_id": "26.3",
+          "category": "Security",
+          "name": "sandbox linux",
+          "status": "FAIL",
+          "duration_sec": 1.215682029724121,
+          "details": ""
+        },
+        {
+          "test_id": "26.4",
+          "category": "Security",
+          "name": "sbpl injection",
+          "status": "PASS",
+          "duration_sec": 1.2339670658111572,
+          "details": ""
+        },
+        {
+          "test_id": "27.1",
+          "category": "Gateway",
+          "name": "jsonl persistence",
+          "status": "PASS",
+          "duration_sec": 0.017808914184570312,
+          "details": ""
+        },
+        {
+          "test_id": "28.1",
+          "category": "ToolPolicy",
+          "name": "tool deny policy",
+          "status": "PASS",
+          "duration_sec": 1.3012268543243408,
+          "details": ""
+        },
+        {
+          "test_id": "28.2",
+          "category": "ToolPolicy",
+          "name": "tool allow policy",
+          "status": "PASS",
+          "duration_sec": 1.3722412586212158,
+          "details": ""
+        },
+        {
+          "test_id": "28.3",
+          "category": "ToolPolicy",
+          "name": "provider policy",
+          "status": "SKIP",
+          "duration_sec": 0.5688977241516113,
+          "details": ""
+        },
+        {
+          "test_id": "28.4",
+          "category": "ToolPolicy",
+          "name": "context filter",
+          "status": "PASS",
+          "duration_sec": 1.217261791229248,
+          "details": ""
+        }
+      ]
+    },
+    "serve": {
+      "total": 96,
+      "passed": 91,
+      "failed": 0,
+      "skipped": 5,
+      "passed_pct": 94.8,
+      "error": "",
+      "results": [
+        {
+          "test_id": "8.1",
+          "name": "Server Startup",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.2",
+          "name": "Version Endpoint",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.3",
+          "name": "Metrics Endpoint",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.4",
+          "name": "Auth Token Required",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.5",
+          "name": "Auth Invalid Token",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.6",
+          "name": "Dashboard Web UI",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.7",
+          "name": "WS Connection + Hello",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.8",
+          "name": "WS system/status.get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.9",
+          "name": "WS session/list",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.10",
+          "name": "WS session/open + turn/start",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.11",
+          "name": "WS session/delete",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.14",
+          "name": "WS session/snapshot",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.15",
+          "name": "WS session/messages_page",
+          "status": "SKIP",
+          "details": ""
+        },
+        {
+          "test_id": "8.16",
+          "name": "WS session/status.get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.17",
+          "name": "WS session/title.set",
+          "status": "SKIP",
+          "details": ""
+        },
+        {
+          "test_id": "8.18",
+          "name": "WS content/list",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.19",
+          "name": "WS turn/interrupt",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "10.1",
+          "name": "WS Hello Capabilities",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "10.2",
+          "name": "Config Capabilities List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "10.3",
+          "name": "WS System Status",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "10.4",
+          "name": "WS Auth Me",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.1",
+          "name": "Session List Empty",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.2",
+          "name": "Profile Local Create",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.3",
+          "name": "Session Open After Profile",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.4",
+          "name": "Session List After Open",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.5",
+          "name": "Session Title Set",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.6",
+          "name": "Session Messages Page",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.7",
+          "name": "Session Status Get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.8",
+          "name": "Session Files List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.9",
+          "name": "Session Tasks List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.10",
+          "name": "Session Workspace Get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.11",
+          "name": "Session Delete",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.12",
+          "name": "Session Hydrate",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.13",
+          "name": "Session Goal Get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "11.14",
+          "name": "Session Goal Set",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "12.1",
+          "name": "Turn State Get No Active",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "12.2",
+          "name": "Turn Start Error Without LLM",
+          "status": "SKIP",
+          "details": ""
+        },
+        {
+          "test_id": "13.1",
+          "name": "Profile LLM List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "13.2",
+          "name": "Profile Skills List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "13.3",
+          "name": "Profile LLM Catalog",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "13.4",
+          "name": "Onboarding Workspace Probe",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "14.1",
+          "name": "Auth Status",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "14.2",
+          "name": "MCP Status List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "15.1",
+          "name": "Tool Status List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "15.2",
+          "name": "Content List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "16.1",
+          "name": "Notification Session Opened",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "16.2",
+          "name": "Notification Turn Started",
+          "status": "SKIP",
+          "details": ""
+        },
+        {
+          "test_id": "16.3",
+          "name": "Notification Turn Completed",
+          "status": "SKIP",
+          "details": ""
+        },
+        {
+          "test_id": "16.4",
+          "name": "Notification Turn Error",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "16.5",
+          "name": "Notification Agent Updated",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "17.1",
+          "name": "Unknown Method Error",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "17.2",
+          "name": "Missing Session ID",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "17.3",
+          "name": "Session Open Invalid",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "17.4",
+          "name": "Turn State Unknown",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "17.5",
+          "name": "JSON-RPC Missing Version",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "18.1",
+          "name": "Approval Scopes List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "18.2",
+          "name": "Permission Profile List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "18.3",
+          "name": "Permission Profile Set",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "18.4",
+          "name": "Diff Preview Get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "18.5",
+          "name": "User Question Respond",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.1",
+          "name": "Task List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.2",
+          "name": "Task Cancel",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.3",
+          "name": "Task Restart From Node",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.4",
+          "name": "Task Output Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.5",
+          "name": "Task Artifact List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "19.6",
+          "name": "Task Artifact Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.1",
+          "name": "Agent List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.2",
+          "name": "Agent Status Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.3",
+          "name": "Agent Output Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.4",
+          "name": "Agent Artifact List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.5",
+          "name": "Agent Artifact Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.6",
+          "name": "Agent Interrupt",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "20.7",
+          "name": "Agent Close",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.1",
+          "name": "Session Goal Clear",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.2",
+          "name": "Thread Graph Get",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.3",
+          "name": "Session Status Read",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.4",
+          "name": "Loop List",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.5",
+          "name": "Loop Create",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "21.6",
+          "name": "Review Start",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "22.1",
+          "name": "Router Get Metrics",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "22.2",
+          "name": "Router Set Mode",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "22.3",
+          "name": "Content Delete",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "22.4",
+          "name": "Content Bulk Delete",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.1",
+          "name": "Profile LLM Select",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.2",
+          "name": "Profile LLM Upsert",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.3",
+          "name": "Profile LLM Delete",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.4",
+          "name": "Profile LLM Test",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.5",
+          "name": "Profile LLM Fetch Models",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.6",
+          "name": "Profile Skills Registry Search",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.7",
+          "name": "Profile Skills Install",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "23.8",
+          "name": "Profile Skills Remove",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "24.1",
+          "name": "Auth Send Code",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "24.2",
+          "name": "Auth Logout",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "24.3",
+          "name": "Profile LLM Select No Profile",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.12",
+          "name": "Bind Address (0.0.0.0)",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "8.13",
+          "name": "Default Bind (127.0.0.1)",
+          "status": "PASS",
+          "details": ""
+        }
+      ]
+    },
+    "stdio": {
+      "total": 6,
+      "passed": 1,
+      "failed": 5,
+      "skipped": 0,
+      "passed_pct": 16.7,
+      "error": "",
+      "results": [
+        {
+          "test_id": "30.1",
+          "name": "Stdio Connectivity",
+          "status": "FAIL",
+          "details": "RPC system/status.get timed out"
+        },
+        {
+          "test_id": "30.2",
+          "name": "Stdio Capabilities List",
+          "status": "FAIL",
+          "details": "RPC config/capabilities/list timed out"
+        },
+        {
+          "test_id": "30.3",
+          "name": "Stdio System Status",
+          "status": "FAIL",
+          "details": "RPC system/status.get timed out"
+        },
+        {
+          "test_id": "30.4",
+          "name": "Stdio Session List",
+          "status": "FAIL",
+          "details": "RPC session/list timed out"
+        },
+        {
+          "test_id": "30.5",
+          "name": "Stdio Session Open",
+          "status": "PASS",
+          "details": ""
+        },
+        {
+          "test_id": "30.6",
+          "name": "Stdio Auth Me",
+          "status": "FAIL",
+          "details": "RPC auth/me timed out"
+        }
+      ]
+    }
+  }
+}
