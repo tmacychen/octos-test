@@ -2802,7 +2802,7 @@ class OctosStdioTester:
         self.logger.debug(f"hello response: {json.dumps(hello_data)[:200]}")
 
         # 2. Small yield for server to finish hello processing
-        time.sleep(0.1)
+        time.sleep(0.5)
 
         # 3. Send actual RPC
         req_id = str(uuid.uuid4())

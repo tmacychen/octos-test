@@ -271,6 +271,13 @@ class CLITestRunner:
         "4.7", "4.8", "4.9", "4.10", "4.11", # Security: SSRF blocking
         "4.13",                                # Security: prompt injection
         "26.2", "26.3",                        # Security: sandbox enforcement
+        # Provider/model tests requiring specific API keys
+        "2.10", "2.12", "2.14", "2.15",        # data dir, claude, anthropic, openai
+        "2.16", "2.17", "2.18", "2.19",        # gemini, deepseek, ollama, moonshot
+        "2.20", "2.21", "2.22", "2.23",        # dashscope, minimax, groq, custom base url
+        "2.24", "2.25",                         # minimax (alt), deepseek full config
+        "24.1",                                  # config priority
+        "28.3",                                  # provider policy
     }
 
     # Patterns in command output that indicate the test should SKIP

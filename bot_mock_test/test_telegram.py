@@ -675,25 +675,28 @@ class TestTelegramStreamEdit:
     def test_edit_preserves_message_identity(self, runner):
         """验证编辑不会创建新消息，保持消息 ID 不变"""
         runner.clear()
-        
-        # 获取初始消息 ID
+
+        # 获取初始消息 ID（should be empty after clear）
         initial_msgs = runner.get_sent_messages()
         initial_count = len(initial_msgs)
-        
+
         # 发送消息
         inject_and_get_reply(runner, "Hello", timeout=TIMEOUT_LLM)
-        
+
         after_send_msgs = runner.get_sent_messages()
         assert len(after_send_msgs) >= initial_count + 1, "Should send a message"
-        
+
         # 验证：如果有编辑操作，它们应该编辑已存在的消息
         edit_history = runner.get_edit_history()
         if len(edit_history) > 0:
-            sent_ids = {msg["message_id"] for msg in after_send_msgs}
+            # 只检查本轮新发送的消息（排除 clear 之前的残留状态）
+            new_msgs = after_send_msgs[initial_count:]
+            sent_ids = {msg["message_id"] for msg in new_msgs}
             edited_ids = {edit["message_id"] for edit in edit_history}
-            # 编辑的消息 ID 应该在已发送消息中
-            assert edited_ids.issubset(sent_ids), \
-                f"Edited IDs {edited_ids} should be subset of sent IDs {sent_ids}"
+            # 编辑的消息 ID 应该在新发送消息中（或至少有一方非空）
+            missing = edited_ids - sent_ids
+            assert len(missing) == 0, \
+                f"Edited IDs {edited_ids} not in new sent IDs {sent_ids}: missing={missing}"
             logger.info(f"\n  ✓ Edit preserves message identity: edited {len(edited_ids)} messages")
 
 
