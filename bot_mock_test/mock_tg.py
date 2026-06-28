@@ -145,14 +145,12 @@ def create_app():
     
     @app.post("/_clear")
     async def clear_state():
-        # Clear both file and in-memory state
-        nonlocal worker_next_update_id
+        # Clear both file and in-memory state (don't reset update_id counter)
         with _file_lock:
             if os.path.exists(msg_file):
                 os.remove(msg_file)
         worker_updates.clear()
         worker_edit_history.clear()
-        worker_next_update_id = 1
         return {"ok": True}
     
     @app.get("/_edit_history")
@@ -845,13 +843,12 @@ class MockTelegramServer:
 
         @app.post("/_clear")
         async def clear_state():
-            """Clear stored messages and reset counters"""
+            """Clear stored messages only (not update_id counter, which breaks gateway polling offset)"""
             self._updates.clear()
             self._sent_messages.clear()
             self._edit_history.clear()
             self._action_log.clear()
             self._html_error_enabled = False
-            self._next_update_id = 1
             return {"ok": True}
 
         @app.get("/_edit_history")
