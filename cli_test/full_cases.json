@@ -1016,6 +1016,126 @@
       "command": "chat -m \"列出 code 工具\"",
       "timeout": 30,
       "expected": ""
+    },
+    {
+      "id": "10.3",
+      "category": "Auth",
+      "name": "auth login help",
+      "command": "auth login --help",
+      "timeout": 10,
+      "expected": "Log in to an LLM provider"
+    },
+    {
+      "id": "10.4",
+      "category": "Auth",
+      "name": "auth logout help",
+      "command": "auth logout --help",
+      "timeout": 10,
+      "expected": "Log out from a provider"
+    },
+    {
+      "id": "10.5",
+      "category": "Auth",
+      "name": "auth set-key help",
+      "command": "auth set-key --help",
+      "timeout": 10,
+      "expected": "Store an API key"
+    },
+    {
+      "id": "11.2",
+      "category": "Channels",
+      "name": "channels login help",
+      "command": "channels login --help",
+      "timeout": 10,
+      "expected": "Link WhatsApp device"
+    },
+    {
+      "id": "12.2",
+      "category": "Cron",
+      "name": "cron add help",
+      "command": "cron add --help",
+      "timeout": 10,
+      "expected": "Add a new scheduled job"
+    },
+    {
+      "id": "12.3",
+      "category": "Cron",
+      "name": "cron remove help",
+      "command": "cron remove --help",
+      "timeout": 10,
+      "expected": "Remove a scheduled job"
+    },
+    {
+      "id": "12.4",
+      "category": "Cron",
+      "name": "cron enable help",
+      "command": "cron enable --help",
+      "timeout": 10,
+      "expected": "Enable or disable"
+    },
+    {
+      "id": "17.2",
+      "category": "Account",
+      "name": "account create help",
+      "command": "account create --help",
+      "timeout": 10,
+      "expected": "Create a new sub-account"
+    },
+    {
+      "id": "17.3",
+      "category": "Account",
+      "name": "account update help",
+      "command": "account update --help",
+      "timeout": 10,
+      "expected": "Update a sub-account"
+    },
+    {
+      "id": "17.4",
+      "category": "Account",
+      "name": "account delete help",
+      "command": "account delete --help",
+      "timeout": 10,
+      "expected": "Delete a sub-account"
+    },
+    {
+      "id": "17.5",
+      "category": "Account",
+      "name": "account info help",
+      "command": "account info --help",
+      "timeout": 10,
+      "expected": "Show sub-account info"
+    },
+    {
+      "id": "18.2",
+      "category": "Admin",
+      "name": "admin create-tenant help",
+      "command": "admin create-tenant --help",
+      "timeout": 10,
+      "expected": "Create a new tunnel tenant"
+    },
+    {
+      "id": "18.3",
+      "category": "Admin",
+      "name": "admin delete-tenant help",
+      "command": "admin delete-tenant --help",
+      "timeout": 10,
+      "expected": "Delete a tunnel tenant"
+    },
+    {
+      "id": "18.4",
+      "category": "Admin",
+      "name": "admin show-tenant-config help",
+      "command": "admin show-tenant-config --help",
+      "timeout": 10,
+      "expected": "Show the frpc config"
+    },
+    {
+      "id": "18.5",
+      "category": "Admin",
+      "name": "admin reset-token help",
+      "command": "admin reset-token --help",
+      "timeout": 10,
+      "expected": "Reset the admin token"
     }
   ],
   "platform_overrides": {
