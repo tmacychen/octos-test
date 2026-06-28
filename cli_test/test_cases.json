@@ -108,7 +108,7 @@
       "name": "data dir option",
       "command": "chat --data-dir {tempDir}/.octos -m \"hello\"",
       "timeout": 30,
-      "expected": ""
+      "expected": "no LLM provider|not configured"
     },
     {
       "id": "2.11",
@@ -367,7 +367,7 @@
         "ANTHROPIC_API_KEY": "",
         "OPENAI_API_KEY": ""
       },
-      "expected": "Error|error",
+      "expected": "API key|not set|OPENAI_API_KEY",
       "timeout": 30
     },
     {

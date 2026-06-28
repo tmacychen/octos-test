@@ -310,14 +310,18 @@ class CLITestRunner:
         "invalid_request_error",   # API rejected request (wrong endpoint)
     ]
 
-    def _should_skip(self, actual: str, exit_code: int) -> str:
+    def _should_skip(self, actual: str, exit_code: int, expected: str = "") -> str:
         """Check if test should be skipped based on output/exit code.
 
-        Returns empty string if not a skip scenario, or a skip reason string.
+        Only applies SKIP_PATTERNS when exit_code != 0 AND expected is
+        empty (exit-code-only check). Tests with explicit expected values
+        are validated normally, even if the output contains SKIP keywords.
+        Returns empty string if not a skip scenario, or a skip reason.
         """
-        for pattern in self.SKIP_PATTERNS:
-            if pattern in actual:
-                return f"Missing dependency: {pattern}"
+        if exit_code != 0 and not expected:
+            for pattern in self.SKIP_PATTERNS:
+                if pattern in actual:
+                    return f"Missing dependency: {pattern}"
         # Timed out
         if exit_code == -1 and "timed out" in actual:
             return "Command timed out"
@@ -381,7 +385,7 @@ class CLITestRunner:
         actual = stdout + stderr
 
         # Check for SKIP conditions first
-        skip_reason = self._should_skip(actual, exit_code)
+        skip_reason = self._should_skip(actual, exit_code, expected)
         if skip_reason:
             self.skipped += 1
             status = "SKIP"

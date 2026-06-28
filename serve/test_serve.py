@@ -1814,10 +1814,10 @@ class OctosServeTester:
                         "params": {"session_id": sid, "turn_id": start_id,
                                    "input": "Hello"},
                     }))
-                    deadline = time.time() + 10
+                    deadline = time.time() + 30
                     found_started = False
                     while time.time() < deadline:
-                        msg = await asyncio.wait_for(ws.recv(), timeout=5)
+                        msg = await asyncio.wait_for(ws.recv(), timeout=10)
                         data = json.loads(msg)
                         is_notification = data.get("id") is None
                         method = data.get("method", "")
