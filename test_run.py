@@ -701,7 +701,7 @@ def _ensure_nvidia_config():
             return
 
         nvidia_base_url = "https://integrate.api.nvidia.com/v1"
-        nvidia_model = "nvidia/nemotron-3-super-120b-a12b"
+        nvidia_model = "meta/llama-3.1-70b-instruct"
         config["base_url"] = nvidia_base_url
         config["model"] = nvidia_model
         config_path.write_text(json.dumps(config, indent=2))
@@ -1100,7 +1100,7 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1448,7 +1448,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1486,7 +1486,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1521,7 +1521,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1566,7 +1566,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1609,7 +1609,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1648,7 +1648,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1686,7 +1686,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1725,7 +1725,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1767,7 +1767,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1808,7 +1808,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1856,7 +1856,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
@@ -1904,7 +1904,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                 "llm": {
                     "primary": {
                         "family_id": "nvidia",
-                        "model_id": "nvidia/nemotron-3-super-120b-a12b",
+                        "model_id": "meta/llama-3.1-70b-instruct",
                         "route": {
                             "api_key_env": "NVIDIA_API_KEY",
                             "base_url": "https://integrate.api.nvidia.com/v1"
