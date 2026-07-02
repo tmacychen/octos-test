@@ -2856,6 +2856,9 @@ def run_serve_tests(verbose: bool = False, test_ids: Optional[List[str]] = None,
             ("24.1", "Auth Send Code", tester.test_24_1_auth_send_code),
             ("24.2", "Auth Logout", tester.test_24_2_auth_logout),
             ("24.3", "Profile LLM Select No Profile", tester.test_24_3_profile_llm_select_no_profile),
+            # ── 25.x 并发测试 ──
+            ("25.1", "WS Concurrent Connections", tester.test_25_1_ws_concurrent),
+            ("25.2", "WS Concurrent Session Ops", tester.test_25_2_ws_concurrent_session_ops),
             # ── 8.12/8.13 Bind Address (会重启服务器，必须放在最后) ──
             ("8.12", "Bind Address (0.0.0.0)", tester.test_bind_address_external),
             ("8.13", "Default Bind (127.0.0.1)", tester.test_bind_address_local_default),

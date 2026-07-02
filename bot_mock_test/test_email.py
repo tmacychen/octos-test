@@ -382,3 +382,27 @@ Please confirm session cleared""", "ClearCmd", min_reply_len=5)
         """/s 命令测试 — 验证 bot 切换会话"""
         _send_and_verify("""/s default
 Please confirm switched to default session""", "SwitchCmd", min_reply_len=5)
+
+    @pytest.mark.slow
+    def test_queue_command(self):
+        """/queue 命令测试 — 验证 bot 显示队列模式"""
+        _send_and_verify("""/queue
+Please show current queue mode""", "QueueCmd", min_reply_len=5)
+
+    @pytest.mark.slow
+    def test_soul_command(self):
+        """/soul 命令测试 — 验证 bot 显示当前 soul"""
+        _send_and_verify("""/soul
+Please show current soul setting""", "SoulCmd", min_reply_len=5)
+
+    @pytest.mark.slow
+    def test_status_command(self):
+        """/status 命令测试 — 验证 bot 返回状态信息"""
+        _send_and_verify("""/status
+Please show current status config""", "StatusCmd", min_reply_len=5)
+
+    @pytest.mark.slow
+    def test_abort_command(self):
+        """/abort 命令测试 — 验证 bot 处理取消命令"""
+        _send_and_verify("""/abort
+Please cancel current operation""", "AbortCmd", min_reply_len=5)

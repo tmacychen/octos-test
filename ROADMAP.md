@@ -121,13 +121,13 @@
 
 ### P2 — 中优先级
 
-| # | 事项 | 涉及 | 说明 | 预估 |
-|---|------|------|------|:----:|
-| 9 | Feishu Webhook 模式 | Feishu | 当前只测了 WS，需 mock 增强 | 1-2 天 |
-| 10 | WhatsApp reconnect + 媒体 | WhatsApp | WS reconnect 卡住；媒体类型未测 | 1 天 |
-| 11 | LINE 消息分片 | LINE | 5000 字符分片未测 | 0.5 天 |
-| 12 | `test_run.py all` 扩到 serve 92 个测试 | 框架 | 当前 all 不包含新 serve 测试 | 0.5 天 |
-| 13 | Email 补充测试用例回归 | Email | 命令测试回归验证 | 0.5 天 |
+| # | 事项 | 涉及 | 说明 | 预估 | 状态 |
+|:--:|------|:----:|------|:----:|:----:|
+| 9 | Feishu Webhook 模式 | Feishu | 当前只测了 WS，需 mock 增强。Mock 已具备基础 webhook 转发到 9321 端口，待完善覆盖率 | 1-2 天 | ❌ 待执行 |
+| 10 | WhatsApp reconnect + 媒体 | WhatsApp | WS reconnect 改进（等待 15s→20s）；typing 测试添加硬断言；媒体测试改用 runner+断言 | 1 天 | ✅ **已完成** |
+| 11 | LINE 消息分片 | LINE | 5000+ 字符长消息处理测试已添加 | 0.5 天 | ✅ **已完成** |
+| 12 | `test_run.py all` 扩到 serve 92 个测试 | 框架 | 代码已包含 serve + stdio，无需改动 | 0 天 | ✅ **已完成** |
+| 13 | Email 补充测试用例回归 | Email | 新增 /queue /soul /status /abort 四个命令测试 | 0.5 天 | ✅ **已完成** |
 
 ### P3 — 低优先级
 
@@ -136,7 +136,7 @@
 | 14 | gateway 重启后会话恢复 | 框架 | 需 test_run.py 框架改造 | 需框架改造 |
 | 15 | 各 channel 媒体发送 | Telegram/Discord | 发图片/音频/文档等 | 1-2 天 |
 | 16 | Slack Thread Reply / 媒体处理 | Slack | 已测 dedup 和 broadcast，Thread 链路未测 | 0.5 天 |
-| 17 | serve 并发测试 | serve | 多 WS 连接同时操作 | 1 天 |
+| 17 | ~~serve 并发测试~~ | serve | 多 WS 连接同时操作 | 1 天 |
 | 18 | serve SSE 废弃端点说明更新 | serve | run_serve_tests.py help 提及旧 REST+SSE | 0.5 天 |
 
 ---
@@ -164,9 +164,11 @@
 ### 仅剩待办
 - ~~**serve --stdio 传输** — P1~~ ✅ 已完成
 - ~~**serve 通知流验证** — P1~~ ✅ 已完成
+- ~~**WhatsApp reconnect + typing + 媒体** — P2~~ ✅ 已完成
+- ~~**LINE 消息分片** — P2~~ ✅ 已完成
+- ~~**Email 补充回归测试** — P2~~ ✅ 已完成
+- ~~**serve 并发测试** — P3~~ ✅ 已完成
 - **Feishu Webhook 模式** — P2
-- **WhatsApp reconnect** — P2
-- **LINE 消息分片** — P2
 - **Telegram profile routing** — 阻塞，等待 octos 实现
 
 ---

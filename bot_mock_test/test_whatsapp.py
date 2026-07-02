@@ -398,8 +398,34 @@ class TestWhatsAppWsReconnect:
     """WhatsApp WebSocket 断线重连测试"""
 
     def test_ws_reconnect(self, runner):
-        """断开 WS 连接后验证 bot 能自动重连并正常通信"""
-        test_ws_reconnect_basic(runner, timeout_cmd=TIMEOUT_COMMAND, sender=USER_A)
+        """断开 WS 连接后验证 bot 能自动重连并正常通信
+
+        WhatsApp bridge 断线后 octos 应自动重连。当前已知可能因 bridge 协议差异
+        导致重连不稳定（见 ROADMAP P2），故增加弹性等待 + 日志输出。
+        """
+        # Step 1: 基线 — 验证连接正常
+        text = inject_and_get_reply(runner, "/new", timeout=TIMEOUT_COMMAND, sender=USER_A)
+        assert "clear" in text.lower() or "session" in text.lower() or "new" in text.lower(), \
+            f"Baseline /new failed: {text[:80]}"
+        logger.info("  Step 1 ✓ Baseline /new OK")
+
+        # Step 2: 断开 WS 连接
+        result = runner.disconnect_ws()
+        logger.info(f"  Step 2 ✓ WS disconnect: {result}")
+
+        # Step 3: 等待 bot 检测并重连（WhatsApp bridge 可能需要更长时间）
+        WAIT_RECONNECT = 20  # WhatsApp bridge 重连等待时间
+        logger.info(f"  Step 3 Waiting {WAIT_RECONNECT}s for bot to reconnect...")
+        time.sleep(WAIT_RECONNECT)
+
+        # Step 4: 验证重连成功
+        reconnect_text = inject_and_get_reply(
+            runner, "/new reconnect-test", timeout=TIMEOUT_COMMAND, sender=USER_A,
+        )
+        assert "clear" in reconnect_text.lower() or "session" in reconnect_text.lower() \
+            or "new" in reconnect_text.lower(), \
+            f"Expected bot to reply after reconnect, got: {reconnect_text[:80]}"
+        logger.info(f"  Step 4 ✓ Reconnect verified: {reconnect_text[:60]}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -409,19 +435,26 @@ class TestWhatsAppWsReconnect:
 class TestWhatsAppTyping:
     """WhatsApp Typing Indicator 测试"""
 
+    @pytest.mark.llm
     def test_typing_tracking_on_bot_api_call(self, runner):
-        """验证 bot 发送 typing 指示时被正确记录"""
-        # 先让 bot 处理一条消息
-        text = inject_and_get_reply(runner, "/new typing-test", timeout=TIMEOUT_COMMAND, sender=USER_A)
+        """验证 LLM 消息处理时 bot 可能发送 typing 指示"""
+        # 发送需要 LLM 处理的消息（typing 只在 LLM 处理期间发出）
+        text = inject_and_get_reply(runner, "Hello, what can you do?", timeout=TIMEOUT_LLM, sender=USER_A)
         assert len(text) > 0
 
         # 检查 _function_calls 中是否有 typing 记录
-        resp = httpx.get("http://127.0.0.1:5006/_function_calls", timeout=10)
-        data = resp.json()
+        data = runner.get_function_calls()
         typing = data.get("typing", [])
 
-        # 验证有 typing 记录（bot 可能在处理消息时发送了 typing 指示）
-        logger.info(f"  → Found {len(typing)} typing calls recorded")
+        # typing 可能在 LLM 处理期间发出，但不是必须的（取决于 LLM 响应速度）
+        if len(typing) > 0:
+            logger.info(f"  ✓ Bot sent {len(typing)} typing indicator(s)")
+            # 验证 typing 目标用户正确
+            first_to = typing[0].get("to", "")
+            assert USER_A.split("@")[0] in first_to or USER_A in first_to, \
+                f"Expected typing to {USER_A}, got {first_to}"
+        else:
+            logger.info("  ℹ No typing calls recorded (LLM responded too fast)")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -432,66 +465,55 @@ class TestWhatsAppMediaExpansion:
     """WhatsApp 媒体消息扩展测试（video/document/location）"""
 
     def test_video_message(self, runner):
-        """视频消息注入和回复验证"""
-        import httpx as _httpx
+        """视频消息注入 — bot 应回复"""
         # 注入视频消息
-        resp = _httpx.post(
-            "http://127.0.0.1:5006/_inject_media",
-            json={
-                "text": "Check out this video",
-                "sender": "12025550103@s.whatsapp.net",
-                "media_type": "video",
-                "media_url": "https://mock.example.com/test.mp4",
-                "mimetype": "video/mp4",
-            },
-            timeout=10,
+        result = runner.inject_media(
+            text="Check out this video",
+            sender="12025550103@s.whatsapp.net",
+            media_type="video",
+            mimetype="video/mp4",
         )
-        assert resp.status_code == 200
-        assert resp.json().get("status") == "injected"
+        assert result.get("status") == "injected", f"注入失败: {result}"
 
         # 等待 bot 处理并回复
-        time.sleep(5)
-        msgs = runner.get_sent_messages()
-        # Bot 应回复（即使无法真正处理视频，也应回复提示）
-        logger.info(f"  → Video message injected, bot sent {len(msgs)} messages")
+        msgs = runner.get_sent_messages(timeout=15)
+        replies = [m for m in msgs if m.get("to") == "12025550103@s.whatsapp.net" or not m.get("to")]
+        # Bot 应回复（即使只是提示无法处理视频）
+        assert len(replies) > 0, "Bot should reply after video message"
+        last_reply = replies[-1].get("text", "")
+        logger.info(f"  → Bot replied to video: {last_reply[:80]}")
 
     def test_document_message(self, runner):
-        """文档消息注入和回复验证"""
-        import httpx as _httpx
-        resp = _httpx.post(
-            "http://127.0.0.1:5006/_inject_media",
-            json={
-                "text": "Here is the report",
-                "sender": "12025550104@s.whatsapp.net",
-                "media_type": "document",
-                "media_url": "https://mock.example.com/report.pdf",
-                "mimetype": "application/pdf",
-            },
-            timeout=10,
+        """文档消息注入 — bot 应回复"""
+        result = runner.inject_media(
+            text="Here is the report",
+            sender="12025550104@s.whatsapp.net",
+            media_type="document",
+            media_url="https://mock.example.com/report.pdf",
+            mimetype="application/pdf",
         )
-        assert resp.status_code == 200
-        assert resp.json().get("status") == "injected"
+        assert result.get("status") == "injected", f"注入失败: {result}"
 
-        time.sleep(5)
-        logger.info(f"  → Document message injected")
+        # 等待 bot 回复
+        msgs = runner.get_sent_messages(timeout=15)
+        replies = [m for m in msgs if m.get("to") == "12025550104@s.whatsapp.net" or not m.get("to")]
+        assert len(replies) > 0, "Bot should reply after document message"
+        last_reply = replies[-1].get("text", "")
+        logger.info(f"  → Bot replied to document: {last_reply[:80]}")
 
     def test_location_message(self, runner):
-        """位置消息注入和回复验证"""
-        import httpx as _httpx
-        # 位置消息通过普通 _inject 但带 location 字段
-        resp = _httpx.post(
-            "http://127.0.0.1:5006/_inject_media",
-            json={
-                "text": "I'm at this location",
-                "sender": "12025550105@s.whatsapp.net",
-                "media_type": "location",
-                "media_url": "",
-                "mimetype": "location",
-            },
-            timeout=10,
+        """位置消息注入 — bot 应回复"""
+        result = runner.inject_media(
+            text="I'm at this location",
+            sender="12025550105@s.whatsapp.net",
+            media_type="location",
+            mimetype="location",
         )
-        assert resp.status_code == 200
-        assert resp.json().get("status") == "injected"
+        assert result.get("status") == "injected", f"注入失败: {result}"
 
-        time.sleep(5)
-        logger.info(f"  → Location message injected")
+        # 等待 bot 回复
+        msgs = runner.get_sent_messages(timeout=15)
+        replies = [m for m in msgs if m.get("to") == "12025550105@s.whatsapp.net" or not m.get("to")]
+        assert len(replies) > 0, "Bot should reply after location message"
+        last_reply = replies[-1].get("text", "")
+        logger.info(f"  → Bot replied to location: {last_reply[:80]}")

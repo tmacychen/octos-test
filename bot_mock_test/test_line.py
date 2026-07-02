@@ -532,3 +532,26 @@ class TestLineMention:
         assert new_replies == 0, \
             f"Bot should not reply when not @mentioned, got {new_replies} new replies"
         logger.info("  ✓ Not @mentioned correctly ignored")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 11. 消息分片测试
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestLineMessageSplitting:
+    """LINE 消息分片测试
+
+    LINE 单条消息有字符数限制（约5000字符）。超长消息 octos 应能
+    正常处理并回复。
+    """
+
+    CHAT_ID = "U_line_split"
+
+    @pytest.mark.llm
+    def test_very_long_message(self, runner):
+        """超长消息（>5000字符）应被正常处理"""
+        long_text = "A" * 5100  # 超过 5000 字符限制
+        text = inject_and_get_reply(runner, long_text, timeout=TIMEOUT_LLM, chat_id=self.CHAT_ID)
+        assert len(text) > 0, "Bot should respond to very long message"
+        logger.info(f"  ✓ Long message (5100 chars) handled, reply: {text[:60]}")

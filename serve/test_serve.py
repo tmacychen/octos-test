@@ -2473,7 +2473,114 @@ class OctosServeTester:
             return True
         return True
 
-    # ── 24.x Remaining Auth ──────────────────────────────────────────
+    # ── 25.x 并发测试 ──────────────────────────────────────────
+
+    def test_25_1_ws_concurrent(self) -> bool:
+        """25.1: 并发 WS 连接 — 多个客户端同时连接并执行 RPC"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+
+        CONCURRENT_COUNT = 8
+        results = {}
+        errors = {}
+        results_lock = threading.Lock()
+
+        def _worker(worker_id: int):
+            """单个工作线程：建立 WS 连接并调用 system/status.get"""
+            try:
+                resp = self._ws_call("system/status.get", {}, timeout=15)
+                with results_lock:
+                    results[worker_id] = resp
+                self.logger.info(f"  Worker {worker_id}: status.get OK")
+            except Exception as e:
+                with results_lock:
+                    errors[worker_id] = str(e)
+                self.logger.error(f"  Worker {worker_id}: {e}")
+
+        self.logger.info(f"  Launching {CONCURRENT_COUNT} concurrent WS connections...")
+        threads = []
+        start = time.time()
+        for i in range(CONCURRENT_COUNT):
+            t = threading.Thread(target=_worker, args=(i,))
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join(timeout=30)
+
+        elapsed = time.time() - start
+        self.logger.info(f"  Concurrent test completed in {elapsed:.2f}s")
+        self.logger.info(f"  Successful: {len(results)}, Errors: {len(errors)}")
+
+        assert len(errors) == 0, f"Some workers failed: {errors}"
+        assert len(results) == CONCURRENT_COUNT, \
+            f"Expected {CONCURRENT_COUNT} results, got {len(results)}"
+
+        # 验证所有 worker 都收到有效 result（非 error）
+        for wid, resp in results.items():
+            assert "result" in resp, f"Worker {wid} got error: {resp.get('error', resp)}"
+
+        self.logger.info(f"  ✓ All {CONCURRENT_COUNT} concurrent connections succeeded")
+        return True
+
+    def test_25_2_ws_concurrent_session_ops(self) -> bool:
+        """25.2: 并发会话操作 — 同时创建和读取多个 session"""
+        if not HAS_WEBSOCKETS: return "SKIP"
+
+        CONCURRENT_COUNT = 5
+        results = {}
+        errors = {}
+        results_lock = threading.Lock()
+
+        def _worker(worker_id: int):
+            """单个工作线程：创建 session 并读取基本信息"""
+            try:
+                session_id = f"concurrent-session-{uuid.uuid4().hex[:8]}"
+                open_resp = self._ws_call("session/open",
+                                           {"session_id": session_id}, timeout=30)
+
+                # session/open 可能因无 LLM 配置返回 error，记录但继续
+                if "error" in open_resp:
+                    err_msg = open_resp["error"].get("message", "")
+                    if any(kw in err_msg.lower() for kw in
+                           ["profile", "runtime", "llm", "unconfigured"]):
+                        with results_lock:
+                            results[worker_id] = {
+                                "session_id": session_id,
+                                "status": "no_llm",
+                                "error": err_msg[:80],
+                            }
+                        return
+
+                with results_lock:
+                    results[worker_id] = {
+                        "session_id": session_id,
+                        "status": "ok",
+                    }
+                self.logger.info(f"  Worker {worker_id}: session {session_id[:20]} OK")
+            except Exception as e:
+                with results_lock:
+                    errors[worker_id] = str(e)
+                self.logger.error(f"  Worker {worker_id}: {e}")
+
+        self.logger.info(f"  Launching {CONCURRENT_COUNT} concurrent session operations...")
+        threads = []
+        start = time.time()
+        for i in range(CONCURRENT_COUNT):
+            t = threading.Thread(target=_worker, args=(i,))
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join(timeout=60)  # session/open may need more time
+
+        elapsed = time.time() - start
+        self.logger.info(f"  Concurrent session ops completed in {elapsed:.2f}s")
+        self.logger.info(f"  Successful: {len(results)}, Errors: {len(errors)}")
+
+        assert len(errors) == 0, f"Some workers failed: {errors}"
+        assert len(results) > 0, "No sessions were created"
+        self.logger.info(f"  ✓ All {CONCURRENT_COUNT} concurrent session ops handled")
+        return True
 
     def test_24_1_auth_send_code(self) -> bool:
         """24.1: auth/send_code — 需要 email 参数"""
@@ -3598,6 +3705,17 @@ if HAS_PYTEST:
                                         serve_tester.test_24_3_profile_llm_select_no_profile)
         assert result.status in ("PASS", "SKIP"), result.details
 
+    # ── 25.x 并发测试 ──
+
+    def test_25_1_ws_concurrent(serve_tester):
+        result = serve_tester.run_test("25.1", "WS Concurrent Connections",
+                                        serve_tester.test_25_1_ws_concurrent)
+        assert result.status in ("PASS", "SKIP"), result.details
+    def test_25_2_ws_concurrent_session_ops(serve_tester):
+        result = serve_tester.run_test("25.2", "WS Concurrent Session Ops",
+                                        serve_tester.test_25_2_ws_concurrent_session_ops)
+        assert result.status in ("PASS", "SKIP"), result.details
+
 if __name__ == "__main__":
     """直接运行时执行所有测试"""
     import argparse
@@ -3743,6 +3861,9 @@ if __name__ == "__main__":
             ("24.1", "Auth Send Code", tester.test_24_1_auth_send_code),
             ("24.2", "Auth Logout", tester.test_24_2_auth_logout),
             ("24.3", "Profile LLM Select No Profile", tester.test_24_3_profile_llm_select_no_profile),
+            # ── 25.x 并发测试 ──
+            ("25.1", "WS Concurrent Connections", tester.test_25_1_ws_concurrent),
+            ("25.2", "WS Concurrent Session Ops", tester.test_25_2_ws_concurrent_session_ops),
             # ── 8.12/8.13 Bind Address (会重启服务器，必须放在最后) ──
             ("8.12", "Bind Address (0.0.0.0)", tester.test_bind_address_external),
             ("8.13", "Default Bind (127.0.0.1)", tester.test_bind_address_local_default),

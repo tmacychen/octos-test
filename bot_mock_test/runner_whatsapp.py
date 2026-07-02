@@ -53,3 +53,51 @@ class WhatsAppTestRunner(BaseMockRunner):
         resp = httpx.post(f"{self.base_url}/_inject", json=payload, timeout=10)
         resp.raise_for_status()
         return resp.json()
+
+    def inject_media(
+        self,
+        text: str = "",
+        sender: str = "test_user@s.whatsapp.net",
+        chat_id: Optional[str] = None,
+        media_type: str = "document",
+        media_url: Optional[str] = None,
+        mimetype: Optional[str] = None,
+    ) -> dict:
+        """向 Mock Server 注入媒体消息（video/document/location）。
+
+        Args:
+            text: 说明文字
+            sender: 发送者 JID
+            chat_id: 聊天 ID，默认使用 sender 的 phone 部分
+            media_type: 媒体类型 ("video", "document", "location")
+            media_url: 媒体 URL，默认自动生成
+            mimetype: MIME 类型
+
+        Returns:
+            Mock Server 响应
+        """
+        payload = {
+            "text": text,
+            "sender": sender,
+            "media_type": media_type,
+        }
+        if chat_id:
+            payload["chat_id"] = chat_id
+        if media_url:
+            payload["media_url"] = media_url
+        if mimetype:
+            payload["mimetype"] = mimetype
+
+        resp = httpx.post(f"{self.base_url}/_inject_media", json=payload, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_function_calls(self) -> dict:
+        """获取 bot API 调用记录（typing 等）。
+
+        Returns:
+            {"typing": [...]}
+        """
+        resp = httpx.get(f"{self.base_url}/_function_calls", timeout=10)
+        resp.raise_for_status()
+        return resp.json()

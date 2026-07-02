@@ -40,20 +40,26 @@ class BaseMockRunner:
         poll_interval: 轮询间隔秒数（默认 0.5s）
         chat_id: 可选，chat_id/channel_id/room_id 用于过滤
         """
+        # 构建所有可能匹配的 chat_id 变体，适配各平台 ID 格式差异
+        # WhatsApp: bot 可能发送纯号码而非完整 JID
+        # Discord/Matrix: 完整 ID 也可能被截断
+        _chat_id_variants: list[str] = []
+        if chat_id is not None:
+            _chat_id_variants.append(chat_id)
+            # 如果 chat_id 包含 @ 符号（如 JID 格式），也尝试本地部分
+            if "@" in chat_id:
+                local_part = chat_id.split("@")[0]
+                if local_part and local_part != chat_id:
+                    _chat_id_variants.append(local_part)
+
         try:
             msgs = self.get_sent_messages(timeout=5)
         except httpx.HTTPError:
             msgs = []
         if len(msgs) > count_before:
-            if chat_id is not None:
+            if _chat_id_variants:
                 for msg in reversed(msgs[count_before:]):
-                    if (msg.get("chat_id") == chat_id
-                            or msg.get("channel_id") == chat_id
-                            or msg.get("room_id") == chat_id
-                            or msg.get("channel") == chat_id
-                            or msg.get("to") == chat_id
-                            or msg.get("sender") == chat_id
-                            or msg.get("chatid") == chat_id):
+                    if self._match_chat_id(msg, _chat_id_variants):
                         return msg
             else:
                 return msgs[-1]
@@ -67,19 +73,29 @@ class BaseMockRunner:
             except httpx.HTTPError:
                 continue
             if len(msgs) > count_before:
-                if chat_id is not None:
+                if _chat_id_variants:
                     for msg in reversed(msgs[count_before:]):
-                        if (msg.get("chat_id") == chat_id
-                                or msg.get("channel_id") == chat_id
-                                or msg.get("room_id") == chat_id
-                                or msg.get("channel") == chat_id
-                                or msg.get("to") == chat_id
-                                or msg.get("sender") == chat_id
-                                or msg.get("chatid") == chat_id):
+                        if self._match_chat_id(msg, _chat_id_variants):
                             return msg
                 else:
                     return msgs[-1]
         return None
+
+    @staticmethod
+    def _match_chat_id(msg: dict, variants: list[str]) -> bool:
+        """检查消息是否匹配任一 chat_id 变体。
+
+        检查字段: chat_id, channel_id, room_id, channel, to, sender, chatid
+        """
+        for field in ("chat_id", "channel_id", "room_id", "channel",
+                      "to", "sender", "chatid"):
+            val = msg.get(field)
+            if val is not None:
+                val_str = str(val)
+                for variant in variants:
+                    if val_str == variant:
+                        return True
+        return False
 
     def health(self) -> bool:
         """检查 Mock Server 是否在线"""
