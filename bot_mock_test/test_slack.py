@@ -33,7 +33,7 @@ TIMEOUT_LLM = 50
 
 # ── Helper Functions ─────────────────────────────────────────────────────────
 
-def inject_and_get_reply(runner, text, timeout=TIMEOUT_COMMAND, channel="C012AB3CD", user="U012AB3CD"):
+def inject_and_get_reply(runner, text, timeout=TIMEOUT_COMMAND, channel="C012AB3CD", user="U012AB3CD", **kwargs):
     """Inject a message and wait for bot reply.
     
     Returns the reply text or None if no reply received.
@@ -42,7 +42,7 @@ def inject_and_get_reply(runner, text, timeout=TIMEOUT_COMMAND, channel="C012AB3
     count_before = len(runner.get_sent_messages())
     
     # Inject the message
-    result = runner.inject(text=text, channel=channel, user=user)
+    result = runner.inject(text=text, channel=channel, user=user, **kwargs)
     assert result is not None, f"Slack inject returned None for: {text[:50]}"
     assert result.get("success") is True
     

@@ -1582,8 +1582,11 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     }
                 ],
                 "gateway": {
-                    "max_history": 5,
+                    "max_history": 3,
                     "max_concurrent_sessions": 10,
+                    "tool_policy": {
+                        "deny": ["group:delegated", "group:admin"]
+                    },
                     "system_prompt": "IMPORTANT: When calling the message tool, NEVER specify the channel or chat_id parameters. Leave them empty/null so the system uses the current conversation context. Do not pass strings like 'console', 'current', 'telegram', 'discord', 'slack' or any other value for channel."
                 }
             }

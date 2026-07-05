@@ -348,6 +348,8 @@ class MockSlackServer:
                 # Push envelope to all connected WebSocket clients (octos Slack channel)
                 await self._broadcast_to_websockets(envelope)
 
+                return JSONResponse({"success": True})
+
             except HTTPException:
                 raise
             except Exception as e:
