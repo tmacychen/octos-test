@@ -1155,17 +1155,24 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
     except Exception:
         pass
 
-    # Remove database files and all ephemeral state (episodes, sessions, etc.)
-    # This is CRITICAL: the 70B model's 131K context fills up after ~40 LLM calls.
-    # Without cleanup, every subsequent test fails with context overflow.
+    # ── 彻底清理数据库和会话状态 ──
+    # 70B model 的 131K context 在 40+ LLM 调用后会溢出。
+    # 仅清理 *.redb 不够 — gateway 会从 context_ledgers/ 和 users/ 重建会话。
+    module_logger.info("Removing database files and ephemeral state...")
     for pattern in ["*.redb", "*.redb.lock", "active_sessions.json", "cron.json",
                     "status_words.json", "soul.md", "tool_config.json"]:
         for f in TEST_DIR.glob(pattern):
             try:
                 f.unlink()
-                module_logger.info(f"Removed state file: {f.name}")
-            except FileNotFoundError:
+            except Exception:
                 pass
+
+    # Also clean session context ledgers and user session files
+    for dir_path in [TEST_DIR / "users", TEST_DIR / "context_ledgers"]:
+        if dir_path.exists():
+            import shutil
+            shutil.rmtree(dir_path)
+            module_logger.info(f"Removed directory: {dir_path.name}/")
 
     # Clear Python cache
     import shutil
