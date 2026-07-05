@@ -171,6 +171,19 @@
 6. **base_runner.py 修复** — `wait_for_reply` 增加 WhatsApp JID 本地部分匹配，修复 bot 回复检测
 7. **ROADMAP/TODO 文档同步** — 标记 4 项 P2、1 项 P3 已完成
 
+### ✅ 本次完成（2026-07-05）
+
+1. **WhatsApp 空消息修复** — `test_empty_message` 改为期望忽略而非回复，27/32 PASS (84.4%)
+2. **Slack 测试全面修复** — mock inject 缺 return、本地 inject_and_get_reply 不支持 kwargs 等 bug 修复
+3. **Slack 基础功能测试通过** — 41/45 PASS（4 个已知问题：profile routing、context 溢出、persona 干扰）
+4. **Slack Thread 回复测试** — 新增 3 个 thread 测试（channel thread、DM 忽略、非 thread）
+5. **Slack app_mention 支持** — mock/runner 新增 event_type 参数
+6. **WeChat 消息分片边界** — 新增 >4000 字符超限测试
+7. **Feishu Webhook 确认已在测** — 14/14 PASS，ROADMAP 标记更新
+8. **Discord 修复** — 修复 WS 顺序、test_delete_session 断言、emoji 断言
+9. **测试框架 DB 自动清理** — `run_bot_test()` 清理 `context_ledgers/` `users/` `*.redb`
+10. **按类分组 gateway** — 全量运行时每个测试类独立 gateway，防止 context 累积溢出
+
 ### 仅剩待办
 - ~~**serve --stdio 传输** — P1~~ ✅ 已完成
 - ~~**serve 通知流验证** — P1~~ ✅ 已完成
@@ -178,8 +191,11 @@
 - ~~**LINE 消息分片** — P2~~ ✅ 已完成
 - ~~**Email 补充回归测试** — P2~~ ✅ 已完成
 - ~~**serve 并发测试** — P3~~ ✅ 已完成
-- **Feishu Webhook 模式** — P2
-- **Telegram profile routing** — 阻塞，等待 octos 实现
+- ~~**Feishu Webhook 模式** — P2~~ ✅ 已在测（14/14 PASS）
+- **Telegram/Discord/Slack profile routing** — 阻塞，等待 octos 实现
+- **LLM 测试 false positive** — 70B 模型 131K context 限制导致首次调用失败
+- **WhatsApp typing/WS reconnect 失败** — 测试间状态泄漏
+- **Slack LLM 测试** — QueueModeSteerNonAbort / LLMMessages / AbortCommands / ThreadReplies 待验证
 
 ---
 

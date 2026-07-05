@@ -61,7 +61,7 @@
 
 | # | 事项 | 涉及 | 预估 | 状态 |
 |---|------|------|:----:|:----:|
-| 9 | Feishu Webhook 模式 | Feishu | 1-2 天 | ❌ 待执行 |
+| 9 | Feishu Webhook 模式 | Feishu | 1-2 天 | ✅ 已在测 (14/14 PASS) |
 | 10 | WhatsApp reconnect + 媒体 | WhatsApp | 1 天 | ✅ 已完成 |
 | 11 | LINE 消息分片 | LINE | 0.5 天 | ✅ 已完成 |
 | 12 | `test_run.py all` 扩到 tui + 完整 serve | 框架 | 0 天 | ✅ 已完成 |
@@ -69,10 +69,22 @@
 
 ## P3 — 低优先级
 
-| # | 事项 | 涉及 | 预估 |
-|---|------|------|:----:|
-| 14 | gateway 重启后会话恢复 | 框架 | 需框架改造 |
-| 15 | 各 channel 媒体发送 | Telegram/Discord | 1-2 天 |
-| 16 | Slack Thread Reply / Bot 自消息过滤 | Slack | 0.5 天 |
-| 17 | ~~serve 并发测试~~ | serve | 1 天 |
-| 18 | serve SSE 废弃端点说明更新 | serve | 0.5 天 |
+| # | 事项 | 涉及 | 预估 | 状态 |
+|---|------|------|:----:|:----:|
+| 14 | gateway 重启后会话恢复 | 框架 | 需框架改造 | ❌ |
+| 15 | 各 channel 媒体发送 | Telegram/Discord | 1-2 天 | ❌ |
+| 16 | Slack Thread Reply / Bot 自消息过滤 | Slack | 0.5 天 | ✅ 已完成 |
+| 17 | ~~serve 并发测试~~ | serve | 1 天 | ✅ 已完成 |
+| 18 | serve SSE 废弃端点说明更新 | serve | 0.5 天 | ❌ |
+
+## 后续安排
+
+| 优先级 | 事项 | 说明 |
+|:------:|------|------|
+| P1 | **Slack LLM 测试验证** | TestSlackQueueModeSteerNonAbort / LLMMessages / AbortCommands / ThreadReplies |
+| P1 | **WhatsApp typing 状态泄漏** | 测试间状态修复 |
+| P2 | **Matrix / Line / QQ / WeCom / Twilio 回归验证** | 新 binary + 新模型后全量跑 |
+| P2 | **Slack app_mention 测试** | mock 已支持，需补测试用例 |
+| P3 | **全 channel 全量测试** | 所有 15 channel 回归 |
+| — | **Telegram/Discord profile routing** | 阻塞 — 等待 octos 实现 |
+| — | **LLM context 溢出** | 阻塞 — 70B 模型 131K 限制 |
