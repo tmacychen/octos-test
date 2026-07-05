@@ -168,9 +168,12 @@ class TestWhatsAppBasicMessages:
 
     @pytest.mark.llm
     def test_empty_message(self, runner):
-        """空消息 → 应返回提示"""
-        reply = inject_and_get_reply(runner, "   ", timeout=TIMEOUT_COMMAND, sender=USER_A)
-        assert reply, "空消息也应触发回复"
+        """空消息 → 应被忽略"""
+        count_before = len(runner.get_sent_messages())
+        runner.inject("   ", sender=USER_A)
+        time.sleep(1)
+        count_after = len(runner.get_sent_messages())
+        assert count_after == count_before, "Empty message should be ignored"
 
     @pytest.mark.llm
     def test_special_characters(self, runner):

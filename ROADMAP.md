@@ -123,7 +123,7 @@
 
 | # | 事项 | 涉及 | 说明 | 预估 | 状态 |
 |:--:|------|:----:|------|:----:|:----:|
-| 9 | Feishu Webhook 模式 | Feishu | 当前只测了 WS，需 mock 增强。Mock 已具备基础 webhook 转发到 9321 端口，待完善覆盖率 | 1-2 天 | ❌ 待执行 |
+| 9 | Feishu Webhook 模式 | Feishu | 当前已使用 webhook 模式测试，14/14 PASS。WS 模式需不同 mock 架构 | 已测试 |
 | 10 | WhatsApp reconnect + 媒体 | WhatsApp | WS reconnect 改进（等待 15s→20s）；typing 测试添加硬断言；媒体测试改用 runner+断言 | 1 天 | ✅ **已完成** |
 | 11 | LINE 消息分片 | LINE | 5000+ 字符长消息处理测试已添加 | 0.5 天 | ✅ **已完成** |
 | 12 | `test_run.py all` 扩到 serve 92 个测试 | 框架 | 代码已包含 serve + stdio，无需改动 | 0 天 | ✅ **已完成** |
@@ -160,6 +160,16 @@
 7. **serve 黑盒扩展 19→92 个测试** — 新增 73 个 WS RPC 合约测试
 8. **5 个 method 升真实调用** — permission/profile.list、content delete/bulk_delete、profile/llm/upsert、session/status/read
 9. **P0 排查** — session_delete_rx 已修复确认、Mock Server 未复现、profile routing 阻塞确认
+
+### ✅ 本次完成（2026-07-02）
+
+1. **WhatsApp runner 增强** — 新增 `inject_media()` / `get_function_calls()` 方法
+2. **WhatsApp typing/media/reconnect 测试改进** — typing 添加硬断言、media 改用 runner 方法+断言、reconnect 等待 20s
+3. **LINE 消息分片测试** — 新增 5100 字符超长消息处理测试
+4. **Email 回归测试** — 新增 `/queue` `/soul` `/status` `/abort` 四个命令测试（共 11 个）
+5. **serve 并发测试** — 新增 25.1（8 路 WS 并发连接）+ 25.2（5 路并发 session 操作）
+6. **base_runner.py 修复** — `wait_for_reply` 增加 WhatsApp JID 本地部分匹配，修复 bot 回复检测
+7. **ROADMAP/TODO 文档同步** — 标记 4 项 P2、1 项 P3 已完成
 
 ### 仅剩待办
 - ~~**serve --stdio 传输** — P1~~ ✅ 已完成
