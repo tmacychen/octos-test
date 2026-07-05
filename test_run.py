@@ -1155,14 +1155,17 @@ def run_email_test(test_case: Optional[str] = None) -> Tuple[bool, List[str], Li
     except Exception:
         pass
 
-    # Remove database lock files
-    db_files = list(TEST_DIR.glob("*.redb")) + list(TEST_DIR.glob("*.redb.lock"))
-    for db_file in db_files:
-        try:
-            db_file.unlink()
-            module_logger.info(f"Removed database file: {db_file}")
-        except FileNotFoundError:
-            pass
+    # Remove database files and all ephemeral state (episodes, sessions, etc.)
+    # This is CRITICAL: the 70B model's 131K context fills up after ~40 LLM calls.
+    # Without cleanup, every subsequent test fails with context overflow.
+    for pattern in ["*.redb", "*.redb.lock", "active_sessions.json", "cron.json",
+                    "status_words.json", "soul.md", "tool_config.json"]:
+        for f in TEST_DIR.glob(pattern):
+            try:
+                f.unlink()
+                module_logger.info(f"Removed state file: {f.name}")
+            except FileNotFoundError:
+                pass
 
     # Clear Python cache
     import shutil
@@ -2347,6 +2350,34 @@ def run_bot_test_with_per_test_retry(module: str, from_test: Optional[str] = Non
         return passed, failed
 
     module_logger.info(f"Total tests in {module}: {len(all_tests)}")
+
+    # Group tests by class for per-class gateway lifecycle.
+    # This is critical for 70B models with 131K context limit:
+    # running 40+ tests on one gateway fills the DB and causes context overflow.
+    if not from_test:
+        class_groups: dict[str, list[str]] = {}
+        for test_name in all_tests:
+            cls_name = test_name.split("::")[0] if "::" in test_name else test_name
+            if cls_name not in class_groups:
+                class_groups[cls_name] = []
+            class_groups[cls_name].append(test_name)
+
+        module_logger.info(f"🧪 Running {len(class_groups)} test classes, each on a fresh gateway")
+
+        all_passed = True
+        all_failed = []
+        for cls_name, cls_tests in class_groups.items():
+            module_logger.info(f"{'='*60}")
+            module_logger.info(f"  Batch: {cls_name} ({len(cls_tests)} tests)")
+            module_logger.info(f"{'='*60}")
+            test_filter = " or ".join(cls_tests)
+            passed, failed, _ = run_bot_test(module, test_case=test_filter)
+            if not passed:
+                all_passed = False
+                all_failed.extend(failed)
+            time.sleep(2)  # let ports release between batches
+
+        return all_passed, all_failed
 
     # If from_test is specified, filter to run from that test onwards
     if from_test:
