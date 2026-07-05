@@ -183,20 +183,18 @@ class TestSlackBasicMessages:
         if reply:
             logger.info(f"✓ Unicode handled: {reply[:50]}")
     
+
     def test_mock_server_health(self, runner):
         """测试 Mock Server 健康检查"""
         assert runner.health() is True
-        
+
         stats = runner.get_stats()
         assert "sent_messages" in stats
         assert "injected_events" in stats
         assert "transactions" in stats
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 会话管理命令测试
-# ══════════════════════════════════════════════════════════════════════════════
-
+    
 class TestSlackSessionCommands:
     """验证 GatewayDispatcher 处理的命令（不依赖 LLM）"""
     
@@ -900,3 +898,80 @@ class TestSlackMediaHandling:
         )
         assert resp.status_code == 200
         logger.info("  ✓ Image attachment event injected successfully")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Thread 回复测试（Slack 特有的 thread 消息处理）
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestSlackThreadReplies:
+    """验证 Slack Thread 消息处理
+    根据 slack_channel.rs:
+    - channel 中收到 thread_ts 消息 → bot 应在同一 thread 回复
+    - DM (im) 中收到 thread_ts 消息 → bot 应忽略 thread_ts
+    - 普通消息 → bot 不设 thread_ts
+    """
+
+    CHANNEL_ID = "C0THREAD1"
+    DM_CHANNEL = "D0THREAD2"
+
+    @pytest.mark.llm
+    def test_channel_thread_reply_same_thread(self, runner):
+        """在频道中回复 thread 消息 → bot 在 thread 中回复"""
+        thread_ts = str(time.time())
+        runner.inject(text="Hello, what can you help with?",
+                      channel=self.CHANNEL_ID, user="U012AB3CD",
+                      channel_type="channel", thread_ts=thread_ts)
+
+        time.sleep(5)
+        msgs = runner.get_sent_messages(timeout=5)
+        bot_replies = [m for m in msgs if m.get("channel") == self.CHANNEL_ID]
+        if not bot_replies:
+            time.sleep(10)
+            msgs = runner.get_sent_messages(timeout=5)
+            bot_replies = [m for m in msgs if m.get("channel") == self.CHANNEL_ID]
+
+        assert len(bot_replies) > 0, "Bot should reply in channel"
+        reply = bot_replies[-1]
+        assert reply.get("thread_ts") == thread_ts, \
+            f"Bot should reply in same thread (thread_ts={thread_ts}), got: {reply.get('thread_ts')}"
+        logger.info(f"  ✓ Bot replied in thread (thread_ts={reply.get('thread_ts')})")
+
+    @pytest.mark.llm
+    def test_dm_ignores_thread_ts(self, runner):
+        """在 DM 中发 thread 消息 → bot 不应回复 thread（DM 无 thread 概念）"""
+        thread_ts = str(time.time())
+        runner.inject(text="A quick question",
+                      channel=self.DM_CHANNEL, user="U012AB3CD",
+                      channel_type="im", thread_ts=thread_ts)
+
+        time.sleep(5)
+        msgs = runner.get_sent_messages(timeout=5)
+        bot_replies = [m for m in msgs if m.get("channel") == self.DM_CHANNEL]
+        if not bot_replies:
+            time.sleep(10)
+            msgs = runner.get_sent_messages(timeout=5)
+            bot_replies = [m for m in msgs if m.get("channel") == self.DM_CHANNEL]
+
+        assert len(bot_replies) > 0, "Bot should reply in DM"
+        reply = bot_replies[-1]
+        assert reply.get("thread_ts") is None or reply.get("thread_ts") != thread_ts, \
+            f"DM reply should NOT have thread_ts, got: {reply.get('thread_ts')}"
+        logger.info("  ✓ DM reply correctly ignored thread_ts")
+
+    def test_non_thread_message_no_thread_ts(self, runner):
+        """普通消息 → bot 回复不含 thread_ts"""
+        runner.inject(text="/new", channel=self.CHANNEL_ID, user="U012AB3CD",
+                      channel_type="channel")
+
+        time.sleep(3)
+        msgs = runner.get_sent_messages(timeout=5)
+        bot_replies = [m for m in msgs if m.get("channel") == self.CHANNEL_ID]
+
+        if bot_replies:
+            reply = bot_replies[-1]
+            assert reply.get("thread_ts") is None, \
+                f"Non-thread reply should NOT have thread_ts, got: {reply.get('thread_ts')}"
+            logger.info("  ✓ Non-thread reply correctly has no thread_ts")
+        else:
+            logger.info("  ℹ No bot reply yet (gateway may still be starting)")

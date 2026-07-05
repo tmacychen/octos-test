@@ -215,8 +215,11 @@ class MockSlackServer:
                 
                 channel = body.get("channel", "unknown")
                 text = body.get("text", "")
+                thread_ts = body.get("thread_ts")  # optional thread reply
                 
                 logger.info(f"💬 Bot sent message to channel={channel}: {text[:100]}")
+                if thread_ts:
+                    logger.info(f"  ↳ Thread reply to ts={thread_ts}")
                 
                 # Record the message
                 message_record = {
@@ -225,6 +228,8 @@ class MockSlackServer:
                     "timestamp": time.time(),
                     "token_prefix": token[:10],
                 }
+                if thread_ts:
+                    message_record["thread_ts"] = thread_ts
                 self._sent_messages.append(message_record)
                 
                 # Generate a fake message TS (timestamp)
@@ -289,9 +294,26 @@ class MockSlackServer:
                 text = body.get("text", "")
                 channel = body.get("channel", "C012AB3CD")
                 user = body.get("user", "U012AB3CD")
+                channel_type = body.get("channel_type")  # channel / im / group / mpim
+                thread_ts = body.get("thread_ts")  # optional thread timestamp
+                event_type = body.get("event_type", "message")  # message / app_mention
                 
                 # 支持外部传入 event_id（去重测试）
                 event_id = body.get("event_id") or self._generate_event_id()
+                
+                # Build event payload with optional fields
+                event_payload = {
+                    "type": event_type,
+                    "text": text,
+                    "user": user,
+                    "channel": channel,
+                    "ts": str(time.time()),
+                    "event_ts": str(time.time()),
+                }
+                if channel_type:
+                    event_payload["channel_type"] = channel_type
+                if thread_ts:
+                    event_payload["thread_ts"] = thread_ts
                 
                 # Create a Slack Socket Mode envelope
                 envelope = {
@@ -300,14 +322,7 @@ class MockSlackServer:
                         "token": "test_token",
                         "team_id": "T012AB3CD",
                         "api_app_id": "A012AB3CD",
-                        "event": {
-                            "type": "message",
-                            "text": text,
-                            "user": user,
-                            "channel": channel,
-                            "ts": str(time.time()),
-                            "event_ts": str(time.time()),
-                        },
+                        "event": event_payload,
                         "type": "event_callback",
                         "event_id": event_id,
                         "event_time": int(time.time()),

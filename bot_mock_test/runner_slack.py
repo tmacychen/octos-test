@@ -28,16 +28,22 @@ class SlackTestRunner(BaseMockRunner):
         channel: str = "C012AB3CD",
         user: str = "U012AB3CD",
         event_id: Optional[str] = None,
+        channel_type: Optional[str] = None,
+        thread_ts: Optional[str] = None,
+        event_type: Optional[str] = None,
     ) -> dict:
         """向 Mock Server 注入一条 Slack 消息事件。
         
-        模拟 Slack Events API 推送 message 事件到 octos gateway。
+        模拟 Slack Events API 推送事件到 octos gateway。
         
         Args:
             text: 消息文本内容
             channel: Slack channel ID (e.g., "C012AB3CD")
             user: Slack user ID (e.g., "U012AB3CD")
             event_id: 可选事件 ID（用于去重测试）
+            channel_type: 频道类型 (channel / im / group / mpim)
+            thread_ts: 可选 thread 时间戳（模拟 thread 中回复）
+            event_type: 事件类型 (message / app_mention)
         
         Returns:
             Mock Server 响应，包含生成的 event
@@ -49,6 +55,12 @@ class SlackTestRunner(BaseMockRunner):
         }
         if event_id:
             payload["event_id"] = event_id
+        if channel_type:
+            payload["channel_type"] = channel_type
+        if thread_ts:
+            payload["thread_ts"] = thread_ts
+        if event_type:
+            payload["event_type"] = event_type
         
         resp = httpx.post(f"{self.base_url}/_inject", json=payload, timeout=10)
         resp.raise_for_status()

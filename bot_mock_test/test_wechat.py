@@ -467,6 +467,16 @@ class TestWeChatMessageSplitting:
         logger.info(f"\n📤 User: [2000 chars message]")
         logger.info(f"📥 LLM: {reply[:200]}{'...' if len(reply) > 200 else ''}")
 
+    def test_message_exceeds_split_limit(self, runner):
+        """超过 4000 字符（分片限制）的消息应能正常处理"""
+        over_limit_text = "D" * 4200  # 超过 wechat 4000 字符限制
+
+        reply = inject_and_get_reply(runner, over_limit_text, timeout=TIMEOUT_LLM,
+                                     sender=self.SENDER)
+        assert len(reply) > 0, "Bot should handle over-limit message"
+        logger.info(f"\n📤 User: [4200 chars - exceeds 4000 limit]")
+        logger.info(f"📥 LLM: {reply[:200]}{'...' if len(reply) > 200 else ''}")
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 测试类：并发限制
