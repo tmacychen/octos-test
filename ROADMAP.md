@@ -195,7 +195,15 @@
 - **Telegram/Discord/Slack profile routing** — 阻塞，等待 octos 实现
 - **LLM 测试 false positive** — 70B 模型 131K context 限制导致首次调用失败
 - **WhatsApp typing/WS reconnect 失败** — 测试间状态泄漏
-- **Slack LLM 测试** — QueueModeSteerNonAbort / LLMMessages / AbortCommands / ThreadReplies 待验证
+- **Slack LLM 测试** — ✅ QueueModeSteerNonAbort / LLMMessages / AbortCommands 通过；ThreadReplies 中频道 thread 回覆因 octos thread_ts 传播缺口 skip（另 2 个 PASS）
+
+### ✅ 本次完成（2026-07-12）
+
+1. **Slack LLM 测试逐类验证** — 4 个 LLM 测试类全部运行：
+   - `TestSlackQueueModeSteerNonAbort` 2/2、`TestSlackLLMMessages` 3/3、`TestSlackAbortCommands` 3/3 全 PASS（含中文消息）
+   - `TestSlackThreadReplies` 2 PASS + 1 SKIP
+2. **thread 测试时序修复** — 将固定 `sleep(5)+sleep(10)` 改为 `wait_for_reply` 轮询（TIMEOUT_LLM=50s），消除 LLM 多轮工具调用（tool_search/message）导致的 15s 超时漏判
+3. **发现并定位 octos Slack thread_ts 缺口** — 频道 thread 消息 bot 回复落到频道根（thread_ts=None）。根因：`octos-bus/src/slack_channel.rs:330-396` 出站 `OutboundMessage` 未传播入站 thread_ts（channel_type 仍正确保留）。测试已 skip 并记录，等待 octos 修复
 
 ---
 
@@ -219,4 +227,5 @@
 | Telegram `test_soul_per_profile` / `test_queue_mode_per_profile` 被 skip | 不同 chat_id 消息被路由到同一 profile，会话未隔离 | **octos 功能缺陷**，测试正确 skip，等待修复后启用 |
 | Email 上下文膨胀 | 同一发件人后续邮件 bot 不再回复（LLM 400 错误） | **octos 功能缺陷**，需 session compaction |
 | LLM 测试 false positive | 8b 模型 context 131K 累积后超限，~200 个 LLM 测试假性失败 | **测试框架问题**，非 LLM 测试全部通过 |
+| Slack 频道 thread 回复不带 thread_ts | 频道 thread 中发消息，bot 回复落到频道根而非同一 thread（thread_ts=None） | **octos 行为缺口**：`slack_channel.rs` 出站 `OutboundMessage` 未传播入站 thread_ts（channel_type 仍正确保留），测试正确 skip，等待 octos 修复后启用 |
 | Email QQ 邮箱自发自收 IMAP UNSEEN 失效 | QQ 邮箱将自发自收邮件自动标记已读 | **QQ 邮箱行为限制**，建议换双邮箱测试 |

@@ -46,6 +46,18 @@
 
 **结论：当前 binary + mock 协议修复后, mock 崩溃问题未再复现。保留 health check guard 作为安全机制即可。**
 
+### 5. Slack thread_ts 出站传播缺口 ❌ 阻塞 (等待 octos 修复)
+
+**文件**: `bot_mock_test/test_slack.py` → `TestSlackThreadReplies::test_channel_thread_reply_same_thread`
+- 状态: 已 `pytest.skip`（2026-07-12 实测确认），其余 2 个 thread 测试通过
+
+**现象**: 在 Slack 频道 thread 中发消息，bot 回复落到频道根（`thread_ts=None`），而非同一 thread。
+**根因 (octos)**: `octos-bus/src/slack_channel.rs:330-396`
+- 入站事件 thread_ts 已正确写入 `InboundMessage.metadata.slack.thread_ts`
+- 但出站 `OutboundMessage` 的 metadata 重建时**丢失 thread_ts**（channel_type 仍被正确保留 → DM 正确抑制 thread）
+- `send()` 读 `msg.metadata.slack.thread_ts` 为 None → `use_thread=false` → 不带 thread_ts 回覆
+**结论**: 测试正确 skip，非测试 bug。等待 octos 修复 thread_ts 出站传播后取消 skip。
+
 ---
 
 ## P1 — 功能缺口
@@ -81,7 +93,7 @@
 
 | 优先级 | 事项 | 说明 |
 |:------:|------|------|
-| P1 | **Slack LLM 测试验证** | TestSlackQueueModeSteerNonAbort / LLMMessages / AbortCommands / ThreadReplies |
+| P1 | **Slack LLM 测试验证** | ✅ 已完成：QueueModeSteerNonAbort(2)/LLMMessages(3)/AbortCommands(3) 全 PASS；ThreadReplies 中频道 thread 回覆因 octos thread_ts 出站传播缺口 skip（另 2 个 PASS）|
 | P1 | **WhatsApp typing 状态泄漏** | 测试间状态修复 |
 | P2 | **Matrix / Line / QQ / WeCom / Twilio 回归验证** | 新 binary + 新模型后全量跑 |
 | P2 | **Slack app_mention 测试** | mock 已支持，需补测试用例 |
