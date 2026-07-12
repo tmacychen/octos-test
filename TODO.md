@@ -94,7 +94,7 @@
 | 优先级 | 事项 | 说明 |
 |:------:|------|------|
 | P1 | **Slack LLM 测试验证** | ✅ 已完成：QueueModeSteerNonAbort(2)/LLMMessages(3)/AbortCommands(3) 全 PASS；ThreadReplies 中频道 thread 回覆因 octos thread_ts 出站传播缺口 skip（另 2 个 PASS）|
-| P1 | **WhatsApp typing 状态泄漏** | 测试间状态修复 |
+| P1 | **WhatsApp typing 状态泄漏** | ✅ 已完成：clear_before 已缓解；Typing 测试注入前加固强断言，跨类(MultiUser→Typing)验证残留 typing=0 |
 | P2 | **Matrix / Line / QQ / WeCom / Twilio 回归验证** | 新 binary + 新模型后全量跑 |
 | P2 | **Slack app_mention 测试** | mock 已支持，需补测试用例 |
 | P3 | **全 channel 全量测试** | 所有 15 channel 回归 |

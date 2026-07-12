@@ -441,6 +441,13 @@ class TestWhatsAppTyping:
     @pytest.mark.llm
     def test_typing_tracking_on_bot_api_call(self, runner):
         """验证 LLM 消息处理时 bot 可能发送 typing 指示"""
+        # 强断言：clear_before 已在测试前调用 runner.clear() 清空 mock 的 _typing_calls，
+        # 注入前不应有任何残留 typing，否则说明跨测试状态泄漏（此前已知问题）。
+        _pre_typing = runner.get_function_calls().get("typing", [])
+        assert len(_pre_typing) == 0, \
+            f"typing 状态泄漏：clear_before 后仍有残留 typing: {_pre_typing}"
+        logger.info("  ✓ clear_before 已清空 typing 状态，无跨测试泄漏")
+
         # 发送需要 LLM 处理的消息（typing 只在 LLM 处理期间发出）
         text = inject_and_get_reply(runner, "Hello, what can you do?", timeout=TIMEOUT_LLM, sender=USER_A)
         assert len(text) > 0
