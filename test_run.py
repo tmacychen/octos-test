@@ -1751,7 +1751,7 @@ def run_bot_test(module: str, test_case: Optional[str] = None) -> Tuple[bool, Li
                     "channel_secret_env": "LINE_CHANNEL_SECRET",
                     "channel_access_token_env": "LINE_CHANNEL_ACCESS_TOKEN",
                     "webhook_port": webhook_port,
-                    "allowed_senders": "U_test_user,U_line_test_1,U_line_test_2,U_line_test_3,U_line_dedup,U_line_media,U_line_mention",
+                    "allowed_senders": "U_test_user,U_line_test_1,U_line_test_2,U_line_test_3,U_line_dedup,U_line_media,U_line_mention,U_line_session,U_line_config,U_line_llm,U_line_abort,U_line_split,U_line_user_a,U_line_user_b,U_line_llm_content",
                 }],
                 "gateway": {
                     "max_history": 5,

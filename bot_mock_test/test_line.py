@@ -248,7 +248,7 @@ class TestLineLLMMessages:
     )
     def test_llm_has_content(self, runner):
         """验证 LLM 回复有非空内容"""
-        chat_id = f"U_llm_content_{uuid.uuid4().hex[:6]}"
+        chat_id = "U_line_llm_content"
         text = inject_and_get_reply(runner, "Hi there, please say something!", timeout=TIMEOUT_LLM, chat_id=chat_id)
         assert len(text) > 0, "Expected LLM to reply with non-empty content"
         logger.info(f"  ✓ LLM content reply: {text[:60]}")
@@ -295,8 +295,8 @@ class TestLineMultiUser:
 
     def test_multiple_users_isolated(self, runner):
         """两个不同用户的消息应该各自得到回复，不会混淆。"""
-        user_a = f"U_user_a_{uuid.uuid4().hex[:4]}"
-        user_b = f"U_user_b_{uuid.uuid4().hex[:4]}"
+        user_a = "U_line_user_a"
+        user_b = "U_line_user_b"
 
         count_before = len(runner.get_sent_messages(timeout=5))
         runner.inject(text="/new", chat_id=user_a)

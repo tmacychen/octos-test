@@ -14,6 +14,7 @@ LINE Mock Server - FastAPI 实现的 LINE Messaging API Mock 服务
   - POST /_clear - 清理状态
 """
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -28,6 +29,15 @@ import uvicorn
 from threading import Thread
 
 logger = logging.getLogger("mock_line")
+
+
+def _log_inject(msg: str):
+    """Persist inject/forward results to a file for offline diagnosis."""
+    try:
+        with open("/tmp/mock_line_inject.log", "a") as f:
+            f.write(f"{time.time():.3f} {msg}\n")
+    except Exception:
+        pass
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Mock LINE API Server
@@ -123,25 +133,39 @@ class MockLineServer:
             ).digest()
             sig_b64 = base64.b64encode(signature).decode()
 
-            try:
-                async with httpx.AsyncClient(timeout=30) as client:
-                    resp = await client.post(
-                        bot_webhook_url,
-                        content=body_str,
-                        headers={
-                            "Content-Type": "application/json",
-                            "X-Line-Signature": sig_b64,
-                        },
-                    )
+            last_err = None
+            for attempt in range(4):
+                try:
+                    async with httpx.AsyncClient(timeout=15) as client:
+                        resp = await client.post(
+                            bot_webhook_url,
+                            content=body_str,
+                            headers={
+                                "Content-Type": "application/json",
+                                "X-Line-Signature": sig_b64,
+                            },
+                        )
                     if resp.status_code == 200:
                         logger.debug(f"Injected event: {event.get('type')}")
+                        _log_inject(f"OK status={resp.status_code} url={bot_webhook_url}")
                         return {"ok": True, "status": resp.status_code}
                     else:
                         logger.warning(f"Webhook returned {resp.status_code}: {resp.text}")
+                        _log_inject(f"WEBHOOK_RETURNED status={resp.status_code} body={resp.text[:200]} url={bot_webhook_url}")
                         return {"ok": False, "status": resp.status_code, "error": resp.text}
-            except httpx.ConnectError as e:
-                logger.warning(f"Cannot connect to bot webhook: {e}")
-                return {"ok": False, "error": str(e)}
+                except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+                    last_err = e
+                    logger.warning(f"Inject attempt {attempt + 1} to {bot_webhook_url} failed: {e}")
+                    _log_inject(f"ATTEMPT {attempt + 1} FAIL {type(e).__name__}: {e} url={bot_webhook_url}")
+                    if attempt < 3:
+                        await asyncio.sleep(1.5)
+                        continue
+                    _log_inject(f"CONNECT_ERROR after retries {e} url={bot_webhook_url}")
+                    return {"ok": False, "error": str(e)}
+                except Exception as e:
+                    logger.warning(f"Inject exception: {e}")
+                    _log_inject(f"EXCEPTION {type(e).__name__}: {e} url={bot_webhook_url}")
+                    return {"ok": False, "error": str(e)}
 
         @app.get("/_sent_messages")
         async def get_sent_messages():

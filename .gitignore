@@ -219,3 +219,6 @@ __marimo__/
 .env
 test-results/
 *.log
+
+# Runtime verification artifacts
+verify_line/
